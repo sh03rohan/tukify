@@ -1,0 +1,13 @@
+# Files excluded from the distributed plugin package (e.g. `wp dist-archive`).
+# Keep internal design/build specs and dev tooling out of the WordPress.org zip.
+
+/.git
+/.github
+/.gitignore
+/.distignore
+/node_modules
+/tests
+*.md
+Tukify-Plugin-Build-Spec.md
+Tukify-Admin-UI-Design-Spec.md
+Tukify-Advanced-Features-Spec.md

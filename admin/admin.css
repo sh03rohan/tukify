@@ -1,0 +1,582 @@
+/**
+ * Tukify admin — dark design system.
+ *
+ * All tokens live on .tuki-app so nothing leaks into the rest of wp-admin.
+ * Every color references a token; no raw hex outside this block.
+ */
+
+.tuki-app {
+	/* Surfaces */
+	--tuki-bg: #0E0E11;
+	--tuki-card: #16161A;
+	--tuki-card-2: #1A1A1F;
+	--tuki-track: #232329;
+
+	/* Borders */
+	--tuki-border: rgba(255, 255, 255, 0.08);
+	--tuki-border-soft: rgba(255, 255, 255, 0.06);
+
+	/* Text */
+	--tuki-text: #F5F5F7;
+	--tuki-text-2: #D8D8DE;
+	--tuki-text-muted: #9A9AA2;
+
+	/* Accent + status */
+	--tuki-accent: #7C6FF0;
+	--tuki-accent-bg: #1C1A2E;
+	--tuki-accent-ink: #9D92F5;
+	--tuki-success: #5BC98E;
+	--tuki-success-bg: #14231C;
+	--tuki-warning: #EF9F27;
+	--tuki-warning-bg: #2A2113;
+	--tuki-danger: #E5626B;
+	--tuki-danger-bg: #2A1618;
+
+	/* Shape */
+	--tuki-radius: 9px;
+	--tuki-radius-md: 12px;
+	--tuki-radius-lg: 16px;
+	--tuki-radius-pill: 20px;
+
+	max-width: 900px;
+	margin: 20px 0;
+}
+
+/* Give a stray admin notice room so it never overlaps the panel. */
+.tuki-wrap {
+	margin-top: 10px;
+}
+
+.tuki-app * {
+	box-sizing: border-box;
+}
+
+/* ---- Panel + header ---- */
+
+.tuki-app .tuki-panel {
+	background: var(--tuki-bg);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius-lg);
+	overflow: hidden;
+	color: var(--tuki-text);
+	font-weight: 400;
+}
+
+.tuki-app .tuki-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 18px 22px;
+	border-bottom: 0.5px solid var(--tuki-border-soft);
+}
+
+.tuki-app .tuki-brand {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.tuki-app .tuki-brand-chip {
+	width: 34px;
+	height: 34px;
+	border-radius: 9px;
+	background: var(--tuki-accent-bg);
+	color: var(--tuki-accent-ink);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.tuki-app .tuki-brand-text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.2;
+}
+
+.tuki-app .tuki-brand-title {
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--tuki-text);
+}
+
+.tuki-app .tuki-brand-sub {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+	margin-top: 2px;
+}
+
+/* ---- Status pill ---- */
+
+.tuki-app .tuki-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 12px;
+	border-radius: var(--tuki-radius-pill);
+	font-size: 12px;
+	border: 0.5px solid transparent;
+}
+
+.tuki-app .tuki-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.tuki-app .tuki-pill--ok {
+	background: var(--tuki-success-bg);
+	border-color: rgba(91, 201, 142, 0.25);
+	color: var(--tuki-success);
+}
+
+.tuki-app .tuki-pill--warn {
+	background: var(--tuki-warning-bg);
+	border-color: rgba(239, 159, 39, 0.25);
+	color: var(--tuki-warning);
+}
+
+.tuki-app .tuki-pill--none {
+	background: var(--tuki-danger-bg);
+	border-color: rgba(229, 98, 107, 0.25);
+	color: var(--tuki-danger);
+}
+
+/* ---- Body ---- */
+
+.tuki-app .tuki-body {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 20px 22px;
+}
+
+/* ---- Metric cards ---- */
+
+.tuki-app .tuki-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+	gap: 12px;
+}
+
+.tuki-app .tuki-card {
+	background: var(--tuki-card);
+	border-radius: var(--tuki-radius-md);
+	padding: 14px 16px;
+}
+
+.tuki-app .tuki-card-label {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+}
+
+.tuki-app .tuki-card-value {
+	font-size: 24px;
+	font-weight: 500;
+	color: var(--tuki-text);
+	margin-top: 6px;
+	line-height: 1.1;
+}
+
+.tuki-app .tuki-card-sub {
+	font-size: 11px;
+	margin-top: 3px;
+}
+
+.tuki-app .is-success {
+	color: var(--tuki-success);
+}
+
+.tuki-app .is-accent {
+	color: var(--tuki-accent);
+}
+
+.tuki-app .is-warning {
+	color: var(--tuki-warning);
+}
+
+.tuki-app .is-muted {
+	color: var(--tuki-text-muted);
+}
+
+/* ---- Blocks (index + searches) ---- */
+
+.tuki-app .tuki-block {
+	background: var(--tuki-card);
+	border-radius: var(--tuki-radius-md);
+	padding: 16px 18px;
+}
+
+.tuki-app .tuki-block-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.tuki-app .tuki-block-title {
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--tuki-text);
+}
+
+.tuki-app .tuki-block-caption {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+	margin-top: 2px;
+}
+
+.tuki-app .tuki-block-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+/* ---- Progress ---- */
+
+.tuki-app .tuki-progress {
+	height: 8px;
+	background: var(--tuki-track);
+	border-radius: 4px;
+	overflow: hidden;
+	margin-top: 14px;
+}
+
+.tuki-app .tuki-progress-bar {
+	height: 100%;
+	width: 0;
+	background: var(--tuki-success);
+	transition: width 0.3s ease;
+}
+
+.tuki-app .tuki-progress-text {
+	font-size: 11px;
+	color: var(--tuki-text-muted);
+	margin-top: 8px;
+}
+
+/* ---- Top searches list ---- */
+
+.tuki-app .tuki-searches-title {
+	margin-bottom: 6px;
+}
+
+.tuki-app .tuki-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.tuki-app .tuki-list-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 9px 0;
+	border-bottom: 0.5px solid var(--tuki-border-soft);
+}
+
+.tuki-app .tuki-list-row:last-child {
+	border-bottom: 0;
+}
+
+.tuki-app .tuki-list-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	color: var(--tuki-text-2);
+}
+
+.tuki-app .tuki-list-value {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.tuki-app .tuki-list-value.is-zero {
+	color: var(--tuki-warning);
+}
+
+.tuki-app .tuki-warn-icon {
+	display: inline-flex;
+	color: var(--tuki-warning);
+}
+
+.tuki-app .tuki-empty {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+	padding: 6px 0;
+}
+
+/* ---- Settings sections ---- */
+
+.tuki-app .tuki-section-head {
+	margin-bottom: 14px;
+}
+
+.tuki-app .tuki-section-title {
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--tuki-text);
+}
+
+.tuki-app .tuki-section-caption {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+	margin-top: 2px;
+}
+
+.tuki-app .tuki-section-body {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.tuki-app .tuki-divider {
+	border-top: 0.5px solid var(--tuki-border-soft);
+	margin: 18px 0;
+}
+
+.tuki-app .tuki-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.tuki-app .tuki-label {
+	font-size: 13px;
+	color: var(--tuki-text-2);
+}
+
+.tuki-app .tuki-hint {
+	font-size: 11px;
+	color: var(--tuki-text-muted);
+}
+
+/* ---- Inputs ---- */
+
+.tuki-app .tuki-input {
+	background: var(--tuki-card-2);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	color: var(--tuki-text);
+	font-size: 13px;
+	height: 40px;
+	line-height: 1.4;
+	padding: 0 13px;
+	width: 100%;
+	max-width: 420px;
+	box-shadow: none;
+}
+
+.tuki-app select.tuki-input {
+	padding-right: 28px;
+}
+
+.tuki-app .tuki-input:focus {
+	border-color: var(--tuki-accent);
+	outline: none;
+	box-shadow: 0 0 0 1px var(--tuki-accent);
+}
+
+.tuki-app .tuki-input::placeholder {
+	color: var(--tuki-text-muted);
+}
+
+.tuki-app .tuki-input--sm {
+	max-width: 120px;
+}
+
+.tuki-app .tuki-kb-pages {
+	max-width: 420px;
+	height: auto;
+}
+
+.tuki-app .tuki-kb-row {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	margin-bottom: 8px;
+	max-width: 560px;
+}
+
+.tuki-app .tuki-kb-row .tuki-input {
+	max-width: none;
+}
+
+.tuki-app .tuki-kb-row input {
+	flex: 0 0 34%;
+}
+
+.tuki-app .tuki-kb-row textarea {
+	flex: 1;
+	height: auto;
+	min-height: 40px;
+	padding-top: 9px;
+}
+
+.tuki-app #tuki-kb-add {
+	margin-top: 4px;
+}
+
+.tuki-app .tuki-color {
+	width: 56px;
+	height: 40px;
+	padding: 3px;
+	background: var(--tuki-card-2);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	cursor: pointer;
+}
+
+.tuki-app .tuki-inline {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.tuki-app .tuki-inline .tuki-input {
+	flex: 1 1 auto;
+	max-width: 420px;
+}
+
+/* ---- Buttons ---- */
+
+.tuki-app .tuki-btn {
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1;
+	padding: 10px 16px;
+	border-radius: var(--tuki-radius);
+	border: 0.5px solid transparent;
+	cursor: pointer;
+	transition: opacity 0.15s ease;
+}
+
+.tuki-app .tuki-btn--accent {
+	background: var(--tuki-accent);
+	color: #fff;
+	border-color: var(--tuki-accent);
+}
+
+.tuki-app .tuki-btn--ghost {
+	background: transparent;
+	border-color: var(--tuki-border);
+	color: var(--tuki-text);
+}
+
+.tuki-app .tuki-btn:hover {
+	opacity: 0.9;
+}
+
+.tuki-app .tuki-btn[disabled] {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.tuki-app .tuki-actions {
+	margin-top: 20px;
+}
+
+/* ---- Toggle switch ---- */
+
+.tuki-app .tuki-switch {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+}
+
+.tuki-app .tuki-switch input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.tuki-app .tuki-switch-slider {
+	position: relative;
+	width: 38px;
+	height: 22px;
+	border-radius: var(--tuki-radius-pill);
+	background: var(--tuki-track);
+	transition: background 0.15s ease;
+	flex-shrink: 0;
+}
+
+.tuki-app .tuki-switch-slider::after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #fff;
+	transition: transform 0.15s ease;
+}
+
+.tuki-app .tuki-switch input:checked + .tuki-switch-slider {
+	background: var(--tuki-accent);
+}
+
+.tuki-app .tuki-switch input:checked + .tuki-switch-slider::after {
+	transform: translateX(16px);
+}
+
+.tuki-app .tuki-switch input:focus + .tuki-switch-slider {
+	box-shadow: 0 0 0 2px rgba(124, 111, 240, 0.4);
+}
+
+.tuki-app .tuki-switch-text {
+	font-size: 13px;
+	color: var(--tuki-text-2);
+}
+
+/* ---- Inline status text (test connection / search) ---- */
+
+.tuki-app .tuki-status {
+	display: inline-block;
+	font-size: 12px;
+	margin-top: 4px;
+	min-height: 16px;
+	color: var(--tuki-text-muted);
+}
+
+.tuki-app .tuki-status.is-success {
+	color: var(--tuki-success);
+}
+
+.tuki-app .tuki-status.is-error {
+	color: var(--tuki-warning);
+}
+
+/* ---- Search-test results ---- */
+
+.tuki-app .tuki-search-results {
+	list-style: none;
+	margin: 10px 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.tuki-app .tuki-search-results li {
+	font-size: 13px;
+	color: var(--tuki-text-2);
+}
+
+.tuki-app .tuki-search-results a {
+	color: var(--tuki-accent-ink);
+	text-decoration: none;
+}
+
+.tuki-app .tuki-search-results a:hover {
+	text-decoration: underline;
+}
+
+.tuki-app .tuki-search-score {
+	color: var(--tuki-text-muted);
+	font-variant-numeric: tabular-nums;
+}

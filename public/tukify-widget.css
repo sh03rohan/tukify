@@ -1,0 +1,898 @@
+/**
+ * Tukify frontend widget styles — injected into the Shadow DOM.
+ *
+ * Because these live inside a shadow root, the store theme cannot override them
+ * and they cannot leak out. Colors are variables so the accent and dark/light
+ * scheme can be set per-instance from config.
+ */
+
+:host {
+	--tuki-bg: #0E0E11;
+	--tuki-surface: #1A1A1F;
+	--tuki-card: #16161A;
+	--tuki-border: rgba(255, 255, 255, 0.08);
+	--tuki-text: #F5F5F7;
+	--tuki-text-muted: #9A9AA2;
+	--tuki-text-faint: #6A6A72;
+	--tuki-accent: #7C6FF0;
+	--tuki-accent-ink: #ffffff;
+	--tuki-success: #5BC98E;
+	--tuki-danger: #E5695B;
+	--tuki-radius: 12px;
+	--tuki-radius-lg: 20px;
+	--tuki-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+	font-family: var(--tuki-font);
+	line-height: 1.45;
+}
+
+/* Floating instance is fixed to the viewport; inline instances flow in content. */
+:host( [data-floating] ) {
+	position: fixed;
+	right: 20px;
+	bottom: 20px;
+	z-index: 2147483000;
+}
+
+:host( [data-inline] ) {
+	display: block;
+}
+
+:host( [data-scheme="light"] ) {
+	--tuki-bg: #FFFFFF;
+	--tuki-surface: #F4F4F6;
+	--tuki-card: #FBFBFC;
+	--tuki-border: rgba(0, 0, 0, 0.10);
+	--tuki-text: #16161A;
+	--tuki-text-muted: #6A6A72;
+	--tuki-text-faint: #9A9AA2;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+/* ---- Launcher ---- */
+
+.tuki-launcher {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	border: none;
+	background: var(--tuki-accent);
+	color: var(--tuki-accent-ink);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+	margin-left: auto;
+	transition: transform 0.15s ease;
+}
+
+.tuki-launcher:hover {
+	transform: translateY(-2px);
+}
+
+.tuki-launcher svg {
+	width: 26px;
+	height: 26px;
+}
+
+/* ---- Panel ---- */
+
+.tuki-panel {
+	background: var(--tuki-bg);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius-lg);
+	flex-direction: column;
+	overflow: hidden;
+}
+
+/* Floating: anchored above the launcher. */
+:host( [data-floating] ) .tuki-panel {
+	position: absolute;
+	right: 0;
+	bottom: 72px;
+	width: min(384px, calc(100vw - 40px));
+	height: min(600px, calc(100vh - 130px));
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+	display: none;
+}
+
+:host( [data-floating] ) .tuki-panel.is-open {
+	display: flex;
+}
+
+/* Launcher mode (inline mount): a floating overlay toggled by an inline button. */
+.tuki-panel--overlay {
+	position: fixed;
+	right: 20px;
+	bottom: 20px;
+	width: min(384px, calc(100vw - 40px));
+	height: min(600px, calc(100vh - 130px));
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+	display: none;
+	z-index: 2147483000;
+}
+
+.tuki-panel--overlay.is-open {
+	display: flex;
+}
+
+/* Inline mode: embedded in the page flow at a fixed height. */
+.tuki-panel--flow {
+	position: static;
+	width: 100%;
+	height: var(--tuki-panel-h, 480px);
+	display: flex;
+}
+
+/* Inline launcher button sits in content flow, not pinned. */
+:host( [data-inline] ) .tuki-launcher {
+	margin-left: 0;
+}
+
+/* ---- Header ---- */
+
+.tuki-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 16px;
+	border-bottom: 0.5px solid var(--tuki-border);
+}
+
+.tuki-head-avatar {
+	width: 34px;
+	height: 34px;
+	border-radius: 9px;
+	background: var(--tuki-accent);
+	color: var(--tuki-accent-ink);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.tuki-head-avatar svg {
+	width: 18px;
+	height: 18px;
+}
+
+.tuki-head-meta {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.2;
+	flex: 1;
+	min-width: 0;
+}
+
+.tuki-head-title {
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--tuki-text);
+}
+
+.tuki-head-status {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 1px;
+}
+
+.tuki-head-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--tuki-success);
+}
+
+.tuki-close {
+	background: none;
+	border: none;
+	color: var(--tuki-text-muted);
+	cursor: pointer;
+	padding: 4px;
+	line-height: 0;
+	border-radius: 6px;
+}
+
+.tuki-close:hover {
+	color: var(--tuki-text);
+}
+
+.tuki-close svg {
+	width: 18px;
+	height: 18px;
+}
+
+/* ---- Messages ---- */
+
+.tuki-msgs {
+	flex: 1;
+	overflow-y: auto;
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.tuki-msgs::-webkit-scrollbar {
+	width: 8px;
+}
+
+.tuki-msgs::-webkit-scrollbar-thumb {
+	background: var(--tuki-surface);
+	border-radius: 8px;
+}
+
+.tuki-msg {
+	max-width: 85%;
+	font-size: 13.5px;
+	padding: 9px 13px;
+	border-radius: var(--tuki-radius);
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+
+.tuki-msg.user {
+	align-self: flex-end;
+	background: var(--tuki-accent);
+	color: var(--tuki-accent-ink);
+	border-bottom-right-radius: 4px;
+}
+
+.tuki-msg.bot {
+	align-self: flex-start;
+	background: var(--tuki-surface);
+	color: var(--tuki-text);
+	border-bottom-left-radius: 4px;
+}
+
+/* ---- Policy source link ---- */
+
+.tuki-source {
+	align-self: flex-start;
+	margin-top: -4px;
+}
+
+.tuki-source-link {
+	font-size: 12px;
+	color: var(--tuki-accent);
+	text-decoration: none;
+	border-bottom: 1px solid transparent;
+}
+
+.tuki-source-link:hover {
+	border-bottom-color: var(--tuki-accent);
+}
+
+/* ---- Quick-reply chips ---- */
+
+.tuki-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-self: flex-start;
+	max-width: 90%;
+}
+
+.tuki-chip {
+	font-size: 12.5px;
+	color: var(--tuki-text);
+	background: var(--tuki-surface);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: 16px;
+	padding: 6px 12px;
+	cursor: pointer;
+	transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.tuki-chip:hover {
+	border-color: var(--tuki-accent);
+	color: var(--tuki-accent);
+}
+
+/* ---- Typing indicator ---- */
+
+.tuki-typing {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.tuki-typing span {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--tuki-text-muted);
+	animation: tuki-bounce 1.2s infinite ease-in-out;
+}
+
+.tuki-typing span:nth-child(2) {
+	animation-delay: 0.15s;
+}
+
+.tuki-typing span:nth-child(3) {
+	animation-delay: 0.3s;
+}
+
+@keyframes tuki-bounce {
+	0%, 60%, 100% {
+		transform: translateY(0);
+		opacity: 0.5;
+	}
+	30% {
+		transform: translateY(-4px);
+		opacity: 1;
+	}
+}
+
+/* ---- Product cards ---- */
+
+.tuki-cards {
+	align-self: stretch;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.tuki-pcard {
+	display: flex;
+	gap: 10px;
+	background: var(--tuki-card);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	padding: 8px;
+}
+
+.tuki-pcard-img {
+	width: 56px;
+	height: 56px;
+	border-radius: 8px;
+	object-fit: cover;
+	background: var(--tuki-surface);
+	flex-shrink: 0;
+	cursor: pointer;
+}
+
+.tuki-pcard-body {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.tuki-pcard-title {
+	font-size: 13px;
+	color: var(--tuki-text);
+	cursor: pointer;
+	text-decoration: none;
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.tuki-pcard-title:hover {
+	color: var(--tuki-accent);
+}
+
+.tuki-pcard-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.tuki-pcard-price {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--tuki-text);
+}
+
+.tuki-badge {
+	font-size: 10.5px;
+	color: var(--tuki-success);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.tuki-badge.out {
+	color: var(--tuki-text-faint);
+}
+
+.tuki-badge-dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.tuki-pcard-actions {
+	margin-top: 2px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+/* Quantity stepper — mirrors the surface/border/radius language of the card. */
+.tuki-qty {
+	display: inline-flex;
+	align-items: center;
+	background: var(--tuki-surface);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: 7px;
+	overflow: hidden;
+}
+
+.tuki-qty-btn {
+	width: 22px;
+	height: 24px;
+	border: none;
+	background: transparent;
+	color: var(--tuki-text);
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0;
+}
+
+.tuki-qty-btn:hover:not([disabled]) {
+	color: var(--tuki-accent);
+}
+
+.tuki-qty-btn[disabled] {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.tuki-qty-input {
+	width: 30px;
+	height: 24px;
+	border: none;
+	border-left: 0.5px solid var(--tuki-border);
+	border-right: 0.5px solid var(--tuki-border);
+	background: transparent;
+	color: var(--tuki-text);
+	font-family: inherit;
+	font-size: 11.5px;
+	text-align: center;
+	padding: 0;
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.tuki-qty-input::-webkit-outer-spin-button,
+.tuki-qty-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.tuki-card-error {
+	flex-basis: 100%;
+	margin-top: 2px;
+	font-size: 11px;
+	color: var(--tuki-danger);
+}
+
+.tuki-add {
+	font-size: 11.5px;
+	font-weight: 500;
+	color: var(--tuki-accent-ink);
+	background: var(--tuki-accent);
+	border: none;
+	border-radius: 7px;
+	padding: 5px 10px;
+	cursor: pointer;
+}
+
+.tuki-add[disabled] {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.tuki-add.added {
+	background: var(--tuki-success);
+}
+
+.tuki-oos {
+	font-size: 11.5px;
+	color: var(--tuki-text-faint);
+}
+
+/* ---- Order status: lookup form + verified card ---- */
+
+.tuki-order-form {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	background: var(--tuki-card);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	padding: 12px;
+	margin-top: 4px;
+}
+
+.tuki-order-label {
+	font-size: 11.5px;
+	color: var(--tuki-text-muted);
+}
+
+.tuki-order-input {
+	width: 100%;
+	font-family: inherit;
+	font-size: 13px;
+	color: var(--tuki-text);
+	background: var(--tuki-surface);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: 8px;
+	padding: 8px 10px;
+}
+
+.tuki-order-input:focus {
+	outline: none;
+	border-color: var(--tuki-accent);
+}
+
+.tuki-order-hint {
+	font-size: 10.5px;
+	font-weight: 400;
+	color: var(--tuki-text-faint);
+	margin-top: 2px;
+}
+
+.tuki-order-submit {
+	align-self: flex-start;
+	margin-top: 4px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--tuki-accent-ink);
+	background: var(--tuki-accent);
+	border: none;
+	border-radius: 8px;
+	padding: 7px 14px;
+	cursor: pointer;
+}
+
+.tuki-order-submit[disabled] {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.tuki-order-error {
+	font-size: 11px;
+	color: var(--tuki-danger);
+}
+
+.tuki-order-error:empty {
+	display: none;
+}
+
+.tuki-order-card {
+	background: var(--tuki-card);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	padding: 12px;
+	margin-top: 4px;
+}
+
+.tuki-order-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+
+.tuki-order-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--tuki-text);
+}
+
+.tuki-order-badge {
+	font-size: 10.5px;
+	font-weight: 600;
+	color: var(--tuki-accent);
+	background: var(--tuki-surface);
+	border-radius: 999px;
+	padding: 3px 9px;
+	white-space: nowrap;
+}
+
+.tuki-order-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 5px 0;
+	border-top: 0.5px solid var(--tuki-border);
+	font-size: 12px;
+}
+
+.tuki-order-key {
+	color: var(--tuki-text-muted);
+}
+
+.tuki-order-val {
+	color: var(--tuki-text);
+	font-weight: 500;
+	text-align: right;
+}
+
+.tuki-more {
+	align-self: flex-start;
+	margin-top: 2px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--tuki-text);
+	background: transparent;
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	padding: 7px 14px;
+	cursor: pointer;
+}
+
+.tuki-more:hover {
+	border-color: var(--tuki-accent);
+	color: var(--tuki-accent);
+}
+
+.tuki-more[disabled] {
+	opacity: 0.6;
+	cursor: default;
+}
+
+/* ---- Comparison table ---- */
+
+.tuki-compare {
+	align-self: stretch;
+}
+
+.tuki-compare-scroll {
+	overflow-x: auto;
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	background: var(--tuki-card);
+}
+
+.tuki-compare-table {
+	border-collapse: collapse;
+	width: 100%;
+	min-width: 280px;
+}
+
+.tuki-compare-table th,
+.tuki-compare-table td {
+	padding: 8px 10px;
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 0.5px solid var(--tuki-border-soft, rgba(255, 255, 255, 0.06));
+}
+
+.tuki-compare-col {
+	min-width: 110px;
+}
+
+.tuki-compare-img {
+	width: 48px;
+	height: 48px;
+	border-radius: 8px;
+	object-fit: cover;
+	background: var(--tuki-surface);
+	cursor: pointer;
+	display: block;
+}
+
+.tuki-compare-title {
+	font-size: 12px;
+	color: var(--tuki-text);
+	margin: 6px 0;
+	line-height: 1.3;
+}
+
+.tuki-compare-label {
+	font-size: 11.5px;
+	color: var(--tuki-text-muted);
+	white-space: nowrap;
+}
+
+.tuki-compare-cell {
+	font-size: 12.5px;
+	color: var(--tuki-text);
+}
+
+.tuki-compare-table tr:last-child th,
+.tuki-compare-table tr:last-child td {
+	border-bottom: 0;
+}
+
+.tuki-compare .tuki-add {
+	margin-top: 2px;
+}
+
+/* ---- Input ---- */
+
+.tuki-input-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+	padding: 12px;
+	border-top: 0.5px solid var(--tuki-border);
+}
+
+.tuki-attach {
+	width: 40px;
+	height: 40px;
+	border-radius: var(--tuki-radius);
+	border: 0.5px solid var(--tuki-border);
+	background: var(--tuki-surface);
+	color: var(--tuki-text-muted);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.tuki-attach:hover {
+	color: var(--tuki-text);
+	border-color: var(--tuki-accent);
+}
+
+.tuki-attach svg {
+	width: 18px;
+	height: 18px;
+}
+
+.tuki-msg-img {
+	padding: 4px;
+}
+
+.tuki-msg-thumb {
+	display: block;
+	max-width: 160px;
+	max-height: 160px;
+	border-radius: 8px;
+}
+
+.tuki-input {
+	flex: 1;
+	resize: none;
+	max-height: 96px;
+	min-height: 40px;
+	background: var(--tuki-surface);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	color: var(--tuki-text);
+	font-family: var(--tuki-font);
+	font-size: 13.5px;
+	line-height: 1.4;
+	padding: 10px 12px;
+}
+
+.tuki-input:focus {
+	outline: none;
+	border-color: var(--tuki-accent);
+}
+
+.tuki-input::placeholder {
+	color: var(--tuki-text-faint);
+}
+
+.tuki-send {
+	width: 40px;
+	height: 40px;
+	border-radius: var(--tuki-radius);
+	border: none;
+	background: var(--tuki-accent);
+	color: var(--tuki-accent-ink);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.tuki-send[disabled] {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.tuki-send svg {
+	width: 18px;
+	height: 18px;
+}
+
+/* ---- Inline widgets (search / recommendations) ---- */
+
+.tuki-inline-widget {
+	background: var(--tuki-bg);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius-lg);
+	padding: 16px;
+}
+
+.tuki-widget-heading {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--tuki-text);
+	margin-bottom: 12px;
+}
+
+.tuki-search-box {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.tuki-search-input {
+	flex: 1;
+	height: 40px;
+	background: var(--tuki-surface);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+	color: var(--tuki-text);
+	font-family: var(--tuki-font);
+	font-size: 13.5px;
+	padding: 0 12px;
+}
+
+.tuki-search-input:focus {
+	outline: none;
+	border-color: var(--tuki-accent);
+}
+
+.tuki-search-input::placeholder {
+	color: var(--tuki-text-faint);
+}
+
+.tuki-search-btn {
+	width: 40px;
+	height: 40px;
+	border: none;
+	border-radius: var(--tuki-radius);
+	background: var(--tuki-accent);
+	color: var(--tuki-accent-ink);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.tuki-search-btn[disabled] {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.tuki-search-btn svg {
+	width: 18px;
+	height: 18px;
+}
+
+.tuki-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--tuki-cols, 2), minmax(0, 1fr));
+	gap: 10px;
+}
+
+.tuki-results .tuki-pcard {
+	flex-direction: column;
+}
+
+.tuki-results .tuki-pcard-img {
+	width: 100%;
+	height: 120px;
+}
+
+.tuki-note {
+	font-size: 12.5px;
+	color: var(--tuki-text-muted);
+	padding: 6px 0;
+}

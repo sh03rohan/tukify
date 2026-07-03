@@ -1,0 +1,690 @@
+# Copyright (C) 2026 Tukify
+# This file is distributed under the GPL-2.0-or-later license.
+msgid ""
+msgstr ""
+"Project-Id-Version: Tukify 1.0.0\n"
+"Report-Msgid-Bugs-To: https://tukify.com/\n"
+"POT-Creation-Date: 2026-07-01T00:00:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: tukify\n"
+
+#: admin/dashboard-page.php:136 admin/class-tuki-admin.php:142
+msgid "%1$s / %2$s products embedded"
+msgstr ""
+
+#: admin/dashboard-page.php:109
+msgid "%s order"
+msgid_plural "%s orders"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/dashboard-page.php:78
+msgid "%s pending"
+msgstr ""
+
+#: admin/dashboard-page.php:94
+msgid "%s vs last"
+msgstr ""
+
+#: admin/dashboard-page.php:158
+msgid "0 results"
+msgstr ""
+
+#: admin/settings-page.php:95
+msgid "A key is saved. Leave blank to keep it, or paste a new key to replace it."
+msgstr ""
+
+#: includes/class-tuki-rest.php:214
+msgid "A message is required."
+msgstr ""
+
+#: includes/class-tuki-rest.php:415
+msgid "A product ID is required."
+msgstr ""
+
+#: includes/class-tuki-rest.php:239
+msgid "A query is required."
+msgstr ""
+
+#: admin/settings-page.php:61
+msgid "AI provider"
+msgstr ""
+
+#: admin/dashboard-page.php:57 public/class-tuki-frontend.php:120
+msgid "AI shopping assistant"
+msgstr ""
+
+#: admin/settings-page.php:85
+msgid "AIza…"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-base.php:71
+msgid "Accent"
+msgstr ""
+
+#: public/class-tuki-frontend.php:127
+msgid "Add to cart"
+msgstr ""
+
+#: public/class-tuki-frontend.php:129
+msgid "Added"
+msgstr ""
+
+#: public/class-tuki-frontend.php:128
+msgid "Adding…"
+msgstr ""
+
+#: admin/settings-page.php:62
+msgid "All AI calls run server-side; your key is never exposed to the frontend."
+msgstr ""
+
+#: admin/dashboard-page.php:73
+msgid "All synced"
+msgstr ""
+
+#: includes/class-tuki-rest.php:274
+msgid "An image is required."
+msgstr ""
+
+#: admin/settings-page.php:70
+msgid "Anthropic (chat only — no embeddings)"
+msgstr ""
+
+#: admin/settings-page.php:72
+msgid "Anthropic has no embeddings endpoint; if selected for chat, embeddings still use Gemini or OpenAI."
+msgstr ""
+
+#: admin/settings-page.php:163
+msgid "Appearance and widget"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:80 public/class-tuki-frontend.php:123
+msgid "Ask about products…"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:56
+msgid "Ask our assistant"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-base.php:81
+msgid "Background"
+msgstr ""
+
+#: includes/class-tuki-chat.php:440
+msgid "Be concise, warm, and conversational. Refer to products by name."
+msgstr ""
+
+#: admin/settings-page.php:147
+msgid "Browse batch size"
+msgstr ""
+
+#: includes/class-tuki-chat.php:463
+msgid "CONTEXT (available products):"
+msgstr ""
+
+#: admin/dashboard-page.php:127
+msgid "Cancel"
+msgstr ""
+
+#: includes/class-tuki-indexer.php:436
+msgid "Categories"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:47
+msgid "Chat"
+msgstr ""
+
+#: admin/settings-page.php:119
+msgid "Chat model"
+msgstr ""
+
+#: admin/dashboard-page.php:103
+msgid "Chat-to-sale"
+msgstr ""
+
+#: admin/class-tuki-admin.php:332
+msgid "Check API key"
+msgstr ""
+
+#: includes/class-tuki-chat.php:445
+msgid "Classify the shopper's latest message into one intent: \"browse\" = they want to see products matching a need (e.g. \"show me headphones\", \"a gift for my dad\"); \"category_browse\" = they ask to see all of a specific category or type (e.g. \"show me all headphones\"); \"browse_all\" = they ask to see the whole catalog (e.g. \"what do you sell\"); \"info\" = they ask a question about a specific product or a detail (e.g. \"is this waterproof\", \"tell me about the Bose headphones\")."
+msgstr ""
+
+#: includes/class-tuki-plugin.php:150
+msgid "Cloning is not allowed."
+msgstr ""
+
+#: public/class-tuki-frontend.php:126
+msgid "Close"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-base.php:57
+msgid "Color scheme"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-search.php:85 elementor/widgets/class-tuki-widget-recommendations.php:75
+msgid "Columns"
+msgstr ""
+
+#: admin/class-tuki-admin.php:137
+msgid "Connected"
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:198
+msgid "Connected to Gemini. Embedding returned %d dimensions."
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-base.php:101
+msgid "Corner radius"
+msgstr ""
+
+#: includes/class-tuki-rest.php:439
+msgid "Could not add that product to the cart."
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:276
+msgid "Could not parse the Gemini response."
+msgstr ""
+
+#: admin/class-tuki-admin.php:138
+msgid "Couldn't reach Gemini — check the API key"
+msgstr ""
+
+#: admin/class-tuki-admin.php:140
+msgid "Couldn't start reindex — please try again"
+msgstr ""
+
+#: admin/settings-page.php:174 elementor/widgets/class-tuki-widget-base.php:60
+msgid "Dark"
+msgstr ""
+
+#: admin/class-tuki-admin.php:66 admin/class-tuki-admin.php:67
+msgid "Dashboard"
+msgstr ""
+
+#: admin/settings-page.php:168
+msgid "Default accent color"
+msgstr ""
+
+#: admin/settings-page.php:172
+msgid "Default color scheme"
+msgstr ""
+
+#: includes/class-tuki-chat.php:441
+msgid "Do not list prices or stock status yourself; the interface shows product cards with that information."
+msgstr ""
+
+#: admin/settings-page.php:109
+msgid "Embedding and chat models used for retrieval and replies."
+msgstr ""
+
+#: admin/settings-page.php:113
+msgid "Embedding model"
+msgstr ""
+
+#: admin/class-tuki-admin.php:144 admin/class-tuki-admin.php:229
+msgid "Enter a search phrase first"
+msgstr ""
+
+#: includes/class-tuki-chat.php:448
+msgid "For browse include every relevant matching product from the CONTEXT; for info include ONLY the single product being discussed, or leave it empty when the question is general and no specific product applies."
+msgstr ""
+
+#: admin/settings-page.php:76
+msgid "Gemini API key"
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:310
+msgid "Gemini authentication failed (%d). Check that your API key is valid."
+msgstr ""
+
+#: admin/class-tuki-admin.php:338
+msgid "Gemini connected"
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:321
+msgid "Gemini error (%1$d). %2$s"
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:313
+msgid "Gemini rate limit reached (429). Please wait a moment and try again."
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:305
+msgid "Gemini rejected the request (400). %s"
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:204
+msgid "Gemini responded but returned no embedding data."
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:317
+msgid "Gemini service error (%d). Please try again shortly."
+msgstr ""
+
+#: admin/settings-page.php:93
+msgid "Get a free key at aistudio.google.com — no billing required for the free tier."
+msgstr ""
+
+#: admin/settings-page.php:164
+msgid "Global defaults for the storefront widget. Elementor widgets can override per-page."
+msgstr ""
+
+#: admin/settings-page.php:68
+msgid "Google Gemini (recommended)"
+msgstr ""
+
+#: admin/settings-page.php:152
+msgid "Guest rate limit (per minute)"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-search.php:53 elementor/widgets/class-tuki-widget-recommendations.php:53 elementor/widgets/class-tuki-widget-chat.php:53
+msgid "Heading"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:88
+msgid "Height (px)"
+msgstr ""
+
+#: includes/class-tuki-chat.php:353
+msgid "Here are some similar items I found."
+msgstr ""
+
+#: public/class-tuki-frontend.php:122
+msgid "Hi! Tell me what you're looking for and I'll find it."
+msgstr ""
+
+#: admin/settings-page.php:134
+msgid "How many products to retrieve and how hard guests can hit the API."
+msgstr ""
+
+#: includes/class-tuki-chat.php:351
+msgid "I couldn't find a close match to that image, but here are the closest options."
+msgstr ""
+
+#: public/class-tuki-frontend.php:142
+msgid "I couldn't find a close match — try describing it differently."
+msgstr ""
+
+#: includes/class-tuki-chat.php:317
+msgid "I couldn't tell what that image shows. Could you describe what you're looking for?"
+msgstr ""
+
+#: includes/class-tuki-chat.php:454
+msgid "IMPORTANT: no product in the catalog closely matches this request. The CONTEXT below lists only the CLOSEST available alternatives. Warmly acknowledge that you could not find an exact match, then gently suggest these closest options. Do not pretend they are an exact match."
+msgstr ""
+
+#: includes/class-tuki-chat.php:443
+msgid "If nothing in the CONTEXT fits the request, say so briefly and suggest the closest available options."
+msgstr ""
+
+#: includes/class-tuki-chat.php:439
+msgid "If the shopper's intent is unclear, ask ONE short clarifying question instead of guessing."
+msgstr ""
+
+#: includes/class-tuki-chat.php:291
+msgid "Image search is not available with the current provider."
+msgstr ""
+
+#: includes/class-tuki-chat.php:447
+msgid "In \"show_product_ids\", put the CONTEXT product ids to display as cards: for browse or info follow the rule below; for category_browse or browse_all you may leave it empty because the catalog is listed separately."
+msgstr ""
+
+#: public/class-tuki-frontend.php:131
+msgid "In stock"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:67
+msgid "Inline panel"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-search.php:63 elementor/widgets/class-tuki-widget-chat.php:78
+msgid "Input placeholder"
+msgstr ""
+
+#: admin/class-tuki-admin.php:353
+msgid "Last reindexed %s ago"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:68
+msgid "Launcher button"
+msgstr ""
+
+#: admin/settings-page.php:175 elementor/widgets/class-tuki-widget-base.php:61
+msgid "Light"
+msgstr ""
+
+#: public/class-tuki-frontend.php:133
+msgid "Loading…"
+msgstr ""
+
+#: admin/settings-page.php:189
+msgid "Log queries, clicks, and chat-to-sale events"
+msgstr ""
+
+#: public/class-tuki-frontend.php:138
+msgid "Looking for similar products…"
+msgstr ""
+
+#: admin/settings-page.php:144
+msgid "Minimum similarity (0–1) for a product to be shown. Below this, the assistant offers the closest alternatives instead. Default 0.6."
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:64
+msgid "Mode"
+msgstr ""
+
+#: admin/settings-page.php:108
+msgid "Models"
+msgstr ""
+
+#: includes/providers/class-tuki-gemini.php:240
+msgid "No Gemini API key is configured."
+msgstr ""
+
+#: includes/class-tuki-chat.php:73
+msgid "No chat provider is configured."
+msgstr ""
+
+#: includes/class-tuki-embeddings.php:58
+msgid "No embedding provider is configured. Anthropic has no embeddings endpoint; select Gemini or OpenAI."
+msgstr ""
+
+#: admin/class-tuki-admin.php:145
+msgid "No matching products — index your catalog, then try a broader phrase"
+msgstr ""
+
+#: public/class-tuki-frontend.php:135
+msgid "No matching products."
+msgstr ""
+
+#: includes/class-tuki-chat.php:458
+msgid "No products matched this query."
+msgstr ""
+
+#: admin/dashboard-page.php:82
+msgid "No products yet"
+msgstr ""
+
+#: admin/dashboard-page.php:98
+msgid "No queries yet"
+msgstr ""
+
+#: admin/dashboard-page.php:113
+msgid "No sales yet"
+msgstr ""
+
+#: admin/dashboard-page.php:146
+msgid "No searches yet — shopper queries will appear here."
+msgstr ""
+
+#: admin/class-tuki-admin.php:325
+msgid "Not connected"
+msgstr ""
+
+#: includes/class-tuki-rest.php:433
+msgid "Not enough stock for that quantity."
+msgstr ""
+
+#: admin/class-tuki-admin.php:356
+msgid "Not reindexed yet"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-search.php:73 elementor/widgets/class-tuki-widget-recommendations.php:63
+msgid "Number of products"
+msgstr ""
+
+#: public/class-tuki-frontend.php:121
+msgid "Online"
+msgstr ""
+
+#: admin/class-tuki-admin.php:163
+msgid "Only Gemini can be tested in this version. OpenAI and Anthropic support arrives in a later phase."
+msgstr ""
+
+#: public/class-tuki-frontend.php:125
+msgid "Open shopping assistant"
+msgstr ""
+
+#: admin/settings-page.php:69
+msgid "OpenAI"
+msgstr ""
+
+#: public/class-tuki-frontend.php:130
+msgid "Out of stock"
+msgstr ""
+
+#: includes/class-tuki-rest.php:291 public/class-tuki-frontend.php:140
+msgid "Please upload a JPG, PNG, or WebP image."
+msgstr ""
+
+#: admin/dashboard-page.php:122
+msgid "Product index"
+msgstr ""
+
+#: admin/dashboard-page.php:70
+msgid "Products indexed"
+msgstr ""
+
+#: admin/settings-page.php:149
+msgid "Products per batch for “show all” browse requests, with a Show more button to load the next batch. Default 10."
+msgstr ""
+
+#: admin/settings-page.php:138
+msgid "Products retrieved (N)"
+msgstr ""
+
+#: admin/settings-page.php:66
+msgid "Provider"
+msgstr ""
+
+#: admin/dashboard-page.php:87
+msgid "Queries this week"
+msgstr ""
+
+#: includes/class-tuki-chat.php:438
+msgid "Recommend ONLY products listed in the CONTEXT below. Never invent, assume, or mention any product that is not in the CONTEXT."
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-recommendations.php:47
+msgid "Recommendations"
+msgstr ""
+
+#: admin/dashboard-page.php:126
+msgid "Reindex all"
+msgstr ""
+
+#: admin/class-tuki-admin.php:139
+msgid "Reindex all products now? This runs in the background."
+msgstr ""
+
+#: admin/settings-page.php:142
+msgid "Relevance threshold"
+msgstr ""
+
+#: includes/class-tuki-chat.php:442
+msgid "Reply in the same language the shopper used."
+msgstr ""
+
+#: admin/settings-page.php:133
+msgid "Retrieval and limits"
+msgstr ""
+
+#: admin/settings-page.php:206
+msgid "Run a semantic search against your indexed catalog to sanity-check ranking."
+msgstr ""
+
+#: admin/settings-page.php:196
+msgid "Save changes"
+msgstr ""
+
+#: admin/settings-page.php:211 elementor/widgets/class-tuki-widget-search.php:47
+msgid "Search"
+msgstr ""
+
+#: admin/class-tuki-admin.php:146
+msgid "Search failed — check your API key and that products are indexed"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-search.php:55
+msgid "Search products"
+msgstr ""
+
+#: admin/settings-page.php:205
+msgid "Search test"
+msgstr ""
+
+#: admin/class-tuki-admin.php:143 public/class-tuki-frontend.php:134
+msgid "Searching…"
+msgstr ""
+
+#: admin/class-tuki-admin.php:176
+msgid "Selected provider is not available."
+msgstr ""
+
+#: public/class-tuki-frontend.php:124
+msgid "Send"
+msgstr ""
+
+#: public/class-tuki-frontend.php:137
+msgid "Sent an image"
+msgstr ""
+
+#: admin/settings-page.php:46 admin/class-tuki-admin.php:75 admin/class-tuki-admin.php:76
+msgid "Settings"
+msgstr ""
+
+#: admin/settings-page.php:182
+msgid "Show a floating chat bubble on the storefront"
+msgstr ""
+
+#: public/class-tuki-frontend.php:132
+msgid "Show more"
+msgstr ""
+
+#: includes/class-tuki-chat.php:90
+msgid "Sorry, I could not generate a reply just now. Please try again."
+msgstr ""
+
+#: public/class-tuki-frontend.php:141
+msgid "Sorry, something went wrong. Please try again."
+msgstr ""
+
+#: includes/class-tuki-rest.php:429
+msgid "Sorry, that product is out of stock."
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-base.php:49
+msgid "Style"
+msgstr ""
+
+#: admin/settings-page.php:87
+msgid "Test connection"
+msgstr ""
+
+#: admin/class-tuki-admin.php:136
+msgid "Testing connection…"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-base.php:91
+msgid "Text"
+msgstr ""
+
+#: includes/class-tuki-rest.php:298
+msgid "That image could not be read. Please try another."
+msgstr ""
+
+#: includes/class-tuki-rest.php:302 public/class-tuki-frontend.php:139
+msgid "That image is too large — please use one under 4 MB."
+msgstr ""
+
+#: includes/class-tuki-rest.php:425
+msgid "That product could not be found."
+msgstr ""
+
+#: includes/class-tuki-rest.php:419
+msgid "The cart is unavailable right now."
+msgstr ""
+
+#: includes/class-tuki-rest.php:328 includes/class-tuki-rest.php:355
+msgid "The catalog is unavailable right now."
+msgstr ""
+
+#: includes/class-tuki-rest.php:196
+msgid "Too many requests. Please slow down and try again shortly."
+msgstr ""
+
+#: admin/dashboard-page.php:144
+msgid "Top searches"
+msgstr ""
+
+#: includes/class-tuki-chat.php:432 admin/class-tuki-admin.php:55 admin/class-tuki-admin.php:56 elementor/class-tuki-elementor.php:37 public/class-tuki-frontend.php:108
+msgid "Tukify"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-chat.php:29
+msgid "Tukify Chat"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-recommendations.php:29
+msgid "Tukify Recommendations"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-search.php:29
+msgid "Tukify Search"
+msgstr ""
+
+#: tukify.php:83
+msgid "Tukify needs WooCommerce to be installed and active. Semantic search, chat, and the widgets stay dormant until then."
+msgstr ""
+
+#: includes/class-tuki-plugin.php:159
+msgid "Unserializing is not allowed."
+msgstr ""
+
+#: public/class-tuki-frontend.php:136
+msgid "Upload an image"
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-search.php:65
+msgid "What are you looking for?"
+msgstr ""
+
+#: includes/class-tuki-chat.php:450
+msgid "When the intent is category_browse, set \"category\" to the category or product type the shopper wants to see (e.g. \"headphones\", \"wine racks\"); otherwise leave \"category\" empty."
+msgstr ""
+
+#: includes/class-tuki-chat.php:437
+msgid "You are %1$s, a friendly shopping assistant for the store \"%2$s\"."
+msgstr ""
+
+#: includes/class-tuki-chat.php:303
+msgid "You are a shopping assistant. Look at the product in this image. In \"query\", write a short search phrase describing the product type and key visible attributes (color, material, style). In \"reply\", write one friendly sentence telling the shopper you will look for similar items — do NOT mention any specific store product, price, or stock."
+msgstr ""
+
+#: admin/class-tuki-admin.php:268
+msgid "You do not have permission to do this."
+msgstr ""
+
+#: elementor/widgets/class-tuki-widget-recommendations.php:55
+msgid "You might like"
+msgstr ""
+
+#: includes/class-tuki-chat.php:397
+msgid "in stock"
+msgstr ""
+
+#: includes/class-tuki-chat.php:397
+msgid "out of stock"
+msgstr ""
+
+#: admin/settings-page.php:210
+msgid "warm clothes for winter"
+msgstr ""
+
