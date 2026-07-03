@@ -109,17 +109,17 @@ class Tuki_Admin {
 	 * @param string $hook Current admin page hook suffix.
 	 */
 	public function enqueue_assets( $hook ) {
-		if ( $hook !== $this->hook_dashboard && $hook !== $this->hook_settings ) {
+		$is_dashboard = ( $hook === $this->hook_dashboard );
+		$is_settings  = ( $hook === $this->hook_settings );
+
+		// Hard scope: never touch any other wp-admin screen.
+		if ( ! $is_dashboard && ! $is_settings ) {
 			return;
 		}
 
-		wp_enqueue_style(
-			'tuki-admin',
-			TUKI_PLUGIN_URL . 'admin/admin.css',
-			array(),
-			TUKI_VERSION
-		);
-
+		// Shared behaviour (test connection, KB, search test, product reindex).
+		// Each init in admin.js guards on element presence, so it is safe on both
+		// screens; it carries the localized tukiAdmin strings below.
 		wp_enqueue_script(
 			'tuki-admin',
 			TUKI_PLUGIN_URL . 'admin/admin.js',
@@ -127,6 +127,34 @@ class Tuki_Admin {
 			TUKI_VERSION,
 			true
 		);
+
+		// The dashboard keeps its existing styles; the settings screen uses the
+		// redesigned, fully self-contained stylesheet + tab controller instead.
+		if ( $is_dashboard ) {
+			wp_enqueue_style(
+				'tuki-admin',
+				TUKI_PLUGIN_URL . 'admin/admin.css',
+				array(),
+				TUKI_VERSION
+			);
+		}
+
+		if ( $is_settings ) {
+			wp_enqueue_style(
+				'tuki-settings',
+				TUKI_PLUGIN_URL . 'admin/settings.css',
+				array(),
+				TUKI_VERSION
+			);
+
+			wp_enqueue_script(
+				'tuki-settings',
+				TUKI_PLUGIN_URL . 'admin/settings.js',
+				array(),
+				TUKI_VERSION,
+				true
+			);
+		}
 
 		wp_localize_script(
 			'tuki-admin',
