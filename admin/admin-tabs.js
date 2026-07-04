@@ -38,10 +38,6 @@
 			return tab.getAttribute( 'data-tab' );
 		} );
 
-		function panelFor( key ) {
-			return root.querySelector( '.tkfy-panel[data-tab="' + key + '"]' );
-		}
-
 		function persist( key ) {
 			try {
 				window.localStorage.setItem( STORAGE_KEY, key );

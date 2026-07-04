@@ -7,7 +7,9 @@
  * panel is visible (CSS display), so hidden tabs' values still submit. "Test
  * connection", "Search test" and "Reindex" run through AJAX (admin.js).
  *
- * Field name="" attributes and the AJAX element IDs/classes are a contract with
+ * Styled by admin-dark.css (dark "Midnight blue" theme) and driven by
+ * admin-tabs.js (tab switching), both scoped to this screen. Field name=""
+ * attributes and the AJAX element IDs/classes are a contract with
  * Tuki_Settings::sanitize() and admin.js — keep them stable across redesigns.
  *
  * @package Tukify

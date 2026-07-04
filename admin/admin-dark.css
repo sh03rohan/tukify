@@ -1,27 +1,32 @@
 /**
- * Tukify settings screen — full-width, tabbed, professional light theme.
+ * Tukify settings screen — full-width, tabbed, "Midnight blue" dark theme.
  *
  * Loaded ONLY on the Tukify Settings screen (scoped in enqueue_assets via the
- * $hook_suffix check). Every selector is prefixed with `.tkfy` so nothing here
- * can affect the rest of wp-admin. Control classes kept from the old markup
- * (.tuki-input, .tuki-btn, .tuki-switch, .tuki-status, …) are restyled here so
- * admin.js keeps working unchanged.
+ * $hook_suffix check). Every selector is prefixed with `.tkfy`, so nothing here
+ * can affect the rest of wp-admin, the admin bar, or the left menu. Control
+ * classes kept from the markup (.tuki-input, .tuki-btn, .tuki-switch,
+ * .tuki-status, …) are restyled here so admin.js keeps working unchanged.
  */
 
 .tkfy {
-	/* ---- Design tokens (single source of truth) ---- */
-	--bg: #f6f7f9;
-	--surface: #ffffff;
-	--border: #e2e5e9;
-	--text: #1e2327;
-	--text-muted: #646970;
-	--primary: #2271b1;
-	--primary-hov: #1d5f96;
-	--active-bg: #eaf2fb;
-	--focus-ring: rgba(34, 113, 177, .35);
-	--placeholder: #8c9196;
-	--success: #00844a;
-	--danger: #d63638;
+	/* ---- Design tokens: single source of truth for every colour ---- */
+	--bg: #0e1116;
+	--surface: #171b21;
+	--surface-2: #1e232b;
+	--border: #2a3038;
+	--text: #e6e9ee;
+	--text-muted: #9aa4b2;
+	--primary: #3b82f6;
+	--primary-hov: #2f6fd6;
+	--active-bg: rgba(59, 130, 246, .16);
+	--focus-ring: rgba(59, 130, 246, .35);
+	--placeholder: #6b7480;
+	--success: #34d399;
+	--danger: #f87171;
+	--on-primary: #ffffff;
+
+	/* Hover lift used on secondary buttons, tabs and rows (kept in the palette). */
+	--hover-lift: rgba(255, 255, 255, .04);
 
 	/* Spacing scale: 4 / 8 / 12 / 16 / 24 */
 	--sp-1: 4px;
@@ -30,21 +35,63 @@
 	--sp-4: 16px;
 	--sp-6: 24px;
 
-	--radius-card: 8px;
+	--radius-card: 12px;
 	--radius-ctl: 6px;
 	--speed: 150ms;
 
-	/* Full-width: fill the admin content area, only a comfortable side gutter. */
-	margin: var(--sp-4) var(--sp-6) 40px 0;
+	/* Full-bleed dark canvas: cancel the WP content gutter on the left so the
+	 * dark background reaches the admin menu, and fill the content area. */
+	margin: 10px 0 0 -20px;
+	min-height: calc(100vh - 92px);
+	padding: var(--sp-6) 32px 60px;
+	background: var(--bg);
 	color: var(--text);
+	color-scheme: dark;
 	font-size: 13px;
 	line-height: 1.5;
+}
+
+@media ( max-width: 782px ) {
+	.tkfy {
+		margin-left: -10px;
+		padding: var(--sp-4) var(--sp-4) 48px;
+	}
 }
 
 .tkfy *,
 .tkfy *::before,
 .tkfy *::after {
 	box-sizing: border-box;
+}
+
+/* Dark scrollbars everywhere inside the container (no white flashes). */
+.tkfy,
+.tkfy * {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border) transparent;
+}
+
+.tkfy ::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+.tkfy ::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.tkfy ::-webkit-scrollbar-thumb {
+	background: var(--border);
+	border-radius: 999px;
+}
+
+.tkfy ::-webkit-scrollbar-thumb:hover {
+	background: #3a424d;
+}
+
+.tkfy ::selection {
+	background: var(--active-bg);
+	color: var(--text);
 }
 
 /* ---------------------------------------------------------------------------
@@ -73,8 +120,8 @@
 	width: 38px;
 	height: 38px;
 	border-radius: 10px;
-	color: #fff;
-	background: linear-gradient(135deg, var(--primary), #5a9bd4);
+	color: var(--on-primary);
+	background: linear-gradient(135deg, var(--primary), #7aa8f5);
 }
 
 .tkfy-brand-text {
@@ -116,14 +163,14 @@
 
 .tkfy-pill--ok {
 	color: var(--success);
-	border-color: #b8e3cc;
-	background: #eafaf1;
+	border-color: rgba(52, 211, 153, .35);
+	background: rgba(52, 211, 153, .12);
 }
 
 .tkfy-pill--warn {
 	color: var(--danger);
-	border-color: #f3c2c3;
-	background: #fdecec;
+	border-color: rgba(248, 113, 113, .35);
+	background: rgba(248, 113, 113, .12);
 }
 
 .tkfy-pill--none {
@@ -140,7 +187,6 @@
 	border-bottom: 1px solid var(--border);
 	margin-bottom: var(--sp-6);
 	overflow-x: auto;
-	scrollbar-width: thin;
 	-webkit-overflow-scrolling: touch;
 }
 
@@ -164,7 +210,7 @@
 
 .tkfy-tab:hover {
 	color: var(--text);
-	background: #eef1f4;
+	background: var(--hover-lift);
 }
 
 .tkfy-tab.is-active {
@@ -175,9 +221,9 @@
 }
 
 .tkfy-tab:focus-visible {
-	outline: 2px solid var(--primary);
-	outline-offset: -2px;
+	outline: none;
 	box-shadow: 0 0 0 3px var(--focus-ring);
+	border-radius: var(--radius-ctl);
 }
 
 /* ---------------------------------------------------------------------------
@@ -185,8 +231,8 @@
  * ------------------------------------------------------------------------- */
 
 .tkfy-panels {
-	/* Reserve a little height so short tabs don't collapse the layout. */
-	min-height: 320px;
+	/* Reserve height so short tabs don't collapse the layout on switch. */
+	min-height: 340px;
 }
 
 .tkfy-panel {
@@ -213,14 +259,14 @@
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-card);
-	box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
 	overflow: hidden;
 }
 
 .tkfy-card-head {
 	padding: var(--sp-4) var(--sp-6);
 	border-bottom: 1px solid var(--border);
-	background: #fbfcfd;
+	background: var(--hover-lift);
 }
 
 .tkfy-card-title {
@@ -285,7 +331,7 @@
 	padding: var(--sp-3) var(--sp-4);
 	font-size: 12px;
 	color: var(--text-muted);
-	background: var(--bg);
+	background: var(--surface-2);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-ctl);
 }
@@ -293,6 +339,7 @@
 .tkfy-note a {
 	color: var(--primary);
 	text-decoration: none;
+	transition: color var(--speed) ease;
 }
 
 .tkfy-note a:hover {
@@ -312,19 +359,18 @@
 	padding: var(--sp-6);
 	text-align: center;
 	color: var(--text-muted);
-	background: var(--bg);
+	background: var(--surface-2);
 	border: 1px dashed var(--border);
 	border-radius: var(--radius-ctl);
 }
 
 .tkfy-empty p {
-	margin: 0;
+	margin: 0 auto;
 	max-width: 52ch;
-	margin-inline: auto;
 }
 
 /* ---------------------------------------------------------------------------
- * Controls (kept class names so admin.js selectors keep matching)
+ * Controls (class names kept so admin.js selectors keep matching)
  * ------------------------------------------------------------------------- */
 
 .tkfy .tuki-input {
@@ -334,10 +380,10 @@
 	padding: 8px 12px;
 	font-size: 13px;
 	color: var(--text);
-	background: var(--surface);
+	background: var(--surface-2);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-ctl);
-	transition: border-color var(--speed) ease, box-shadow var(--speed) ease;
+	transition: border-color var(--speed) ease, box-shadow var(--speed) ease, background-color var(--speed) ease;
 }
 
 .tkfy textarea.tuki-input {
@@ -351,6 +397,16 @@
 	padding: var(--sp-1);
 }
 
+.tkfy select[multiple].tuki-input option {
+	padding: 4px 6px;
+	color: var(--text);
+}
+
+.tkfy select[multiple].tuki-input option:checked {
+	background: var(--active-bg);
+	color: var(--text);
+}
+
 .tkfy .tuki-input--sm {
 	max-width: 140px;
 }
@@ -361,7 +417,7 @@
 }
 
 .tkfy .tuki-input:hover {
-	border-color: #c7ccd2;
+	border-color: #39424d;
 }
 
 .tkfy .tuki-input:focus,
@@ -375,7 +431,7 @@
 	width: 48px;
 	height: 38px;
 	padding: 2px;
-	background: var(--surface);
+	background: var(--surface-2);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-ctl);
 	cursor: pointer;
@@ -411,12 +467,12 @@
 }
 
 .tkfy .tuki-btn[disabled] {
-	opacity: .6;
+	opacity: .55;
 	cursor: default;
 }
 
 .tkfy .tuki-btn--accent {
-	color: #fff;
+	color: var(--on-primary);
 	background: var(--primary);
 	border-color: var(--primary);
 }
@@ -427,14 +483,14 @@
 }
 
 .tkfy .tuki-btn--ghost {
-	color: var(--primary);
-	background: var(--surface);
+	color: var(--text);
+	background: transparent;
 	border-color: var(--border);
 }
 
 .tkfy .tuki-btn--ghost:hover:not([disabled]) {
-	border-color: var(--primary);
-	background: var(--active-bg);
+	border-color: #39424d;
+	background: var(--hover-lift);
 }
 
 /* Toggle switch */
@@ -459,7 +515,7 @@
 	width: 40px;
 	height: 22px;
 	border-radius: 999px;
-	background: #c7ccd2;
+	background: #3a424d;
 	transition: background-color var(--speed) ease;
 }
 
@@ -471,8 +527,8 @@
 	width: 18px;
 	height: 18px;
 	border-radius: 50%;
-	background: #fff;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+	background: #e6e9ee;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .5);
 	transition: transform var(--speed) ease;
 }
 
@@ -482,6 +538,7 @@
 
 .tkfy .tuki-switch input:checked + .tuki-switch-slider::after {
 	transform: translateX(18px);
+	background: var(--on-primary);
 }
 
 .tkfy .tuki-switch input:focus-visible + .tuki-switch-slider {
@@ -539,9 +596,11 @@
 .tkfy .tuki-search-results a {
 	color: var(--primary);
 	text-decoration: none;
+	transition: color var(--speed) ease;
 }
 
 .tkfy .tuki-search-results a:hover {
+	color: var(--primary-hov);
 	text-decoration: underline;
 }
 
@@ -565,7 +624,7 @@
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-card);
-	box-shadow: 0 -1px 8px rgba(0, 0, 0, .04);
+	box-shadow: 0 -2px 12px rgba(0, 0, 0, .45);
 }
 
 .tkfy-actions-hint {
