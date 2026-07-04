@@ -260,13 +260,19 @@
 	border: 1px solid var(--border);
 	border-radius: var(--radius-card);
 	box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
-	overflow: hidden;
+	/* overflow stays visible so an open dropdown can float past the card edge.
+	 * The header rounds its own top corners instead of relying on the card to
+	 * clip it (see .tkfy-card-head). */
+	overflow: visible;
 }
 
 .tkfy-card-head {
 	padding: var(--sp-4) var(--sp-6);
 	border-bottom: 1px solid var(--border);
 	background: var(--hover-lift);
+	/* Match the card's rounded top corners now that the card no longer clips. */
+	border-top-left-radius: calc(var(--radius-card) - 1px);
+	border-top-right-radius: calc(var(--radius-card) - 1px);
 }
 
 .tkfy-card-title {
@@ -492,7 +498,7 @@
 	top: 100%;
 	left: 0;
 	right: 0;
-	z-index: 50;
+	z-index: 9999;
 	margin: 4px 0 0;
 	padding: 4px;
 	list-style: none;
@@ -508,6 +514,15 @@
 	transform-origin: top center;
 	pointer-events: none;
 	transition: opacity var(--speed) ease, transform var(--speed) ease, visibility var(--speed) ease;
+}
+
+/* Flipped variant: not enough room below, so open upward from the trigger. */
+.tkfy-select.is-up .tkfy-select-panel {
+	top: auto;
+	bottom: 100%;
+	margin: 0 0 4px;
+	transform: translateY(4px);
+	transform-origin: bottom center;
 }
 
 .tkfy-select.is-open .tkfy-select-panel {

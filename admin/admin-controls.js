@@ -136,6 +136,34 @@
 
 		var isOpen = false;
 
+		// Decide open direction (down default, up when there isn't room below)
+		// and cap the height to the space available so the panel is never cut off
+		// by the viewport edge. The panel is anchored to the trigger via CSS, so
+		// it follows the trigger on scroll; we only recompute flip + height here.
+		function positionPanel() {
+			wrap.classList.remove( 'is-up' );
+			panel.style.maxHeight = '';
+
+			var rect = trigger.getBoundingClientRect();
+			var vh = window.innerHeight || document.documentElement.clientHeight;
+			var margin = 8;
+			var spaceBelow = vh - rect.bottom - margin;
+			var spaceAbove = rect.top - margin;
+			var content = Math.min( 280, panel.scrollHeight );
+
+			var up = spaceBelow < content && spaceAbove > spaceBelow;
+			wrap.classList.toggle( 'is-up', up );
+
+			var avail = up ? spaceAbove : spaceBelow;
+			panel.style.maxHeight = Math.min( content, Math.max( 80, avail ) ) + 'px';
+		}
+
+		function onReposition() {
+			if ( isOpen ) {
+				positionPanel();
+			}
+		}
+
 		function open() {
 			if ( isOpen ) {
 				return;
@@ -143,6 +171,9 @@
 			isOpen = true;
 			wrap.classList.add( 'is-open' );
 			trigger.setAttribute( 'aria-expanded', 'true' );
+			positionPanel();
+			window.addEventListener( 'resize', onReposition );
+			window.addEventListener( 'scroll', onReposition, true );
 			setActive( selectedIndex(), true );
 		}
 
@@ -153,6 +184,8 @@
 			isOpen = false;
 			wrap.classList.remove( 'is-open' );
 			trigger.setAttribute( 'aria-expanded', 'false' );
+			window.removeEventListener( 'resize', onReposition );
+			window.removeEventListener( 'scroll', onReposition, true );
 			if ( focusTrigger ) {
 				trigger.focus();
 			}
