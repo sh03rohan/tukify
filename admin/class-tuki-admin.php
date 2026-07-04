@@ -48,6 +48,10 @@ class Tuki_Admin {
 		// so nothing is removed globally. See suppress_foreign_notices().
 		add_action( 'admin_notices', array( $this, 'suppress_foreign_notices' ), 0 );
 		add_action( 'all_admin_notices', array( $this, 'suppress_foreign_notices' ), 0 );
+
+		// Tag <body> on Tukify's own screens so the shell stylesheet can paint the
+		// WordPress content chrome dark (scoped to this class only).
+		add_filter( 'admin_body_class', array( $this, 'add_body_class' ) );
 		add_action( 'wp_ajax_tuki_test_connection', array( $this, 'ajax_test_connection' ) );
 		add_action( 'wp_ajax_tuki_start_reindex', array( $this, 'ajax_start_reindex' ) );
 		add_action( 'wp_ajax_tuki_reindex_status', array( $this, 'ajax_reindex_status' ) );
@@ -164,6 +168,21 @@ class Tuki_Admin {
 	}
 
 	/**
+	 * Adds a unique body class on Tukify's own screens (and nowhere else), so the
+	 * shell stylesheet's WordPress-chrome overrides can be scoped to it.
+	 *
+	 * @param string $classes Space-separated body classes.
+	 * @return string
+	 */
+	public function add_body_class( $classes ) {
+		if ( $this->is_plugin_screen() ) {
+			$classes .= ' tukify-admin';
+		}
+
+		return $classes;
+	}
+
+	/**
 	 * Enqueues admin CSS/JS only on Tukify's own screens.
 	 *
 	 * @param string $hook Current admin page hook suffix.
@@ -176,6 +195,16 @@ class Tuki_Admin {
 		if ( ! $is_dashboard && ! $is_settings ) {
 			return;
 		}
+
+		// Shell: paints the WordPress content chrome dark and removes the top gap
+		// on both Tukify screens. Scoped under body.tukify-admin, so loading it
+		// here (our screens only) can never affect the rest of wp-admin.
+		wp_enqueue_style(
+			'tukify-admin-shell',
+			TUKI_PLUGIN_URL . 'admin/admin-shell.css',
+			array(),
+			TUKI_VERSION
+		);
 
 		// Shared behaviour (test connection, KB, search test, product reindex).
 		// Each init in admin.js guards on element presence, so it is safe on both

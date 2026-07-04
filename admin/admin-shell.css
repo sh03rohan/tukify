@@ -1,0 +1,46 @@
+/**
+ * Tukify admin shell — removes the white gap so the dark UI starts flush under
+ * the WordPress admin bar and the dark background fills the whole content area.
+ *
+ * EVERY selector is scoped under `body.tukify-admin`, a class added (via
+ * admin_body_class) ONLY on Tukify's Dashboard and Settings screens. It is also
+ * only enqueued on those screens. So these WordPress-chrome overrides can never
+ * touch any other admin page, the admin bar, or the left menu.
+ */
+
+body.tukify-admin {
+	/* One place to control the dark canvas colour behind the plugin UI. */
+	--tukify-bg: #0e1116;
+	background: var(--tukify-bg);
+}
+
+/* Paint the entire content column dark — no white above, around, or below. */
+body.tukify-admin #wpcontent,
+body.tukify-admin #wpbody,
+body.tukify-admin #wpbody-content {
+	background: var(--tukify-bg);
+}
+
+/* Kill the top spacing that produced the light strip under the admin bar. */
+body.tukify-admin #wpbody-content {
+	padding-top: 0;
+}
+
+/* .wrap covers both containers: .tkfy (Settings) and .tuki-wrap (Dashboard). */
+body.tukify-admin .wrap {
+	margin-top: 0;
+}
+
+/* Dashboard inner box also carries a top margin of its own. */
+body.tukify-admin .tuki-app {
+	margin-top: 0;
+}
+
+/* WordPress prints an empty heading/notice anchor near the top on some loads;
+ * collapse any vertical space it adds (kept in the DOM, just no gap). */
+body.tukify-admin .wp-header-end,
+body.tukify-admin > .wrap > h1.screen-reader-text:first-child {
+	margin: 0;
+	padding: 0;
+	min-height: 0;
+}
