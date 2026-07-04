@@ -46,9 +46,7 @@ $tuki_tabs = array(
 	'general'    => __( 'General', 'tukify' ),
 	'appearance' => __( 'Appearance', 'tukify' ),
 	'products'   => __( 'Products & Cart', 'tukify' ),
-	'image'      => __( 'Image Search', 'tukify' ),
 	'kb'         => __( 'Knowledge Base', 'tukify' ),
-	'orders'     => __( 'Orders & Shipping', 'tukify' ),
 	'analytics'  => __( 'Logs / Analytics', 'tukify' ),
 	'advanced'   => __( 'Advanced', 'tukify' ),
 );
@@ -255,20 +253,6 @@ $tuki_tabs = array(
 					</div>
 				</section>
 
-				<!-- ============================ IMAGE SEARCH ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-image" data-tab="image" aria-labelledby="tkfy-tab-image" tabindex="0" hidden>
-					<div class="tkfy-card">
-						<div class="tkfy-card-head">
-							<h2 class="tkfy-card-title"><?php esc_html_e( 'Image (visual) search', 'tukify' ); ?></h2>
-						</div>
-						<div class="tkfy-card-body">
-							<div class="tkfy-empty tkfy-field--wide">
-								<p><?php esc_html_e( 'Shoppers can upload a photo and the assistant finds visually similar products. This works out of the box — there are no configurable options yet.', 'tukify' ); ?></p>
-							</div>
-						</div>
-					</div>
-				</section>
-
 				<!-- ============================ KNOWLEDGE BASE ============================ -->
 				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-kb" data-tab="kb" aria-labelledby="tkfy-tab-kb" tabindex="0" hidden>
 					<div class="tkfy-card">
@@ -292,40 +276,48 @@ $tuki_tabs = array(
 								</label>
 							</div>
 							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_kb_post_types"><?php esc_html_e( 'Content post types', 'tukify' ); ?></label>
-								<select class="tuki-input" id="tuki_kb_post_types" name="<?php echo esc_attr( $tuki_option ); ?>[kb_post_types][]" multiple size="4">
+								<span class="tkfy-label" id="tuki_kb_post_types_label"><?php esc_html_e( 'Content post types', 'tukify' ); ?></span>
+								<div class="tkfy-checklist" role="group" aria-labelledby="tuki_kb_post_types_label">
 									<?php
 									$tuki_kb_types = array_map( 'sanitize_key', (array) $tuki_settings['kb_post_types'] );
 									foreach ( Tuki_Settings::indexable_post_types() as $tuki_pt ) {
 										$tuki_pt_obj = get_post_type_object( $tuki_pt );
 										$tuki_pt_lbl = ( $tuki_pt_obj && isset( $tuki_pt_obj->labels->name ) ) ? $tuki_pt_obj->labels->name : $tuki_pt;
 										printf(
-											'<option value="%1$s" %2$s>%3$s</option>',
+											'<label class="tkfy-check-row"><input type="checkbox" class="tkfy-check-input" name="%1$s[kb_post_types][]" value="%2$s" %3$s /><span class="tkfy-check-box" aria-hidden="true"></span><span class="tkfy-check-text">%4$s</span></label>',
+											esc_attr( $tuki_option ),
 											esc_attr( $tuki_pt ),
-											selected( in_array( $tuki_pt, $tuki_kb_types, true ), true, false ),
+											checked( in_array( $tuki_pt, $tuki_kb_types, true ), true, false ),
 											esc_html( $tuki_pt_lbl )
 										);
 									}
 									?>
-								</select>
-								<p class="tkfy-hint"><?php esc_html_e( 'Index every published item of these types so the assistant can answer questions about your whole site. Deselect a type to exclude it. Reindex after changing this.', 'tukify' ); ?></p>
+								</div>
+								<p class="tkfy-hint"><?php esc_html_e( 'Index every published item of these types so the assistant can answer questions about your whole site. Untick a type to exclude it. Reindex after changing this.', 'tukify' ); ?></p>
 							</div>
 							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_kb_pages"><?php esc_html_e( 'Extra source pages', 'tukify' ); ?></label>
-								<select class="tuki-input tuki-kb-pages" id="tuki_kb_pages" name="<?php echo esc_attr( $tuki_option ); ?>[kb_pages][]" multiple size="6">
+								<span class="tkfy-label" id="tuki_kb_pages_label"><?php esc_html_e( 'Extra source pages', 'tukify' ); ?></span>
+								<div class="tkfy-checklist" role="group" aria-labelledby="tuki_kb_pages_label">
 									<?php
 									$tuki_selected_pages = array_map( 'absint', (array) $tuki_settings['kb_pages'] );
-									foreach ( get_pages( array( 'sort_column' => 'post_title' ) ) as $tuki_page ) {
-										printf(
-											'<option value="%1$d" %2$s>%3$s</option>',
-											(int) $tuki_page->ID,
-											selected( in_array( (int) $tuki_page->ID, $tuki_selected_pages, true ), true, false ),
-											esc_html( $tuki_page->post_title )
-										);
+									$tuki_pages          = get_pages( array( 'sort_column' => 'post_title' ) );
+
+									if ( empty( $tuki_pages ) ) {
+										echo '<p class="tkfy-checklist-empty">' . esc_html__( 'No published pages found.', 'tukify' ) . '</p>';
+									} else {
+										foreach ( $tuki_pages as $tuki_page ) {
+											printf(
+												'<label class="tkfy-check-row"><input type="checkbox" class="tkfy-check-input" name="%1$s[kb_pages][]" value="%2$d" %3$s /><span class="tkfy-check-box" aria-hidden="true"></span><span class="tkfy-check-text">%4$s</span></label>',
+												esc_attr( $tuki_option ),
+												(int) $tuki_page->ID,
+												checked( in_array( (int) $tuki_page->ID, $tuki_selected_pages, true ), true, false ),
+												esc_html( $tuki_page->post_title )
+											);
+										}
 									}
 									?>
-								</select>
-								<p class="tkfy-hint"><?php esc_html_e( 'Hold Cmd/Ctrl to select multiple pages (e.g. Shipping, Returns, FAQ).', 'tukify' ); ?></p>
+								</div>
+								<p class="tkfy-hint"><?php esc_html_e( 'Tick any pages to include (e.g. Shipping, Returns, FAQ).', 'tukify' ); ?></p>
 							</div>
 
 							<div class="tkfy-field tkfy-field--wide">
@@ -352,20 +344,6 @@ $tuki_tabs = array(
 									<span id="tuki-kb-status" class="tuki-status" role="status" aria-live="polite"></span>
 								</div>
 								<p class="tkfy-hint"><?php esc_html_e( 'Save your changes first, then reindex to embed the latest content.', 'tukify' ); ?></p>
-							</div>
-						</div>
-					</div>
-				</section>
-
-				<!-- ============================ ORDERS & SHIPPING ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-orders" data-tab="orders" aria-labelledby="tkfy-tab-orders" tabindex="0" hidden>
-					<div class="tkfy-card">
-						<div class="tkfy-card-head">
-							<h2 class="tkfy-card-title"><?php esc_html_e( 'Orders & shipping', 'tukify' ); ?></h2>
-						</div>
-						<div class="tkfy-card-body">
-							<div class="tkfy-empty tkfy-field--wide">
-								<p><?php esc_html_e( 'Shoppers can check an order\'s status by verifying their order number and billing email. This works out of the box — there are no configurable options yet.', 'tukify' ); ?></p>
 							</div>
 						</div>
 					</div>

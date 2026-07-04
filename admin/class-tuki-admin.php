@@ -155,6 +155,14 @@ class Tuki_Admin {
 				TUKI_VERSION,
 				true
 			);
+
+			wp_enqueue_script(
+				'tuki-admin-controls',
+				TUKI_PLUGIN_URL . 'admin/admin-controls.js',
+				array(),
+				TUKI_VERSION,
+				true
+			);
 		}
 
 		wp_localize_script(
