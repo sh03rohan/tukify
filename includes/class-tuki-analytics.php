@@ -66,9 +66,9 @@ class Tuki_Analytics {
 		return (bool) Tuki_Settings::get( 'analytics_enabled' );
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Session
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Returns the caller's session id, creating (and cookie-setting) one if needed.
@@ -125,9 +125,9 @@ class Tuki_Analytics {
 		return '';
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Event logging
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Logs a search/chat query, flagging it zero-result when nothing scored high enough.
@@ -157,16 +157,16 @@ class Tuki_Analytics {
 
 		foreach ( $results as $result ) {
 			if ( isset( $result['score'] ) && (float) $result['score'] >= $threshold ) {
-				$hits++;
+				++$hits;
 			}
 		}
 
 		Tuki_DB::insert_event( 'query', $text, $hits, self::session_id() );
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Demand insights
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Logs a chat query and its outcome for demand analysis.
@@ -298,9 +298,9 @@ class Tuki_Analytics {
 		}
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Sale attribution
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Stamps the Tukify session id onto an order at checkout.
@@ -370,9 +370,9 @@ class Tuki_Analytics {
 		return null !== $found;
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Dashboard aggregates
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Returns the top query strings by frequency, with a zero-result flag.
@@ -484,6 +484,8 @@ class Tuki_Analytics {
 	 * @return array
 	 */
 	public static function dashboard_data() {
+		// Site-local timestamp: compared against created_at values stored in site time.
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 		$now       = current_time( 'timestamp' );
 		$week      = self::count_queries_between( $now - WEEK_IN_SECONDS, $now + DAY_IN_SECONDS );
 		$prev_week = self::count_queries_between( $now - ( 2 * WEEK_IN_SECONDS ), $now - WEEK_IN_SECONDS );
@@ -494,16 +496,16 @@ class Tuki_Analytics {
 			$trend = $week > 0 ? 100 : 0;
 		}
 
-		$sessions        = self::count_query_sessions();
-		$attributed      = self::count_events( 'sale' );
-		$chat_to_sale    = $sessions > 0 ? round( ( $attributed / $sessions ) * 100, 1 ) : 0.0;
+		$sessions     = self::count_query_sessions();
+		$attributed   = self::count_events( 'sale' );
+		$chat_to_sale = $sessions > 0 ? round( ( $attributed / $sessions ) * 100, 1 ) : 0.0;
 
 		return array(
-			'queries_week'    => $week,
-			'queries_trend'   => $trend,
-			'chat_to_sale'    => $chat_to_sale,
-			'attributed'      => $attributed,
-			'top_searches'    => self::top_searches( 6 ),
+			'queries_week'  => $week,
+			'queries_trend' => $trend,
+			'chat_to_sale'  => $chat_to_sale,
+			'attributed'    => $attributed,
+			'top_searches'  => self::top_searches( 6 ),
 		);
 	}
 }

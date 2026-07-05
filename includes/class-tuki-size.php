@@ -254,14 +254,14 @@ class Tuki_Size {
 			$signals = 0;
 
 			if ( $height > 0 && ( self::num( $band, 'h_min' ) > 0 || self::num( $band, 'h_max' ) > 0 ) ) {
-				$signals++;
+				++$signals;
 				list( $ok, $s ) = self::range_fit( $height, self::num( $band, 'h_min' ), self::num( $band, 'h_max' ) );
 				$score         += $s;
 				$inrange       += $ok ? 1 : 0;
 			}
 
 			if ( $weight > 0 && ( self::num( $band, 'w_min' ) > 0 || self::num( $band, 'w_max' ) > 0 ) ) {
-				$signals++;
+				++$signals;
 				list( $ok, $s ) = self::range_fit( $weight, self::num( $band, 'w_min' ), self::num( $band, 'w_max' ) );
 				$score         += $s;
 				$inrange       += $ok ? 1 : 0;

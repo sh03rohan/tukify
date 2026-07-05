@@ -118,6 +118,9 @@ class Tuki_Cart {
 		);
 
 		if ( 'category' === $mode && ! empty( $args['category'] ) ) {
+			// A category filter genuinely needs a taxonomy query; there is no
+			// non-tax_query way to browse a product_cat.
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 			$query_args['tax_query'] = array(
 				array(
 					'taxonomy' => 'product_cat',
@@ -349,7 +352,7 @@ class Tuki_Cart {
 		$n        = 0;
 
 		foreach ( $vectors as $vector ) {
-			$n++;
+			++$n;
 			foreach ( $vector as $i => $value ) {
 				$centroid[ $i ] = ( isset( $centroid[ $i ] ) ? $centroid[ $i ] : 0 ) + $value;
 			}

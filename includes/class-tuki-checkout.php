@@ -159,10 +159,10 @@ class Tuki_Checkout {
 		WC()->cart->calculate_totals();
 
 		// Let WooCommerce validate the cart itself (stock, coupons, min/max, etc.).
-		$cart_errors = self::cart_errors();
+		$cart_errors  = self::cart_errors();
 		$field_errors = self::validate_address( $data );
 
-		$cart = WC()->cart;
+		$cart           = WC()->cart;
 		$needs_shipping = $cart->needs_shipping() && $cart->show_shipping();
 
 		if ( $needs_shipping && '' === self::current_shipping_method() ) {
@@ -227,6 +227,10 @@ class Tuki_Checkout {
 		// Mirror WooCommerce: remember the order awaiting payment (so retries reuse
 		// it) and fire the processed hook plugins expect.
 		WC()->session->set( 'order_awaiting_payment', $order_id );
+		// Intentionally firing WooCommerce's own core hook (not a Tukify-prefixed
+		// one) so gateways and other checkout integrations run exactly as they do
+		// on the native checkout.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		do_action( 'woocommerce_checkout_order_processed', $order_id, $order_data, $order );
 
 		// --- Payment: always through WooCommerce, never handled here. ---
@@ -300,9 +304,9 @@ class Tuki_Checkout {
 		);
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Cart review + address + options
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Read-only cart review: line items + WooCommerce's own formatted totals.
@@ -318,9 +322,9 @@ class Tuki_Checkout {
 				continue;
 			}
 
-			$product   = $item['data'];
-			$image_id  = $product->get_image_id();
-			$image     = $image_id ? wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) : '';
+			$product  = $item['data'];
+			$image_id = $product->get_image_id();
+			$image    = $image_id ? wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) : '';
 
 			$items[] = array(
 				'name'  => $product->get_name(),
@@ -456,9 +460,9 @@ class Tuki_Checkout {
 		return $out;
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Mutators (all go through WooCommerce)
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Sets the customer's billing + shipping address from request data.
@@ -524,9 +528,9 @@ class Tuki_Checkout {
 		WC()->session->set( 'chosen_shipping_methods', $chosen );
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Validation
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Whether the shopper must log in first (guest checkout is disabled).
@@ -612,16 +616,16 @@ class Tuki_Checkout {
 		$out = array();
 
 		foreach ( (array) $notices as $notice ) {
-			$text = is_array( $notice ) && isset( $notice['notice'] ) ? $notice['notice'] : $notice;
+			$text  = is_array( $notice ) && isset( $notice['notice'] ) ? $notice['notice'] : $notice;
 			$out[] = wp_strip_all_tags( (string) $text );
 		}
 
 		return $out;
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Gateway support + helpers
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Available payment gateways for the current cart.

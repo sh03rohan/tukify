@@ -60,9 +60,9 @@ class Tuki_Indexer {
 		add_action( self::HOOK_BATCH, array( $this, 'run_reindex_batch' ), 10 );
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Product-change listeners
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Handles a product save. Skips autosaves/revisions.
@@ -115,9 +115,9 @@ class Tuki_Indexer {
 		}
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Background workers
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Indexes a single product (Action Scheduler callback).
@@ -225,10 +225,10 @@ class Tuki_Indexer {
 				$vectors    = $embeddings->embed_batch( $texts );
 			} catch ( Exception $e ) {
 				// Requeue this batch at the front and retry with backoff.
-				$attempts             = (int) $state['attempts'] + 1;
-				$state['queue']       = array_merge( $ids, $queue );
-				$state['attempts']    = $attempts;
-				$state['last_error']  = $e->getMessage();
+				$attempts            = (int) $state['attempts'] + 1;
+				$state['queue']      = array_merge( $ids, $queue );
+				$state['attempts']   = $attempts;
+				$state['last_error'] = $e->getMessage();
 				update_option( self::STATE_OPTION, $state, false );
 
 				$delay = min( 300, 15 * pow( 2, min( $attempts, 5 ) ) );
@@ -266,9 +266,9 @@ class Tuki_Indexer {
 		}
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Reindex control (called from the admin UI)
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Starts a full-catalog reindex.
@@ -354,9 +354,9 @@ class Tuki_Indexer {
 		);
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Helpers
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Marks a reindex state complete and persists it.

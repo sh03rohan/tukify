@@ -73,9 +73,9 @@ class Tuki_KB {
 		return (bool) Tuki_Settings::get( 'kb_enabled' ) && Tuki_DB::count_kb() > 0;
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Indexing
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Rebuilds the whole knowledge base incrementally.
@@ -292,7 +292,7 @@ class Tuki_KB {
 					'content'     => $question . "\n" . $answer,
 					'url'         => '',
 				);
-				$i++;
+				++$i;
 			}
 		}
 
@@ -342,6 +342,8 @@ class Tuki_KB {
 					)
 				);
 
+				$fetched_count = count( $ids );
+
 				foreach ( $ids as $id ) {
 					$id = (int) $id;
 
@@ -363,7 +365,7 @@ class Tuki_KB {
 				}
 
 				++$paged;
-			} while ( count( $ids ) === self::FETCH_BATCH );
+			} while ( self::FETCH_BATCH === $fetched_count );
 		}
 
 		return $entries;
@@ -484,12 +486,13 @@ class Tuki_KB {
 		$chunks = array();
 		$step   = max( 1, self::CHUNK_WORDS - self::CHUNK_OVERLAP );
 
-		for ( $offset = 0; $offset < $total && count( $chunks ) < self::MAX_CHUNKS; $offset += $step ) {
+		for ( $offset = 0; $offset < $total; $offset += $step ) {
 			$slice    = array_slice( $words, $offset, self::CHUNK_WORDS );
 			$chunks[] = trim( implode( ' ', $slice ) );
 
-			if ( $offset + self::CHUNK_WORDS >= $total ) {
-				break; // Last window already reached the end.
+			// Stop at the chunk cap or once the last window reached the end.
+			if ( count( $chunks ) >= self::MAX_CHUNKS || $offset + self::CHUNK_WORDS >= $total ) {
+				break;
 			}
 		}
 
@@ -521,9 +524,9 @@ class Tuki_KB {
 		return $ids;
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Re-embed on change
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Re-indexes just the changed post (in the background) when a KB source is
@@ -601,9 +604,9 @@ class Tuki_KB {
 		return Tuki_Settings::get( 'kb_wc_policies' ) && in_array( $post_id, $this->wc_policy_page_ids(), true );
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Retrieval
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Returns the top-K knowledge-base snippets for a query.

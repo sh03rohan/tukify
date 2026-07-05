@@ -43,57 +43,57 @@ class Tuki_Settings {
 	 */
 	public static function defaults() {
 		return array(
-			'provider'          => 'gemini',
-			'gemini_api_key'    => '',
-			'openai_api_key'    => '',
-			'anthropic_api_key' => '',
-			'embedding_model'   => 'gemini-embedding-001',
-			'chat_model'        => 'gemini-2.5-flash',
-			'retrieval_count'   => 5,
-			'relevance_threshold' => 0.6,
-			'browse_batch_size' => 10,
-			'clarify_enabled'   => 1,
-			'clarify_max'       => 2,
-			'hybrid_filtering'  => 1,
-			'kb_enabled'        => 1,
-			'kb_wc_policies'    => 1,
-			'kb_post_types'     => array( 'post', 'page', 'product' ),
-			'kb_pages'          => array(),
-			'kb_qa'             => array(),
-			'show_citations'    => 1,
-			'upsell_enabled'    => 1,
-			'upsell_max'        => 3,
-			'upsell_proactive'  => 1,
-			'size_advisor_enabled' => 1,
-			'size_unit'            => 'metric',
-			'size_attribute'       => 'size',
-			'size_charts'          => array(),
+			'provider'                 => 'gemini',
+			'gemini_api_key'           => '',
+			'openai_api_key'           => '',
+			'anthropic_api_key'        => '',
+			'embedding_model'          => 'gemini-embedding-001',
+			'chat_model'               => 'gemini-2.5-flash',
+			'retrieval_count'          => 5,
+			'relevance_threshold'      => 0.6,
+			'browse_batch_size'        => 10,
+			'clarify_enabled'          => 1,
+			'clarify_max'              => 2,
+			'hybrid_filtering'         => 1,
+			'kb_enabled'               => 1,
+			'kb_wc_policies'           => 1,
+			'kb_post_types'            => array( 'post', 'page', 'product' ),
+			'kb_pages'                 => array(),
+			'kb_qa'                    => array(),
+			'show_citations'           => 1,
+			'upsell_enabled'           => 1,
+			'upsell_max'               => 3,
+			'upsell_proactive'         => 1,
+			'size_advisor_enabled'     => 1,
+			'size_unit'                => 'metric',
+			'size_attribute'           => 'size',
+			'size_charts'              => array(),
 			'exit_intent_enabled'      => 1,
 			'exit_intent_mobile'       => 1,
 			'exit_intent_cooldown'     => 24,
 			'exit_intent_msg_browsing' => '',
 			'exit_intent_msg_cart'     => '',
-			'reengage_enabled'      => 0,
-			'reengage_idle_seconds' => 45,
-			'reengage_pages'        => array( 'checkout', 'cart' ),
-			'reengage_message'      => '',
-			'reengage_coupon'       => '',
-			'checkout_in_chat'      => 0,
-			'stock_notify_enabled'  => 1,
-			'stock_notify_subject'  => '',
-			'stock_notify_body'     => '',
-			'guest_rate_limit'  => 20,
-			'demand_logging'        => 1,
-			'demand_retention_days' => 90,
-			'cache_enabled'         => 1,
-			'cache_ttl_hours'       => 24,
-			'price_chat_input'      => 0.30,
-			'price_chat_output'     => 2.50,
-			'price_embedding'       => 0.15,
-			'accent_color'      => '#7C6FF0',
-			'color_scheme'      => 'dark',
-			'floating_widget'   => 0,
-			'analytics_enabled' => 1,
+			'reengage_enabled'         => 0,
+			'reengage_idle_seconds'    => 45,
+			'reengage_pages'           => array( 'checkout', 'cart' ),
+			'reengage_message'         => '',
+			'reengage_coupon'          => '',
+			'checkout_in_chat'         => 0,
+			'stock_notify_enabled'     => 1,
+			'stock_notify_subject'     => '',
+			'stock_notify_body'        => '',
+			'guest_rate_limit'         => 20,
+			'demand_logging'           => 1,
+			'demand_retention_days'    => 90,
+			'cache_enabled'            => 1,
+			'cache_ttl_hours'          => 24,
+			'price_chat_input'         => 0.30,
+			'price_chat_output'        => 2.50,
+			'price_embedding'          => 0.15,
+			'accent_color'             => '#7C6FF0',
+			'color_scheme'             => 'dark',
+			'floating_widget'          => 0,
+			'analytics_enabled'        => 1,
 		);
 	}
 
@@ -169,22 +169,22 @@ class Tuki_Settings {
 			: 'gemini';
 
 		foreach ( array( 'gemini_api_key', 'openai_api_key', 'anthropic_api_key' ) as $key_field ) {
-			$value           = isset( $input[ $key_field ] ) ? trim( sanitize_text_field( $input[ $key_field ] ) ) : '';
+			$value             = isset( $input[ $key_field ] ) ? trim( sanitize_text_field( $input[ $key_field ] ) ) : '';
 			$out[ $key_field ] = ( '' === $value ) ? $existing[ $key_field ] : $value;
 		}
 
-		$out['embedding_model']   = sanitize_text_field( $input['embedding_model'] ?? $out['embedding_model'] );
-		$out['chat_model']        = sanitize_text_field( $input['chat_model'] ?? $out['chat_model'] );
-		$out['retrieval_count']   = min( 20, max( 1, absint( $input['retrieval_count'] ?? 5 ) ) );
+		$out['embedding_model'] = sanitize_text_field( $input['embedding_model'] ?? $out['embedding_model'] );
+		$out['chat_model']      = sanitize_text_field( $input['chat_model'] ?? $out['chat_model'] );
+		$out['retrieval_count'] = min( 20, max( 1, absint( $input['retrieval_count'] ?? 5 ) ) );
 
-		$threshold                   = isset( $input['relevance_threshold'] ) ? (float) $input['relevance_threshold'] : 0.6;
-		$out['relevance_threshold']  = min( 1, max( 0, $threshold ) );
+		$threshold                  = isset( $input['relevance_threshold'] ) ? (float) $input['relevance_threshold'] : 0.6;
+		$out['relevance_threshold'] = min( 1, max( 0, $threshold ) );
 
-		$out['browse_batch_size']    = min( 24, max( 4, absint( $input['browse_batch_size'] ?? 10 ) ) );
+		$out['browse_batch_size'] = min( 24, max( 4, absint( $input['browse_batch_size'] ?? 10 ) ) );
 
-		$out['clarify_enabled']      = empty( $input['clarify_enabled'] ) ? 0 : 1;
-		$out['clarify_max']          = min( 3, max( 1, absint( $input['clarify_max'] ?? 2 ) ) );
-		$out['hybrid_filtering']     = empty( $input['hybrid_filtering'] ) ? 0 : 1;
+		$out['clarify_enabled']  = empty( $input['clarify_enabled'] ) ? 0 : 1;
+		$out['clarify_max']      = min( 3, max( 1, absint( $input['clarify_max'] ?? 2 ) ) );
+		$out['hybrid_filtering'] = empty( $input['hybrid_filtering'] ) ? 0 : 1;
 
 		$out['kb_enabled']     = empty( $input['kb_enabled'] ) ? 0 : 1;
 		$out['kb_wc_policies'] = empty( $input['kb_wc_policies'] ) ? 0 : 1;
@@ -291,7 +291,7 @@ class Tuki_Settings {
 		$out['stock_notify_subject'] = isset( $input['stock_notify_subject'] ) ? sanitize_text_field( $input['stock_notify_subject'] ) : '';
 		$out['stock_notify_body']    = isset( $input['stock_notify_body'] ) ? sanitize_textarea_field( $input['stock_notify_body'] ) : '';
 
-		$out['guest_rate_limit']  = min( 1000, max( 1, absint( $input['guest_rate_limit'] ?? 20 ) ) );
+		$out['guest_rate_limit'] = min( 1000, max( 1, absint( $input['guest_rate_limit'] ?? 20 ) ) );
 
 		$out['demand_logging']        = empty( $input['demand_logging'] ) ? 0 : 1;
 		$out['demand_retention_days'] = min( 3650, max( 0, absint( $input['demand_retention_days'] ?? 90 ) ) );

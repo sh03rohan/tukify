@@ -106,19 +106,19 @@ class Tuki_Cache {
 	}
 
 	/**
-	 * Builds a transient key for a namespace + payload.
+	 * Builds a transient key for a bucket + payload.
 	 *
-	 * @param string $namespace Logical bucket (e.g. 'emb', 'ans').
-	 * @param string $payload   Key material.
+	 * @param string $bucket  Logical bucket (e.g. 'emb', 'ans').
+	 * @param string $payload Key material.
 	 * @return string
 	 */
-	private static function key( $namespace, $payload ) {
-		return 'tuki_c_' . md5( self::salt() . '|' . $namespace . '|' . $payload );
+	private static function key( $bucket, $payload ) {
+		return 'tuki_c_' . md5( self::salt() . '|' . $bucket . '|' . $payload );
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Query-embedding cache
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Returns a cached query embedding, or null on miss / when disabled.
@@ -153,9 +153,9 @@ class Tuki_Cache {
 		set_transient( self::key( 'emb', $model . '|' . self::normalize( $text ) ), $vector, self::ttl() );
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * KB answer cache (non-personal intents only — enforced by the caller)
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Returns a cached answer for a message, or null on miss / when disabled.

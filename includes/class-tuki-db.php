@@ -233,19 +233,20 @@ class Tuki_DB {
 		$events     = self::events_table();
 		$kb         = self::kb_table();
 
-		// Table names are internally built from $wpdb->prefix and cannot be
-		// passed as prepared placeholders; they are safe from user input.
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$demand        = self::demand_table();
-		$stock_notify  = self::stock_notify_table();
-		$usage         = self::usage_table();
+		// Dropping our own custom tables on uninstall: a schema change is the whole
+		// point, caching does not apply, and the table names are built from
+		// $wpdb->prefix (no user input), so they cannot be prepared placeholders.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$demand       = self::demand_table();
+		$stock_notify = self::stock_notify_table();
+		$usage        = self::usage_table();
 		$wpdb->query( "DROP TABLE IF EXISTS {$embeddings}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$events}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$kb}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$demand}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$stock_notify}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$usage}" );
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 	}
 
 	/**
@@ -285,8 +286,8 @@ class Tuki_DB {
 	public static function upsert_embedding( $product_id, $content_hash, $embedding_json, $model, $dims ) {
 		global $wpdb;
 
-		$table = self::embeddings_table();
-		$data  = array(
+		$table  = self::embeddings_table();
+		$data   = array(
 			'product_id'   => absint( $product_id ),
 			'content_hash' => $content_hash,
 			'embedding'    => $embedding_json,
@@ -326,12 +327,15 @@ class Tuki_DB {
 		$ids          = array_map( 'absint', $product_ids );
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// The IN() list is a run of %d placeholders built from the id count and
+		// bound via prepare(), so it is safe; PHPCS just can't see the placeholders
+		// inside the interpolated string (UnfinishedPrepare false positive).
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		$rows = $wpdb->get_results(
 			$wpdb->prepare( "SELECT product_id, embedding FROM {$table} WHERE product_id IN ({$placeholders})", $ids ),
 			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		$out = array();
 
@@ -395,8 +399,8 @@ class Tuki_DB {
 	public static function upsert_kb( array $data ) {
 		global $wpdb;
 
-		$table = self::kb_table();
-		$row   = array(
+		$table  = self::kb_table();
+		$row    = array(
 			'source_type'  => substr( (string) $data['source_type'], 0, 20 ),
 			'source_id'    => absint( $data['source_id'] ),
 			'chunk'        => absint( $data['chunk'] ),
@@ -683,9 +687,9 @@ class Tuki_DB {
 		return (int) $count;
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Demand insights
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Records one chat query and its outcome (no personal data, no conversation).
@@ -875,7 +879,11 @@ class Tuki_DB {
 
 		global $wpdb;
 
-		$table  = self::demand_table();
+		$table = self::demand_table();
+		// Site-local timestamp on purpose: rows store created_at via current_time(
+		// 'mysql' ) (site time), so the retention cutoff must be computed in the same
+		// zone to avoid trimming a few hours early/late.
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 		$cutoff = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DateTime.CurrentTimeTimestamp.Requested
@@ -887,9 +895,9 @@ class Tuki_DB {
 		return (int) $deleted;
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Back-in-stock notifications
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Records interest in a product's return to stock (idempotent per product+email).
@@ -1072,9 +1080,9 @@ class Tuki_DB {
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * API usage tracking
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Adds to the day's usage counters for a kind (atomic upsert).

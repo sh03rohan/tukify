@@ -93,7 +93,7 @@ class Tuki_Usage {
 		$chat  = isset( $totals['chat'] ) ? $totals['chat'] : array();
 		$embed = isset( $totals['embedding'] ) ? $totals['embedding'] : array();
 
-		$cost = 0.0;
+		$cost  = 0.0;
 		$cost += ( isset( $chat['prompt_tokens'] ) ? (int) $chat['prompt_tokens'] : 0 ) / 1000000 * self::price( 'chat_input' );
 		$cost += ( isset( $chat['completion_tokens'] ) ? (int) $chat['completion_tokens'] : 0 ) / 1000000 * self::price( 'chat_output' );
 		$cost += ( isset( $embed['prompt_tokens'] ) ? (int) $embed['prompt_tokens'] : 0 ) / 1000000 * self::price( 'embedding' );
@@ -111,6 +111,9 @@ class Tuki_Usage {
 	public static function series( $days ) {
 		$days = max( 1, (int) $days );
 
+		// Site-local timestamp: usage rows are keyed by site-local date
+		// (current_time( 'Y-m-d' )), so the day buckets must be built in site time.
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 		$now   = current_time( 'timestamp' );
 		$start = $now - ( ( $days - 1 ) * DAY_IN_SECONDS );
 

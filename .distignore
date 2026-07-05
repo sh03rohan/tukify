@@ -7,6 +7,11 @@
 /.distignore
 /node_modules
 /tests
+/qa
+/vendor
+/phpcs.xml.dist
+/composer.json
+/composer.lock
 *.md
 Tukify-Plugin-Build-Spec.md
 Tukify-Admin-UI-Design-Spec.md

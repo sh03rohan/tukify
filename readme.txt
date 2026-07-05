@@ -1,10 +1,10 @@
 === Tukify — AI Shopping Assistant for WooCommerce ===
-Contributors: YOUR_WPORG_USERNAME
+Contributors: tukify
 Tags: woocommerce, ai, chatbot, semantic search, recommendations
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,19 @@ No. Every answer is grounded in real retrieval — the assistant can only recomm
 5. The three Tukify Elementor widgets.
 
 == Changelog ==
+
+= 1.4.0 =
+* Added API usage tracking with a per-day tokens/requests chart and estimated cost in Logs / Analytics.
+* Added response caching (query embeddings + knowledge-base answers) with a TTL, enable/disable, and a clear button; nothing user-personal is ever cached.
+
+= 1.3.0 =
+* Added back-in-stock notifications: shoppers can ask to be emailed when an out-of-stock product returns, with a consent step, an admin list, an email template, and one-click unsubscribe.
+
+= 1.2.0 =
+* Added a quantity stepper on chat product cards.
+* Added site-wide RAG over posts, pages, and products, with source citations under answers.
+* Added secure order-status lookup, a size & fit advisor, "shop the look" multi-item visual search, demand insights, proactive re-engagement, and an opt-in in-chat checkout.
+* Redesigned the admin dashboard.
 
 = 1.1.0 =
 * Added clarifying questions, natural-language filters, comparison mode, policy/FAQ knowledge base, cart-aware upsell, and exit-intent re-engagement.

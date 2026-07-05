@@ -22,8 +22,10 @@ class Tuki_Chat {
 	/**
 	 * Runs the retrieval-augmented chat pipeline.
 	 *
-	 * @param string $message Shopper's latest message.
-	 * @param array  $history Prior messages: [ [ 'role' => 'user|assistant', 'content' => '...' ], ... ].
+	 * @param string $message       Shopper's latest message.
+	 * @param array  $history       Prior messages: [ [ 'role' => 'user|assistant', 'content' => '...' ], ... ].
+	 * @param int    $clarify_count How many clarifying questions have already been asked this chat.
+	 * @param array  $context_ids   Product IDs recently shown in the widget, for reference resolution.
 	 * @return array{reply:string,products:array}
 	 * @throws Exception If retrieval or the chat call fails.
 	 */
@@ -79,7 +81,7 @@ class Tuki_Chat {
 
 		foreach ( $pool as $item ) {
 			$product = $item['product'];
-			$index++;
+			++$index;
 			$retrieved[ $product->get_id() ] = $product;
 			$context_lines[]                 = $this->product_line( $index, $product );
 		}
@@ -96,7 +98,7 @@ class Tuki_Chat {
 			$product = wc_get_product( $context_id );
 
 			if ( $product && 'publish' === $product->get_status() ) {
-				$index++;
+				++$index;
 				$retrieved[ $context_id ] = $product;
 				$context_lines[]          = $this->product_line( $index, $product );
 			}
@@ -741,8 +743,8 @@ class Tuki_Chat {
 	 * @return array{products:array,rows:array}
 	 */
 	private function build_comparison( $products ) {
-		$cards      = array();
-		$attr_maps  = array();
+		$cards     = array();
+		$attr_maps = array();
 
 		foreach ( $products as $product ) {
 			$cards[]     = Tuki_Cart::product_card( $product );
@@ -751,7 +753,7 @@ class Tuki_Chat {
 
 		$rows = array();
 
-		$prices = array();
+		$prices  = array();
 		$ratings = array();
 		$stocks  = array();
 
@@ -1291,7 +1293,7 @@ class Tuki_Chat {
 				$kb_lines = array();
 				$number   = 0;
 				foreach ( $kb_snippets as $snippet ) {
-					$number++;
+					++$number;
 					$kb_lines[] = $number . '. ' . $snippet['title'] . ': ' . $snippet['content'];
 				}
 				$kb_text = implode( "\n", $kb_lines );

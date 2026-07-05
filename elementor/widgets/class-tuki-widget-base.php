@@ -100,8 +100,16 @@ abstract class Tuki_Widget_Base extends \Elementor\Widget_Base {
 			array(
 				'label'       => __( 'Corner radius', 'tukify' ),
 				'type'        => \Elementor\Controls_Manager::SLIDER,
-				'range'       => array( 'px' => array( 'min' => 0, 'max' => 32 ) ),
-				'default'     => array( 'unit' => 'px', 'size' => 16 ),
+				'range'       => array(
+					'px' => array(
+						'min' => 0,
+						'max' => 32,
+					),
+				),
+				'default'     => array(
+					'unit' => 'px',
+					'size' => 16,
+				),
 				'render_type' => 'template',
 			)
 		);

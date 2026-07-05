@@ -21,7 +21,7 @@ Tuki_DB::drop_tables();
 
 // Delete all options whose key begins with the `tuki_` prefix.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$option_names = $wpdb->get_col(
+$tuki_option_names = $wpdb->get_col(
 	$wpdb->prepare(
 		"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
 		$wpdb->esc_like( 'tuki_' ) . '%'
@@ -29,9 +29,9 @@ $option_names = $wpdb->get_col(
 );
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-if ( ! empty( $option_names ) ) {
-	foreach ( $option_names as $option_name ) {
-		delete_option( $option_name );
+if ( ! empty( $tuki_option_names ) ) {
+	foreach ( $tuki_option_names as $tuki_option_name ) {
+		delete_option( $tuki_option_name );
 	}
 }
 

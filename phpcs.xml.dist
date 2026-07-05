@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<ruleset name="Tukify">
+	<description>Coding standards for the Tukify plugin (WordPress Coding Standards).</description>
+
+	<!-- What to scan. -->
+	<file>.</file>
+
+	<!-- Never scan build/tooling/vendor or JS/CSS (linted separately). -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/qa/*</exclude-pattern>
+	<exclude-pattern>*/languages/*</exclude-pattern>
+	<exclude-pattern>*\.(js|css)$</exclude-pattern>
+
+	<!--
+		tests/ holds a standalone CLI test harness that is never loaded by
+		WordPress and is not shipped to users (see .distignore). Its `echo` output
+		goes to a terminal (not the browser), and it stubs ABSPATH itself, so the
+		web-oriented escaping / global-scope sniffs are false positives there.
+	-->
+	<exclude-pattern>*/tests/*</exclude-pattern>
+
+	<!-- Show sniff codes and progress. -->
+	<arg value="ps"/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- WordPress ruleset (Core + Docs + Extra + security). -->
+	<rule ref="WordPress"/>
+
+	<!-- Project metadata so the naming/i18n sniffs know our conventions. -->
+	<config name="minimum_wp_version" value="6.0"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="tukify"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="tuki"/>
+				<element value="tukify"/>
+				<element value="Tuki"/>
+				<element value="TUKI"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Match the repo's existing tab indentation + brace style checks. -->
+	<rule ref="WordPress.WhiteSpace.ControlStructureSpacing">
+		<properties>
+			<property name="blank_line_check" value="true"/>
+		</properties>
+	</rule>
+</ruleset>

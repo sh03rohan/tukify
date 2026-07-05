@@ -36,7 +36,7 @@ function tuki_assert_close( $expected, $actual, $label ) {
 		return;
 	}
 
-	$tests_failed++;
+	++$tests_failed;
 	echo "  FAIL  {$label}: expected {$expected}, got {$actual}\n";
 }
 
@@ -52,7 +52,7 @@ tuki_assert_close( 0.0, Tuki_KB::cosine_similarity( array( 1, 0 ), array( 0, 1 )
 tuki_assert_close( -1.0, Tuki_KB::cosine_similarity( array( 1, 0 ), array( -1, 0 ) ), 'opposite vectors → -1' );
 
 // 4) Two known vectors: [1,2,3]·[4,5,6] = 32, |a|=√14, |b|=√77
-//    → 32 / (√14·√77) = 0.9746318461970762.
+// → 32 / (√14·√77) = 0.9746318461970762.
 tuki_assert_close(
 	0.9746318461970762,
 	Tuki_KB::cosine_similarity( array( 1, 2, 3 ), array( 4, 5, 6 ) ),
@@ -66,7 +66,7 @@ tuki_assert_close( 0.0, Tuki_KB::cosine_similarity( array( 0, 0 ), array( 1, 1 )
 tuki_assert_close( 0.0, Tuki_KB::cosine_similarity( array(), array( 1, 2, 3 ) ), 'empty vector → 0' );
 
 // 7) Mismatched lengths compare over the shared prefix: [1,2,3] vs [1,2] uses
-//    [1,2]·[1,2] → 1.0.
+// [1,2]·[1,2] → 1.0.
 tuki_assert_close( 1.0, Tuki_KB::cosine_similarity( array( 1, 2, 3 ), array( 1, 2 ) ), 'mismatched lengths use shared prefix → 1' );
 
 echo "\n";

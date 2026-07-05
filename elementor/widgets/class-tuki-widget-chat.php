@@ -87,8 +87,16 @@ class Tuki_Widget_Chat extends Tuki_Widget_Base {
 			array(
 				'label'       => __( 'Height (px)', 'tukify' ),
 				'type'        => \Elementor\Controls_Manager::SLIDER,
-				'range'       => array( 'px' => array( 'min' => 320, 'max' => 800 ) ),
-				'default'     => array( 'unit' => 'px', 'size' => 480 ),
+				'range'       => array(
+					'px' => array(
+						'min' => 320,
+						'max' => 800,
+					),
+				),
+				'default'     => array(
+					'unit' => 'px',
+					'size' => 480,
+				),
 				'condition'   => array( 'mode' => 'inline' ),
 				'render_type' => 'template',
 			)

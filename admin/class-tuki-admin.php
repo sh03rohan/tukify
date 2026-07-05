@@ -175,7 +175,8 @@ class Tuki_Admin {
 			return;
 		}
 
-		$hook = current_action(); // 'admin_notices' or 'all_admin_notices'.
+		// The hook currently firing: either admin_notices or all_admin_notices.
+		$hook = current_action();
 
 		// Clear everyone else's notices queued on this hook.
 		remove_all_actions( $hook );
@@ -314,8 +315,12 @@ class Tuki_Admin {
 	public function ajax_test_connection() {
 		$this->verify_admin_request();
 
+		// Nonce + capability are verified in verify_admin_request() above; PHPCS
+		// cannot trace that through the helper call.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
 		$provider = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : 'gemini';
 		$api_key  = isset( $_POST['api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( 'gemini' !== $provider ) {
 			wp_send_json_error(
@@ -383,6 +388,8 @@ class Tuki_Admin {
 	public function ajax_test_search() {
 		$this->verify_admin_request();
 
+		// Nonce + capability verified in verify_admin_request() above.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$query = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
 
 		if ( '' === trim( $query ) ) {
@@ -486,9 +493,9 @@ class Tuki_Admin {
 		);
 	}
 
-	/* ---------------------------------------------------------------------
+	/*
 	 * Shared view helpers (used by the dashboard template)
-	 * ------------------------------------------------------------------- */
+	 */
 
 	/**
 	 * Number of published products.

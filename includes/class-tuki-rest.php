@@ -432,7 +432,7 @@ class Tuki_Rest {
 			return new WP_Error( 'tuki_bad_image', __( 'Please upload a JPG, PNG, or WebP image.', 'tukify' ), array( 'status' => 400 ) );
 		}
 
-		$base64  = preg_replace( '/\s+/', '', $base64 );
+		$base64 = preg_replace( '/\s+/', '', $base64 );
 		// Decoding an uploaded image payload (validated as an image below), not code.
 		$decoded = base64_decode( $base64, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 

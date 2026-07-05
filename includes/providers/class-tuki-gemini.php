@@ -57,7 +57,11 @@ class Tuki_Gemini implements Tuki_Provider {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Embeds a batch of texts into vectors (implements Tuki_Provider::embed).
+	 *
+	 * @param array $texts List of strings to embed.
+	 * @return array One float-vector per input, in order.
+	 * @throws Exception On a provider or transport error.
 	 */
 	public function embed( array $texts ): array {
 		$texts = array_values( $texts );
@@ -95,7 +99,12 @@ class Tuki_Gemini implements Tuki_Provider {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Generates a chat completion (implements Tuki_Provider::chat).
+	 *
+	 * @param array $messages Conversation messages ([ 'role' => ..., 'content' => ... ]).
+	 * @param array $context  Optional 'system' instruction and 'response_schema'.
+	 * @return string The model's text reply.
+	 * @throws Exception On a provider or transport error.
 	 */
 	public function chat( array $messages, array $context = array() ): string {
 		$model    = $this->normalize_model( $this->chat_model );
@@ -295,7 +304,7 @@ class Tuki_Gemini implements Tuki_Provider {
 		$attempt      = 0;
 
 		while ( true ) {
-			$attempt++;
+			++$attempt;
 
 			$response = wp_remote_post( $url, $args );
 

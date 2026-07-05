@@ -19,7 +19,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Tuki_Search_MySQL implements Tuki_Search_Backend {
 
 	/**
-	 * {@inheritDoc}
+	 * Ranks products by cosine similarity to a query vector.
+	 *
+	 * @param array      $query_vector  The query embedding.
+	 * @param int        $n             Number of results to return.
+	 * @param array|null $candidate_ids Optional product IDs to restrict ranking to.
+	 * @return array List of [ 'product_id' => int, 'score' => float ], ranked descending.
 	 */
 	public function search( array $query_vector, $n, $candidate_ids = null ) {
 		global $wpdb;
@@ -41,7 +46,10 @@ class Tuki_Search_MySQL implements Tuki_Search_Backend {
 
 		$table = Tuki_DB::embeddings_table();
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// The IN() list is a run of %d placeholders built from the id count and
+		// bound via prepare() (UnfinishedPrepare is a false positive — the
+		// placeholders live inside the interpolated $placeholders string).
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		if ( is_array( $candidate_ids ) ) {
 			$ids          = array_map( 'absint', $candidate_ids );
 			$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
@@ -52,7 +60,7 @@ class Tuki_Search_MySQL implements Tuki_Search_Backend {
 		} else {
 			$rows = $wpdb->get_results( "SELECT product_id, embedding FROM {$table}", ARRAY_A );
 		}
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		if ( empty( $rows ) ) {
 			return array();

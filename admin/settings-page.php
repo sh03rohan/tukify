@@ -532,6 +532,9 @@ $tuki_tabs = array(
 						$tuki_range = 30;
 					}
 
+					// Site-local timestamp: the demand/usage rows are stored in site time,
+					// so the range window is computed in the same zone.
+					// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 					$tuki_now      = current_time( 'timestamp' );
 					$tuki_win_days = ( 0 === $tuki_range ) ? 30 : $tuki_range;
 					$tuki_since    = ( 0 === $tuki_range ) ? '1970-01-01 00:00:00' : gmdate( 'Y-m-d H:i:s', $tuki_now - ( $tuki_range * DAY_IN_SECONDS ) );
