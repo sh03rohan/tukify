@@ -252,22 +252,46 @@
 	border-bottom-left-radius: 4px;
 }
 
-/* ---- Policy source link ---- */
+/* ---- KB citation chips ---- */
 
-.tuki-source {
+.tuki-sources {
 	align-self: flex-start;
-	margin-top: -4px;
+	max-width: 90%;
+	margin-top: -2px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 5px;
 }
 
-.tuki-source-link {
-	font-size: 12px;
+.tuki-sources-label {
+	font-size: 10.5px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--tuki-muted, var(--tuki-text));
+	opacity: 0.75;
+}
+
+.tuki-source-chip {
+	display: inline-block;
+	max-width: 100%;
+	font-size: 11.5px;
+	line-height: 1.3;
 	color: var(--tuki-accent);
 	text-decoration: none;
-	border-bottom: 1px solid transparent;
+	background: var(--tuki-surface);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: 12px;
+	padding: 3px 9px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.tuki-source-link:hover {
-	border-bottom-color: var(--tuki-accent);
+.tuki-source-chip:hover {
+	border-color: var(--tuki-accent);
 }
 
 /* ---- Quick-reply chips ---- */

@@ -1689,8 +1689,8 @@
 					if ( data && 'clarify' === data.intent ) {
 						clarifyCount++;
 					}
-					if ( data && data.source && data.source.url ) {
-						addSource( data.source );
+					if ( data && data.sources && data.sources.length ) {
+						addSources( data.sources );
 					}
 					if ( data && data.quick_replies && data.quick_replies.length ) {
 						addQuickReplies( data.quick_replies );
@@ -1718,15 +1718,28 @@
 				} );
 		}
 
-		function addSource( src ) {
-			var wrap = el( 'div', 'tuki-source' );
-			var link = document.createElement( 'a' );
-			link.className = 'tuki-source-link';
-			link.href = src.url;
-			link.target = '_blank';
-			link.rel = 'noopener';
-			link.textContent = src.title || '';
-			wrap.appendChild( link );
+		// Citations: compact clickable chips for the KB pages that grounded the
+		// answer. Only the sources the server actually used are passed here.
+		function addSources( sources ) {
+			var wrap = el( 'div', 'tuki-sources' );
+
+			var label = el( 'span', 'tuki-sources-label' );
+			label.textContent = S.sourcesLabel || 'Sources';
+			wrap.appendChild( label );
+
+			sources.forEach( function ( src ) {
+				if ( ! src || ! src.url ) {
+					return;
+				}
+				var chip = document.createElement( 'a' );
+				chip.className = 'tuki-source-chip';
+				chip.href = src.url;
+				chip.target = '_blank';
+				chip.rel = 'noopener';
+				chip.textContent = src.title || src.url;
+				wrap.appendChild( chip );
+			} );
+
 			msgsEl.appendChild( wrap );
 			scrollDown();
 		}

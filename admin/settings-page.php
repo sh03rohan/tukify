@@ -432,6 +432,14 @@ $tuki_tabs = array(
 									<span class="tuki-switch-text"><?php esc_html_e( 'Include WooCommerce policy pages (terms, privacy)', 'tukify' ); ?></span>
 								</label>
 							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[show_citations]" value="1" <?php checked( $tuki_settings['show_citations'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Show sources under knowledge-base answers', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint"><?php esc_html_e( 'Adds small clickable chips linking to the pages the assistant used to answer. Only sources that actually grounded the answer are shown.', 'tukify' ); ?></p>
+							</div>
 							<div class="tkfy-field">
 								<span class="tkfy-label" id="tuki_kb_post_types_label"><?php esc_html_e( 'Content post types', 'tukify' ); ?></span>
 								<div class="tkfy-checklist" role="group" aria-labelledby="tuki_kb_post_types_label">

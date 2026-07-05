@@ -602,14 +602,15 @@ class Tuki_Chat {
 	 * @param string $reply       Model reply (grounded in the KB context).
 	 * @param array  $kb_snippets Retrieved KB snippets (ranked).
 	 * @param string $intent      'policy' or 'info'.
-	 * @return array{reply:string,products:array,intent:string,source?:array}
+	 * @return array{reply:string,products:array,intent:string,sources:array,answered:bool}
 	 */
 	private function kb_response( $reply, $kb_snippets, $intent = 'policy' ) {
 		$intent = ( 'info' === $intent ) ? 'info' : 'policy';
 
 		Tuki_Analytics::record_event( 'policy' === $intent ? 'policy_answered' : 'info_answered' );
 
-		$source   = null;
+		$sources  = array();
+		$seen     = array();
 		$answered = false;
 
 		foreach ( $kb_snippets as $snippet ) {
@@ -617,22 +618,47 @@ class Tuki_Chat {
 				continue;
 			}
 
-			// A confidently-matched snippet means the KB could answer this.
+			// A confidently-matched snippet means the KB could answer this, and is a
+			// source that actually grounded the answer (weak matches are excluded).
 			$answered = true;
 
-			if ( ! empty( $snippet['url'] ) && null === $source ) {
-				$source = array(
-					'title' => $snippet['title'],
-					'url'   => $snippet['url'],
-				);
+			if ( empty( $snippet['url'] ) ) {
+				continue;
 			}
+
+			// De-duplicate by URL: several chunks can come from the same page.
+			$key = strtolower( trim( (string) $snippet['url'] ) );
+
+			if ( '' === $key || isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+
+			$title = ( isset( $snippet['title'] ) && '' !== trim( (string) $snippet['title'] ) )
+				? (string) $snippet['title']
+				: (string) $snippet['url'];
+
+			$sources[] = array(
+				'title' => $title,
+				'url'   => (string) $snippet['url'],
+			);
+
+			// Keep the citation row compact — the top few sources are enough.
+			if ( count( $sources ) >= 3 ) {
+				break;
+			}
+		}
+
+		// Owner can hide citations entirely; when off, carry none through to the UI.
+		if ( ! Tuki_Settings::get( 'show_citations' ) ) {
+			$sources = array();
 		}
 
 		return array(
 			'reply'    => $reply,
 			'products' => array(),
 			'intent'   => $intent,
-			'source'   => $source,
+			'sources'  => $sources,
 			'answered' => $answered,
 		);
 	}

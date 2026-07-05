@@ -60,6 +60,7 @@ class Tuki_Settings {
 			'kb_post_types'     => array( 'post', 'page', 'product' ),
 			'kb_pages'          => array(),
 			'kb_qa'             => array(),
+			'show_citations'    => 1,
 			'upsell_enabled'    => 1,
 			'upsell_max'        => 3,
 			'upsell_proactive'  => 1,
@@ -182,6 +183,7 @@ class Tuki_Settings {
 
 		$out['kb_enabled']     = empty( $input['kb_enabled'] ) ? 0 : 1;
 		$out['kb_wc_policies'] = empty( $input['kb_wc_policies'] ) ? 0 : 1;
+		$out['show_citations'] = empty( $input['show_citations'] ) ? 0 : 1;
 
 		// Whitelist submitted post types against the site's public post types so
 		// only real, indexable content types can be enabled.

@@ -276,6 +276,7 @@ class Tuki_Frontend {
 				'notifyNeedEmail'      => __( 'Please enter your email address.', 'tukify' ),
 				'notifyNeedConsent'    => __( 'Please tick the box to continue.', 'tukify' ),
 				'notifyDone'           => __( 'Done! We\'ll email you when it\'s back.', 'tukify' ),
+				'sourcesLabel'         => __( 'Sources', 'tukify' ),
 			),
 		);
 	}
