@@ -337,7 +337,9 @@ class Tuki_KB {
 						'fields'           => 'ids',
 						'orderby'          => 'ID',
 						'order'            => 'ASC',
-						'suppress_filters' => true,
+						// get_posts() defaults this to true; wordpress.org prohibits
+						// that, so set it explicitly to false.
+						'suppress_filters' => false,
 						'no_found_rows'    => true,
 					)
 				);

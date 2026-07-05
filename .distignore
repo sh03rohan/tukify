@@ -12,7 +12,10 @@
 /phpcs.xml.dist
 /composer.json
 /composer.lock
+/build.sh
 *.md
+.DS_Store
+Thumbs.db
 Tukify-Plugin-Build-Spec.md
 Tukify-Admin-UI-Design-Spec.md
 Tukify-Advanced-Features-Spec.md

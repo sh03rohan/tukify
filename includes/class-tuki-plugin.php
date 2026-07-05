@@ -91,7 +91,9 @@ final class Tuki_Plugin {
 	 * @return void
 	 */
 	private function init_hooks() {
-		add_action( 'init', array( $this, 'load_textdomain' ) );
+		// Translations are loaded automatically for wordpress.org-hosted plugins
+		// (WordPress 4.6+), so no load_plugin_textdomain() call is needed.
+
 		// Version-gated: runs create_tables() once when the plugin version changes,
 		// so new tables (e.g. the KB table) appear on existing installs.
 		add_action( 'init', array( 'Tuki_DB', 'maybe_upgrade' ) );
@@ -140,19 +142,6 @@ final class Tuki_Plugin {
 		} else {
 			new Tuki_Frontend();
 		}
-	}
-
-	/**
-	 * Loads the plugin translations.
-	 *
-	 * @return void
-	 */
-	public function load_textdomain() {
-		load_plugin_textdomain(
-			'tukify',
-			false,
-			dirname( TUKI_PLUGIN_BASENAME ) . '/languages'
-		);
 	}
 
 	/**

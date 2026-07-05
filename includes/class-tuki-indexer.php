@@ -283,7 +283,9 @@ class Tuki_Indexer {
 				'fields'           => 'ids',
 				'numberposts'      => -1,
 				'no_found_rows'    => true,
-				'suppress_filters' => true,
+				// get_posts() defaults this to true; wordpress.org prohibits that, so
+				// set it explicitly to false. Still returns all published products.
+				'suppress_filters' => false,
 			)
 		);
 
