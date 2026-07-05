@@ -600,6 +600,90 @@
 	opacity: 0.9;
 }
 
+/* ---- Back-in-stock notify ---- */
+
+.tuki-notify {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.tuki-notify-btn {
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--tuki-accent);
+	background: transparent;
+	border: 1px solid var(--tuki-border);
+	border-radius: 8px;
+	padding: 7px 10px;
+	cursor: pointer;
+	transition: border-color 0.15s ease;
+}
+
+.tuki-notify-btn:hover {
+	border-color: var(--tuki-accent);
+}
+
+.tuki-notify-input {
+	width: 100%;
+	box-sizing: border-box;
+	font-size: 13px;
+	color: var(--tuki-text);
+	background: var(--tuki-bg);
+	border: 1px solid var(--tuki-border);
+	border-radius: 8px;
+	padding: 8px 10px;
+}
+
+.tuki-notify-input:focus {
+	outline: none;
+	border-color: var(--tuki-accent);
+}
+
+.tuki-notify-consent {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	font-size: 11.5px;
+	line-height: 1.4;
+	color: var(--tuki-muted, var(--tuki-text));
+	cursor: pointer;
+}
+
+.tuki-notify-consent input {
+	margin-top: 2px;
+	accent-color: var(--tuki-accent);
+	flex: 0 0 auto;
+}
+
+.tuki-notify-submit {
+	align-self: flex-start;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--tuki-accent-ink);
+	background: var(--tuki-accent);
+	border: none;
+	border-radius: 8px;
+	padding: 8px 14px;
+	cursor: pointer;
+}
+
+.tuki-notify-submit[disabled] {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.tuki-notify-err {
+	font-size: 11px;
+	color: #e5484d;
+}
+
+.tuki-notify-done {
+	font-size: 12.5px;
+	color: var(--tuki-text);
+}
+
 /* ---- Typing indicator ---- */
 
 .tuki-typing {

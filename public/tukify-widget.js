@@ -143,6 +143,7 @@
 
 	function buildCard( p ) {
 		var card = el( 'div', 'tuki-pcard' );
+		var notify = null;
 
 		var img = document.createElement( 'img' );
 		img.className = 'tuki-pcard-img';
@@ -241,14 +242,101 @@
 			var oos = el( 'span', 'tuki-oos' );
 			oos.textContent = S.outOfStock || '';
 			actions.appendChild( oos );
+			// Offer a back-in-stock alert for genuinely out-of-stock items.
+			if ( cfg.stockNotify && cfg.stockNotify.enabled && p.id && ! p.stock ) {
+				notify = buildStockNotify( p );
+			}
 		}
 
 		body.appendChild( title );
 		body.appendChild( meta );
 		body.appendChild( actions );
+		if ( notify ) {
+			body.appendChild( notify );
+		}
 		card.appendChild( img );
 		card.appendChild( body );
 		return card;
+	}
+
+	// Back-in-stock: a compact "Notify me" button that expands into a consented
+	// email capture. Only the email is collected, and only with an explicit tick.
+	function buildStockNotify( p ) {
+		var wrap = el( 'div', 'tuki-notify' );
+		var btn = el( 'button', 'tuki-notify-btn' );
+		btn.type = 'button';
+		btn.textContent = S.notifyStart || 'Notify me when it\'s back';
+		btn.addEventListener( 'click', function () {
+			showNotifyForm( p, wrap );
+		} );
+		wrap.appendChild( btn );
+		return wrap;
+	}
+
+	function showNotifyForm( p, wrap ) {
+		wrap.textContent = '';
+
+		var email = el( 'input', 'tuki-notify-input' );
+		email.type = 'email';
+		email.placeholder = S.notifyEmailPh || '';
+
+		var consentRow = el( 'label', 'tuki-notify-consent' );
+		var consent = document.createElement( 'input' );
+		consent.type = 'checkbox';
+		var consentText = el( 'span', 'tuki-notify-consent-text' );
+		consentText.textContent = S.notifyConsent || '';
+		consentRow.appendChild( consent );
+		consentRow.appendChild( consentText );
+
+		var submit = el( 'button', 'tuki-notify-submit' );
+		submit.type = 'button';
+		submit.textContent = S.notifySubmit || 'Notify me';
+
+		var err = el( 'div', 'tuki-notify-err' );
+
+		function run() {
+			if ( submit.disabled ) {
+				return;
+			}
+			err.textContent = '';
+			var em = ( email.value || '' ).trim();
+			if ( ! em ) {
+				err.textContent = S.notifyNeedEmail || '';
+				return;
+			}
+			// Consent is required before anything is sent or stored.
+			if ( ! consent.checked ) {
+				err.textContent = S.notifyNeedConsent || '';
+				return;
+			}
+			submit.disabled = true;
+			submit.textContent = S.notifySending || '…';
+			api( 'stock-notify', { product_id: p.id, email: em, consent: true } )
+				.then( function ( data ) {
+					wrap.textContent = '';
+					var ok = el( 'div', 'tuki-notify-done' );
+					ok.textContent = ( data && data.message ) ? data.message : ( S.notifyDone || '' );
+					wrap.appendChild( ok );
+				} )
+				.catch( function ( e ) {
+					submit.disabled = false;
+					submit.textContent = S.notifySubmit || 'Notify me';
+					err.textContent = ( e && e.data && e.data.message ) ? e.data.message : ( S.error || '' );
+				} );
+		}
+
+		submit.addEventListener( 'click', run );
+		email.addEventListener( 'keydown', function ( e ) {
+			if ( 13 === e.keyCode ) {
+				e.preventDefault();
+				run();
+			}
+		} );
+
+		wrap.appendChild( email );
+		wrap.appendChild( consentRow );
+		wrap.appendChild( submit );
+		wrap.appendChild( err );
 	}
 
 	function renderGrid( target, products ) {

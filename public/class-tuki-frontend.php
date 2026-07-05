@@ -172,6 +172,9 @@ class Tuki_Frontend {
 				// top of the REST cookie nonce).
 				'nonce'   => wp_create_nonce( 'tuki_checkout' ),
 			),
+			'stockNotify'     => array(
+				'enabled' => class_exists( 'Tuki_Stock_Notify' ) && Tuki_Stock_Notify::is_enabled(),
+			),
 			'strings'   => array(
 				'title'       => $assistant,
 				'subtitle'    => __( 'AI shopping assistant', 'tukify' ),
@@ -264,6 +267,15 @@ class Tuki_Frontend {
 				'checkoutFallbackBtn'  => __( 'Go to checkout', 'tukify' ),
 				'checkoutMustLogin'    => __( 'Please log in or use the full checkout page to continue.', 'tukify' ),
 				'checkoutError'        => __( 'Please fix the highlighted fields.', 'tukify' ),
+				'notifyStart'          => __( 'Notify me when it\'s back', 'tukify' ),
+				'notifyEmailPh'        => __( 'you@example.com', 'tukify' ),
+				/* translators: %s: store name. */
+				'notifyConsent'        => __( 'Email me once when this item is back in stock. I can unsubscribe anytime.', 'tukify' ),
+				'notifySubmit'         => __( 'Notify me', 'tukify' ),
+				'notifySending'        => __( 'Saving…', 'tukify' ),
+				'notifyNeedEmail'      => __( 'Please enter your email address.', 'tukify' ),
+				'notifyNeedConsent'    => __( 'Please tick the box to continue.', 'tukify' ),
+				'notifyDone'           => __( 'Done! We\'ll email you when it\'s back.', 'tukify' ),
 			),
 		);
 	}

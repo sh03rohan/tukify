@@ -274,6 +274,40 @@ $tuki_tabs = array(
 						</div>
 					</div>
 
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Back-in-stock alerts', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Let shoppers ask to be emailed when an out-of-stock item returns.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[stock_notify_enabled]" value="1" <?php checked( $tuki_settings['stock_notify_enabled'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Offer back-in-stock alerts on out-of-stock products in chat', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint">
+									<?php
+									printf(
+										/* translators: %s: link to the pending-notifications screen. */
+										esc_html__( 'Only the email and product are stored, with consent, and removed once sent. See who is waiting under %s.', 'tukify' ),
+										'<a href="' . esc_url( admin_url( 'admin.php?page=tukify-stock-notify' ) ) . '">' . esc_html__( 'Back in stock', 'tukify' ) . '</a>'
+									);
+									?>
+								</p>
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_stock_notify_subject"><?php esc_html_e( 'Email subject', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_stock_notify_subject" name="<?php echo esc_attr( $tuki_option ); ?>[stock_notify_subject]" value="<?php echo esc_attr( $tuki_settings['stock_notify_subject'] ); ?>" placeholder="<?php echo esc_attr( Tuki_Stock_Notify::default_subject() ); ?>" />
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_stock_notify_body"><?php esc_html_e( 'Email body', 'tukify' ); ?></label>
+								<textarea class="tuki-input" id="tuki_stock_notify_body" name="<?php echo esc_attr( $tuki_option ); ?>[stock_notify_body]" rows="6" placeholder="<?php echo esc_attr( Tuki_Stock_Notify::default_body() ); ?>"><?php echo esc_textarea( $tuki_settings['stock_notify_body'] ); ?></textarea>
+								<p class="tkfy-hint"><?php esc_html_e( 'Placeholders: {product_name}, {product_url}, {site_name}, {unsubscribe_url}. Always include {unsubscribe_url}. Leave blank to use the defaults.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
+
 					<?php
 					// Category options + a reusable size-band row renderer (used for the
 					// saved rows and the JS "add" template).

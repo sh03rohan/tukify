@@ -91,6 +91,15 @@ class Tuki_Admin {
 			'tukify-settings',
 			array( $this, 'render_settings_page' )
 		);
+
+		add_submenu_page(
+			'tukify',
+			__( 'Back in stock', 'tukify' ),
+			__( 'Back in stock', 'tukify' ),
+			'manage_options',
+			'tukify-stock-notify',
+			array( $this, 'render_stock_notify_page' )
+		);
 	}
 
 	/**
@@ -113,6 +122,17 @@ class Tuki_Admin {
 		}
 
 		require TUKI_PLUGIN_DIR . 'admin/settings-page.php';
+	}
+
+	/**
+	 * Renders the back-in-stock pending-notifications screen.
+	 */
+	public function render_stock_notify_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		require TUKI_PLUGIN_DIR . 'admin/stock-notify-page.php';
 	}
 
 	/**

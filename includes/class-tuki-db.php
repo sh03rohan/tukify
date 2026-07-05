@@ -64,6 +64,17 @@ class Tuki_DB {
 	}
 
 	/**
+	 * Returns the fully-qualified back-in-stock table name (with prefix).
+	 *
+	 * @return string
+	 */
+	public static function stock_notify_table() {
+		global $wpdb;
+
+		return $wpdb->prefix . 'tuki_stock_notify';
+	}
+
+	/**
 	 * Creates (or updates) all custom tables via dbDelta.
 	 *
 	 * Safe to call repeatedly: dbDelta only applies the necessary changes.
@@ -142,10 +153,28 @@ class Tuki_DB {
 			KEY matched_results_count (matched_results_count)
 		) {$charset_collate};";
 
+		// Back-in-stock interest: one row per (product, email). Deliberately minimal
+		// personal data — just the email needed to notify, a random unsubscribe
+		// token, and timestamps. No name, IP, or session is stored.
+		$stock_notify     = self::stock_notify_table();
+		$sql_stock_notify = "CREATE TABLE {$stock_notify} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			product_id BIGINT UNSIGNED NOT NULL,
+			email VARCHAR(191) NOT NULL DEFAULT '',
+			token VARCHAR(64) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+			notified_at DATETIME NULL DEFAULT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY product_email (product_id, email),
+			KEY product_id (product_id),
+			KEY token (token)
+		) {$charset_collate};";
+
 		dbDelta( $sql_embeddings );
 		dbDelta( $sql_events );
 		dbDelta( $sql_kb );
 		dbDelta( $sql_demand );
+		dbDelta( $sql_stock_notify );
 
 		update_option( 'tuki_db_version', TUKI_VERSION );
 	}
@@ -179,11 +208,13 @@ class Tuki_DB {
 		// Table names are internally built from $wpdb->prefix and cannot be
 		// passed as prepared placeholders; they are safe from user input.
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$demand = self::demand_table();
+		$demand        = self::demand_table();
+		$stock_notify  = self::stock_notify_table();
 		$wpdb->query( "DROP TABLE IF EXISTS {$embeddings}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$events}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$kb}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$demand}" );
+		$wpdb->query( "DROP TABLE IF EXISTS {$stock_notify}" );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
@@ -824,5 +855,190 @@ class Tuki_DB {
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DateTime.CurrentTimeTimestamp.Requested
 
 		return (int) $deleted;
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Back-in-stock notifications
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Records interest in a product's return to stock (idempotent per product+email).
+	 *
+	 * If a pending row already exists it is reused (its token is returned) so a
+	 * shopper never gets duplicated. If a previously-notified row exists, it is
+	 * revived as pending with a fresh token.
+	 *
+	 * @param int    $product_id Product ID.
+	 * @param string $email      Subscriber email (already sanitized).
+	 * @param string $token      Random unsubscribe token to store on new/revived rows.
+	 * @return string The token stored for this subscription, or '' on failure.
+	 */
+	public static function upsert_stock_notify( $product_id, $email, $token ) {
+		global $wpdb;
+
+		$product_id = absint( $product_id );
+		$email      = substr( (string) $email, 0, 191 );
+
+		if ( $product_id <= 0 || '' === $email ) {
+			return '';
+		}
+
+		$table = self::stock_notify_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$existing = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT id, token, notified_at FROM {$table} WHERE product_id = %d AND email = %s",
+				$product_id,
+				$email
+			),
+			ARRAY_A
+		);
+
+		if ( $existing ) {
+			// Already pending — reuse the existing subscription and its token.
+			if ( null === $existing['notified_at'] ) {
+				return (string) $existing['token'];
+			}
+
+			// Previously notified — revive it as a fresh pending subscription.
+			$wpdb->update(
+				$table,
+				array(
+					'token'       => substr( (string) $token, 0, 64 ),
+					'created_at'  => current_time( 'mysql' ),
+					'notified_at' => null,
+				),
+				array( 'id' => (int) $existing['id'] ),
+				array( '%s', '%s', '%s' ),
+				array( '%d' )
+			);
+
+			return substr( (string) $token, 0, 64 );
+		}
+
+		$inserted = $wpdb->insert(
+			$table,
+			array(
+				'product_id'  => $product_id,
+				'email'       => $email,
+				'token'       => substr( (string) $token, 0, 64 ),
+				'created_at'  => current_time( 'mysql' ),
+				'notified_at' => null,
+			),
+			array( '%d', '%s', '%s', '%s' )
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return $inserted ? substr( (string) $token, 0, 64 ) : '';
+	}
+
+	/**
+	 * Pending (not-yet-notified) subscriptions for a product.
+	 *
+	 * @param int $product_id Product ID.
+	 * @param int $limit      Max rows.
+	 * @return array List of [ id, email, token, created_at ].
+	 */
+	public static function stock_notify_pending( $product_id, $limit = 500 ) {
+		global $wpdb;
+
+		$table = self::stock_notify_table();
+		$limit = max( 1, (int) $limit );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, email, token, created_at FROM {$table} WHERE product_id = %d AND notified_at IS NULL ORDER BY created_at ASC LIMIT %d",
+				absint( $product_id ),
+				$limit
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Products that have at least one pending subscription, with counts.
+	 *
+	 * @return array List of [ product_id, pending, last_requested ].
+	 */
+	public static function stock_notify_products() {
+		global $wpdb;
+
+		$table = self::stock_notify_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			"SELECT product_id, COUNT(*) AS pending, MAX(created_at) AS last_requested
+			 FROM {$table}
+			 WHERE notified_at IS NULL
+			 GROUP BY product_id
+			 ORDER BY pending DESC, last_requested DESC",
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Total pending subscriptions across all products.
+	 *
+	 * @return int
+	 */
+	public static function count_stock_notify_pending() {
+		global $wpdb;
+
+		$table = self::stock_notify_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE notified_at IS NULL" );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return (int) $count;
+	}
+
+	/**
+	 * Finds a subscription by its unsubscribe token.
+	 *
+	 * @param string $token Token.
+	 * @return array|null [ id, product_id, email ] or null.
+	 */
+	public static function stock_notify_by_token( $token ) {
+		global $wpdb;
+
+		$token = substr( (string) $token, 0, 64 );
+
+		if ( '' === $token ) {
+			return null;
+		}
+
+		$table = self::stock_notify_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT id, product_id, email FROM {$table} WHERE token = %s", $token ),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return $row ? $row : null;
+	}
+
+	/**
+	 * Deletes a single subscription row by id.
+	 *
+	 * @param int $id Row id.
+	 * @return void
+	 */
+	public static function delete_stock_notify( $id ) {
+		global $wpdb;
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete( self::stock_notify_table(), array( 'id' => absint( $id ) ), array( '%d' ) );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 }

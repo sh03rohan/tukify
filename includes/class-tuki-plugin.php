@@ -118,6 +118,10 @@ final class Tuki_Plugin {
 		// Analytics: order-attribution hooks (event logging is via static calls).
 		new Tuki_Analytics();
 
+		// Back-in-stock notifier: binds stock-change listeners (admin + checkout)
+		// and the front-end unsubscribe handler, so it is needed on every request.
+		new Tuki_Stock_Notify();
+
 		// Knowledge base: page-change re-embed + async reindex handler.
 		new Tuki_KB();
 

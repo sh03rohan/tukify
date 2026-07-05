@@ -78,6 +78,9 @@ class Tuki_Settings {
 			'reengage_message'      => '',
 			'reengage_coupon'       => '',
 			'checkout_in_chat'      => 0,
+			'stock_notify_enabled'  => 1,
+			'stock_notify_subject'  => '',
+			'stock_notify_body'     => '',
 			'guest_rate_limit'  => 20,
 			'demand_logging'        => 1,
 			'demand_retention_days' => 90,
@@ -274,6 +277,12 @@ class Tuki_Settings {
 		// In-chat checkout is a sensitive flow (creates real orders), so it is an
 		// explicit opt-in and defaults off.
 		$out['checkout_in_chat'] = empty( $input['checkout_in_chat'] ) ? 0 : 1;
+
+		// Back-in-stock notifications. The email template keeps its {tokens}; only
+		// tags/scripts are stripped so the tokens survive sanitization.
+		$out['stock_notify_enabled'] = empty( $input['stock_notify_enabled'] ) ? 0 : 1;
+		$out['stock_notify_subject'] = isset( $input['stock_notify_subject'] ) ? sanitize_text_field( $input['stock_notify_subject'] ) : '';
+		$out['stock_notify_body']    = isset( $input['stock_notify_body'] ) ? sanitize_textarea_field( $input['stock_notify_body'] ) : '';
 
 		$out['guest_rate_limit']  = min( 1000, max( 1, absint( $input['guest_rate_limit'] ?? 20 ) ) );
 

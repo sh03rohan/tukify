@@ -289,6 +289,30 @@ class Tuki_Rest {
 				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/stock-notify',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_stock_notify' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'product_id' => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+					'email'      => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+					'consent'    => array(
+						'required' => false,
+						'type'     => 'boolean',
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -765,6 +789,47 @@ class Tuki_Rest {
 		}
 
 		return rest_ensure_response( Tuki_Checkout::place( $data ) );
+	}
+
+	/**
+	 * POST /stock-notify — register interest in an out-of-stock product's return.
+	 *
+	 * Requires explicit consent and only stores the email + product. Nothing is
+	 * saved unless consent is given.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_stock_notify( WP_REST_Request $request ) {
+		if ( ! Tuki_Stock_Notify::is_enabled() ) {
+			return new WP_Error( 'tuki_stock_notify_disabled', __( 'Back-in-stock alerts are turned off.', 'tukify' ), array( 'status' => 403 ) );
+		}
+
+		$consent = rest_sanitize_boolean( $request->get_param( 'consent' ) );
+
+		if ( ! $consent ) {
+			return new WP_Error(
+				'tuki_no_consent',
+				__( 'Please tick the box to agree to be emailed about this item.', 'tukify' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$result = Tuki_Stock_Notify::subscribe(
+			absint( $request->get_param( 'product_id' ) ),
+			(string) $request->get_param( 'email' )
+		);
+
+		if ( empty( $result['ok'] ) ) {
+			return new WP_Error( 'tuki_stock_notify_failed', $result['message'], array( 'status' => 400 ) );
+		}
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'message' => $result['message'],
+			)
+		);
 	}
 
 	/**
