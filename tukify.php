@@ -3,7 +3,7 @@
  * Plugin Name:       Tukify — AI Shopping Assistant for WooCommerce
  * Plugin URI:        https://tukify.com/
  * Description:       AI shopping assistant for WooCommerce: semantic product search and grounded conversational recommendations, all data on your own server.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Tukify
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Core plugin constants.
-define( 'TUKI_VERSION', '1.1.0' );
+define( 'TUKI_VERSION', '1.2.0' );
 define( 'TUKI_PLUGIN_FILE', __FILE__ );
 define( 'TUKI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TUKI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -53,7 +53,8 @@ register_activation_hook( __FILE__, 'tuki_activate' );
  * @return void
  */
 function tuki_deactivate() {
-	// Reserved for future scheduled-event teardown (e.g. Action Scheduler jobs).
+	// Clear the daily demand-log purge so no orphan cron remains after disable.
+	wp_clear_scheduled_hook( 'tuki_purge_demand' );
 }
 register_deactivation_hook( __FILE__, 'tuki_deactivate' );
 

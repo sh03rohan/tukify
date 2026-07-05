@@ -832,6 +832,190 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Demand insights (Logs / Analytics tab)
+ * ------------------------------------------------------------------------- */
+
+.tkfy-demand-filter {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+}
+
+.tkfy-range-link {
+	font-size: 12px;
+	color: var(--text-muted);
+	text-decoration: none;
+	padding: 5px 10px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	transition: color var(--speed) ease, background-color var(--speed) ease, border-color var(--speed) ease;
+}
+
+.tkfy-range-link:hover {
+	color: var(--text);
+	background: var(--hover-lift);
+}
+
+.tkfy-range-link:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.tkfy-range-link.is-active {
+	color: var(--primary);
+	background: var(--active-bg);
+	border-color: var(--primary);
+	font-weight: 600;
+}
+
+.tkfy-demand-summary {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--sp-3);
+}
+
+@media ( max-width: 782px ) {
+	.tkfy-demand-summary { grid-template-columns: 1fr; }
+}
+
+.tkfy-tile {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--sp-4);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+}
+
+.tkfy-tile-value {
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--text);
+	line-height: 1.1;
+}
+
+.tkfy-tile-value--warn {
+	color: var(--danger);
+}
+
+.tkfy-tile-label {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.tkfy-demand-title {
+	margin: 0 0 var(--sp-2);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+.tkfy-demand-list {
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	overflow: hidden;
+}
+
+.tkfy-demand-row {
+	display: grid;
+	grid-template-columns: 1fr auto minmax(120px, auto);
+	gap: var(--sp-4);
+	align-items: center;
+	padding: 10px 12px;
+	border-top: 1px solid var(--border);
+	font-size: 13px;
+}
+
+.tkfy-demand-row:first-child {
+	border-top: none;
+}
+
+.tkfy-demand-row:not(.tkfy-demand-row--head):hover {
+	background: var(--hover-lift);
+}
+
+.tkfy-demand-row--head {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	color: var(--text-muted);
+	background: var(--hover-lift);
+}
+
+.tkfy-demand-q {
+	color: var(--text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+
+.tkfy-demand-n {
+	color: var(--text);
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	text-align: right;
+	min-width: 40px;
+}
+
+.tkfy-demand-action {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 500;
+	text-decoration: none;
+	padding: 5px 10px;
+	border-radius: var(--radius-ctl);
+	border: 1px solid var(--border);
+	white-space: nowrap;
+	transition: background-color var(--speed) ease, border-color var(--speed) ease, color var(--speed) ease;
+}
+
+.tkfy-demand-action--product {
+	color: var(--primary);
+}
+
+.tkfy-demand-action--product:hover {
+	background: var(--active-bg);
+	border-color: var(--primary);
+}
+
+.tkfy-demand-action--faq {
+	color: var(--success);
+	border-color: rgba(52, 211, 153, .35);
+}
+
+.tkfy-demand-action--faq:hover {
+	background: rgba(52, 211, 153, .12);
+	border-color: var(--success);
+}
+
+.tkfy-demand-action:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.tkfy-trend {
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.tkfy-trend--up,
+.tkfy-trend--new {
+	color: var(--success);
+}
+
+.tkfy-trend--down {
+	color: var(--danger);
+}
+
+.tkfy-trend--flat {
+	color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------------------
  * Save bar
  * ------------------------------------------------------------------------- */
 

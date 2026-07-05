@@ -351,10 +351,64 @@ $tuki_tabs = array(
 
 				<!-- ============================ LOGS / ANALYTICS ============================ -->
 				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-analytics" data-tab="analytics" aria-labelledby="tkfy-tab-analytics" tabindex="0" hidden>
+					<?php
+					// -------- Demand insights (read-only display; GET range filter) --------
+					$tuki_ranges = array(
+						7   => __( 'Last 7 days', 'tukify' ),
+						30  => __( 'Last 30 days', 'tukify' ),
+						90  => __( 'Last 90 days', 'tukify' ),
+						365 => __( 'Last year', 'tukify' ),
+						0   => __( 'All time', 'tukify' ),
+					);
+
+					// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+					$tuki_range = isset( $_GET['demand_range'] ) ? absint( wp_unslash( $_GET['demand_range'] ) ) : 30;
+					if ( ! array_key_exists( $tuki_range, $tuki_ranges ) ) {
+						$tuki_range = 30;
+					}
+
+					$tuki_now      = current_time( 'timestamp' );
+					$tuki_win_days = ( 0 === $tuki_range ) ? 30 : $tuki_range;
+					$tuki_since    = ( 0 === $tuki_range ) ? '1970-01-01 00:00:00' : gmdate( 'Y-m-d H:i:s', $tuki_now - ( $tuki_range * DAY_IN_SECONDS ) );
+					$tuki_mid      = gmdate( 'Y-m-d H:i:s', $tuki_now - ( ( $tuki_win_days / 2 ) * DAY_IN_SECONDS ) );
+
+					$tuki_summary  = Tuki_DB::demand_summary( $tuki_since );
+					$tuki_zero     = Tuki_DB::demand_zero_matches( $tuki_since, 10 );
+					$tuki_unans    = Tuki_DB::demand_unanswered( $tuki_since, 10 );
+					$tuki_trending = Tuki_DB::demand_trending( $tuki_since, $tuki_mid, 10 );
+					$tuki_demand_n = Tuki_DB::count_demand();
+					$tuki_base_url = admin_url( 'admin.php?page=tukify-settings' );
+
+					// Suggested action for a row, chosen from its recorded intents.
+					$tuki_action = function ( $intents_csv ) {
+						$product_intents = array( 'browse', 'category_browse', 'browse_all', 'compare', 'zero_result', 'filter' );
+						$intents         = array_filter( array_map( 'trim', explode( ',', (string) $intents_csv ) ) );
+
+						if ( empty( $intents ) || array_intersect( $intents, $product_intents ) ) {
+							return array(
+								'label' => __( 'Add product', 'tukify' ),
+								'url'   => admin_url( 'post-new.php?post_type=product' ),
+								'kind'  => 'product',
+							);
+						}
+
+						return array(
+							'label' => __( 'Write FAQ', 'tukify' ),
+							'url'   => admin_url( 'admin.php?page=tukify-settings#tab-kb' ),
+							'kind'  => 'faq',
+						);
+					};
+
+					$tuki_pct = function ( $n, $total ) {
+						return $total > 0 ? (int) round( $n / $total * 100 ) : 0;
+					};
+					?>
+
+					<!-- Logging + retention settings -->
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Logs & analytics', 'tukify' ); ?></h2>
-							<p class="tkfy-card-cap"><?php esc_html_e( 'Track how shoppers use the assistant.', 'tukify' ); ?></p>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Track how shoppers use the assistant. Nothing personal or conversational is stored.', 'tukify' ); ?></p>
 						</div>
 						<div class="tkfy-card-body">
 							<div class="tkfy-field tkfy-field--wide">
@@ -363,6 +417,18 @@ $tuki_tabs = array(
 									<span class="tuki-switch-slider"></span>
 									<span class="tuki-switch-text"><?php esc_html_e( 'Log queries, clicks, and chat-to-sale events', 'tukify' ); ?></span>
 								</label>
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[demand_logging]" value="1" <?php checked( $tuki_settings['demand_logging'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Log demand insights (each query + its outcome, anonymized)', 'tukify' ); ?></span>
+								</label>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_demand_retention"><?php esc_html_e( 'Auto-purge logs older than (days)', 'tukify' ); ?></label>
+								<input type="number" class="tuki-input tuki-input--sm" id="tuki_demand_retention" name="<?php echo esc_attr( $tuki_option ); ?>[demand_retention_days]" value="<?php echo esc_attr( $tuki_settings['demand_retention_days'] ); ?>" min="0" max="3650" />
+								<p class="tkfy-hint"><?php esc_html_e( '0 keeps logs forever. A daily job removes rows older than this. Default 90.', 'tukify' ); ?></p>
 							</div>
 							<p class="tkfy-note tkfy-field--wide">
 								<?php
@@ -373,6 +439,157 @@ $tuki_tabs = array(
 								);
 								?>
 							</p>
+						</div>
+					</div>
+
+					<!-- Demand insights -->
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Demand insights', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'What shoppers ask for — and what you might be missing.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-demand-filter tkfy-field--wide" role="group" aria-label="<?php esc_attr_e( 'Date range', 'tukify' ); ?>">
+								<?php
+								foreach ( $tuki_ranges as $tuki_days => $tuki_label ) :
+									$tuki_url = esc_url( add_query_arg( 'demand_range', $tuki_days, $tuki_base_url ) . '#tab-analytics' );
+									?>
+									<a class="tkfy-range-link<?php echo (int) $tuki_days === $tuki_range ? ' is-active' : ''; ?>" href="<?php echo $tuki_url; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_url above. ?>"><?php echo esc_html( $tuki_label ); ?></a>
+								<?php endforeach; ?>
+							</div>
+
+							<?php if ( $tuki_demand_n <= 0 ) : ?>
+								<div class="tkfy-empty tkfy-field--wide">
+									<p><?php esc_html_e( 'No demand data yet. Once shoppers use the chat, unmet demand and unanswered questions will show up here.', 'tukify' ); ?></p>
+								</div>
+							<?php else : ?>
+								<div class="tkfy-demand-summary tkfy-field--wide">
+									<div class="tkfy-tile">
+										<span class="tkfy-tile-value"><?php echo esc_html( number_format_i18n( $tuki_summary['total'] ) ); ?></span>
+										<span class="tkfy-tile-label"><?php esc_html_e( 'Queries in range', 'tukify' ); ?></span>
+									</div>
+									<div class="tkfy-tile">
+										<span class="tkfy-tile-value tkfy-tile-value--warn"><?php echo esc_html( number_format_i18n( $tuki_summary['zero_match'] ) ); ?></span>
+										<span class="tkfy-tile-label">
+											<?php
+											/* translators: %d: percentage of queries with zero matches. */
+											printf( esc_html__( 'Zero matches (%d%%)', 'tukify' ), (int) $tuki_pct( $tuki_summary['zero_match'], $tuki_summary['total'] ) );
+											?>
+										</span>
+									</div>
+									<div class="tkfy-tile">
+										<span class="tkfy-tile-value tkfy-tile-value--warn"><?php echo esc_html( number_format_i18n( $tuki_summary['unanswered'] ) ); ?></span>
+										<span class="tkfy-tile-label">
+											<?php
+											/* translators: %d: percentage of queries not answered confidently. */
+											printf( esc_html__( 'Unanswered (%d%%)', 'tukify' ), (int) $tuki_pct( $tuki_summary['unanswered'], $tuki_summary['total'] ) );
+											?>
+										</span>
+									</div>
+								</div>
+
+								<!-- Unmet demand: zero product matches -->
+								<div class="tkfy-field--wide">
+									<h3 class="tkfy-demand-title"><?php esc_html_e( 'Unmet demand — searches with zero product matches', 'tukify' ); ?></h3>
+									<?php if ( empty( $tuki_zero ) ) : ?>
+										<p class="tkfy-hint"><?php esc_html_e( 'None in this range — every search matched something. 🎉', 'tukify' ); ?></p>
+									<?php else : ?>
+										<div class="tkfy-demand-list" role="table">
+											<div class="tkfy-demand-row tkfy-demand-row--head" role="row">
+												<span role="columnheader"><?php esc_html_e( 'Search', 'tukify' ); ?></span>
+												<span role="columnheader"><?php esc_html_e( 'Count', 'tukify' ); ?></span>
+												<span role="columnheader"><?php esc_html_e( 'Suggested action', 'tukify' ); ?></span>
+											</div>
+											<?php
+											foreach ( $tuki_zero as $tuki_row ) :
+												$tuki_act = $tuki_action( isset( $tuki_row['intents'] ) ? $tuki_row['intents'] : '' );
+												?>
+												<div class="tkfy-demand-row" role="row">
+													<span class="tkfy-demand-q" role="cell"><?php echo esc_html( $tuki_row['query_text'] ); ?></span>
+													<span class="tkfy-demand-n" role="cell"><?php echo esc_html( number_format_i18n( (int) $tuki_row['hits'] ) ); ?></span>
+													<span role="cell">
+														<a class="tkfy-demand-action tkfy-demand-action--<?php echo esc_attr( $tuki_act['kind'] ); ?>" href="<?php echo esc_url( $tuki_act['url'] ); ?>"><?php echo esc_html( $tuki_act['label'] ); ?></a>
+													</span>
+												</div>
+											<?php endforeach; ?>
+										</div>
+									<?php endif; ?>
+								</div>
+
+								<!-- Questions the bot could not answer confidently -->
+								<div class="tkfy-field--wide">
+									<h3 class="tkfy-demand-title"><?php esc_html_e( 'Questions the bot could not answer confidently', 'tukify' ); ?></h3>
+									<?php if ( empty( $tuki_unans ) ) : ?>
+										<p class="tkfy-hint"><?php esc_html_e( 'None in this range — the assistant answered everything it was asked.', 'tukify' ); ?></p>
+									<?php else : ?>
+										<div class="tkfy-demand-list" role="table">
+											<div class="tkfy-demand-row tkfy-demand-row--head" role="row">
+												<span role="columnheader"><?php esc_html_e( 'Question', 'tukify' ); ?></span>
+												<span role="columnheader"><?php esc_html_e( 'Count', 'tukify' ); ?></span>
+												<span role="columnheader"><?php esc_html_e( 'Suggested action', 'tukify' ); ?></span>
+											</div>
+											<?php
+											foreach ( $tuki_unans as $tuki_row ) :
+												$tuki_act = $tuki_action( isset( $tuki_row['intents'] ) ? $tuki_row['intents'] : '' );
+												?>
+												<div class="tkfy-demand-row" role="row">
+													<span class="tkfy-demand-q" role="cell"><?php echo esc_html( $tuki_row['query_text'] ); ?></span>
+													<span class="tkfy-demand-n" role="cell"><?php echo esc_html( number_format_i18n( (int) $tuki_row['hits'] ) ); ?></span>
+													<span role="cell">
+														<a class="tkfy-demand-action tkfy-demand-action--<?php echo esc_attr( $tuki_act['kind'] ); ?>" href="<?php echo esc_url( $tuki_act['url'] ); ?>"><?php echo esc_html( $tuki_act['label'] ); ?></a>
+													</span>
+												</div>
+											<?php endforeach; ?>
+										</div>
+									<?php endif; ?>
+								</div>
+
+								<!-- Trending terms -->
+								<div class="tkfy-field--wide">
+									<h3 class="tkfy-demand-title"><?php esc_html_e( 'Trending search terms', 'tukify' ); ?></h3>
+									<?php if ( empty( $tuki_trending ) ) : ?>
+										<p class="tkfy-hint"><?php esc_html_e( 'No searches in this range yet.', 'tukify' ); ?></p>
+									<?php else : ?>
+										<div class="tkfy-demand-list" role="table">
+											<div class="tkfy-demand-row tkfy-demand-row--head" role="row">
+												<span role="columnheader"><?php esc_html_e( 'Term', 'tukify' ); ?></span>
+												<span role="columnheader"><?php esc_html_e( 'Count', 'tukify' ); ?></span>
+												<span role="columnheader"><?php esc_html_e( 'Trend', 'tukify' ); ?></span>
+											</div>
+											<?php
+											foreach ( $tuki_trending as $tuki_row ) :
+												$tuki_recent = (int) $tuki_row['recent'];
+												$tuki_prior  = (int) $tuki_row['prior'];
+												if ( 0 === $tuki_prior && $tuki_recent > 0 ) {
+													$tuki_trend = 'new';
+													$tuki_tsym  = '●';
+													$tuki_tlbl  = __( 'New', 'tukify' );
+												} elseif ( $tuki_recent > $tuki_prior ) {
+													$tuki_trend = 'up';
+													$tuki_tsym  = '▲';
+													$tuki_tlbl  = __( 'Rising', 'tukify' );
+												} elseif ( $tuki_recent < $tuki_prior ) {
+													$tuki_trend = 'down';
+													$tuki_tsym  = '▼';
+													$tuki_tlbl  = __( 'Cooling', 'tukify' );
+												} else {
+													$tuki_trend = 'flat';
+													$tuki_tsym  = '–';
+													$tuki_tlbl  = __( 'Steady', 'tukify' );
+												}
+												?>
+												<div class="tkfy-demand-row" role="row">
+													<span class="tkfy-demand-q" role="cell"><?php echo esc_html( $tuki_row['query_text'] ); ?></span>
+													<span class="tkfy-demand-n" role="cell"><?php echo esc_html( number_format_i18n( (int) $tuki_row['hits'] ) ); ?></span>
+													<span role="cell">
+														<span class="tkfy-trend tkfy-trend--<?php echo esc_attr( $tuki_trend ); ?>"><?php echo esc_html( $tuki_tsym . ' ' . $tuki_tlbl ); ?></span>
+													</span>
+												</div>
+											<?php endforeach; ?>
+										</div>
+									<?php endif; ?>
+								</div>
+							<?php endif; ?>
 						</div>
 					</div>
 				</section>

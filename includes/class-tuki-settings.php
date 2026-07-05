@@ -69,6 +69,8 @@ class Tuki_Settings {
 			'exit_intent_msg_browsing' => '',
 			'exit_intent_msg_cart'     => '',
 			'guest_rate_limit'  => 20,
+			'demand_logging'        => 1,
+			'demand_retention_days' => 90,
 			'accent_color'      => '#7C6FF0',
 			'color_scheme'      => 'dark',
 			'floating_widget'   => 0,
@@ -208,6 +210,9 @@ class Tuki_Settings {
 		$out['exit_intent_msg_browsing'] = isset( $input['exit_intent_msg_browsing'] ) ? sanitize_text_field( $input['exit_intent_msg_browsing'] ) : '';
 		$out['exit_intent_msg_cart']     = isset( $input['exit_intent_msg_cart'] ) ? sanitize_text_field( $input['exit_intent_msg_cart'] ) : '';
 		$out['guest_rate_limit']  = min( 1000, max( 1, absint( $input['guest_rate_limit'] ?? 20 ) ) );
+
+		$out['demand_logging']        = empty( $input['demand_logging'] ) ? 0 : 1;
+		$out['demand_retention_days'] = min( 3650, max( 0, absint( $input['demand_retention_days'] ?? 90 ) ) );
 		$out['accent_color']      = sanitize_hex_color( $input['accent_color'] ?? '' );
 		$out['color_scheme']      = in_array( ( $input['color_scheme'] ?? '' ), array( 'dark', 'light' ), true ) ? $input['color_scheme'] : 'dark';
 		$out['floating_widget']   = empty( $input['floating_widget'] ) ? 0 : 1;

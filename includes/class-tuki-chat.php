@@ -553,15 +553,22 @@ class Tuki_Chat {
 
 		Tuki_Analytics::record_event( 'policy' === $intent ? 'policy_answered' : 'info_answered' );
 
-		$source = null;
+		$source   = null;
+		$answered = false;
 
 		foreach ( $kb_snippets as $snippet ) {
-			if ( ! empty( $snippet['url'] ) && (float) $snippet['score'] >= 0.3 ) {
+			if ( ! isset( $snippet['score'] ) || (float) $snippet['score'] < 0.3 ) {
+				continue;
+			}
+
+			// A confidently-matched snippet means the KB could answer this.
+			$answered = true;
+
+			if ( ! empty( $snippet['url'] ) && null === $source ) {
 				$source = array(
 					'title' => $snippet['title'],
 					'url'   => $snippet['url'],
 				);
-				break;
 			}
 		}
 
@@ -570,6 +577,7 @@ class Tuki_Chat {
 			'products' => array(),
 			'intent'   => $intent,
 			'source'   => $source,
+			'answered' => $answered,
 		);
 	}
 

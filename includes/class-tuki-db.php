@@ -53,6 +53,17 @@ class Tuki_DB {
 	}
 
 	/**
+	 * Returns the fully-qualified demand-insights table name (with prefix).
+	 *
+	 * @return string
+	 */
+	public static function demand_table() {
+		global $wpdb;
+
+		return $wpdb->prefix . 'tuki_demand';
+	}
+
+	/**
 	 * Creates (or updates) all custom tables via dbDelta.
 	 *
 	 * Safe to call repeatedly: dbDelta only applies the necessary changes.
@@ -115,9 +126,26 @@ class Tuki_DB {
 			KEY source (source_type, source_id)
 		) {$charset_collate};";
 
+		// Demand insights: one row per chat query + its outcome. No personal data,
+		// no conversation — only the query text, result outcome, and coarse intent.
+		$demand     = self::demand_table();
+		$sql_demand = "CREATE TABLE {$demand} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			query_text VARCHAR(191) NOT NULL DEFAULT '',
+			matched_results_count INT UNSIGNED NOT NULL DEFAULT 0,
+			was_answered TINYINT(1) NOT NULL DEFAULT 0,
+			intent VARCHAR(30) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+			PRIMARY KEY  (id),
+			KEY created_at (created_at),
+			KEY was_answered (was_answered),
+			KEY matched_results_count (matched_results_count)
+		) {$charset_collate};";
+
 		dbDelta( $sql_embeddings );
 		dbDelta( $sql_events );
 		dbDelta( $sql_kb );
+		dbDelta( $sql_demand );
 
 		update_option( 'tuki_db_version', TUKI_VERSION );
 	}
@@ -151,9 +179,11 @@ class Tuki_DB {
 		// Table names are internally built from $wpdb->prefix and cannot be
 		// passed as prepared placeholders; they are safe from user input.
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$demand = self::demand_table();
 		$wpdb->query( "DROP TABLE IF EXISTS {$embeddings}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$events}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$kb}" );
+		$wpdb->query( "DROP TABLE IF EXISTS {$demand}" );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
@@ -590,5 +620,209 @@ class Tuki_DB {
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return (int) $count;
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Demand insights
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Records one chat query and its outcome (no personal data, no conversation).
+	 *
+	 * @param string $query_text    The (already anonymized) query text.
+	 * @param int    $matched_count Number of product results returned.
+	 * @param bool   $was_answered  Whether the assistant answered confidently.
+	 * @param string $intent        Coarse intent/category guess.
+	 * @return void
+	 */
+	public static function insert_demand( $query_text, $matched_count, $was_answered, $intent ) {
+		global $wpdb;
+
+		$data   = array(
+			'query_text'            => substr( (string) $query_text, 0, 191 ),
+			'matched_results_count' => max( 0, (int) $matched_count ),
+			'was_answered'          => $was_answered ? 1 : 0,
+			'intent'                => substr( (string) $intent, 0, 30 ),
+			'created_at'            => current_time( 'mysql' ),
+		);
+		$format = array( '%s', '%d', '%d', '%s', '%s' );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->insert( self::demand_table(), $data, $format );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	}
+
+	/**
+	 * Totals for the demand dashboard within a time window.
+	 *
+	 * @param string $since MySQL datetime lower bound.
+	 * @return array{total:int,unanswered:int,zero_match:int}
+	 */
+	public static function demand_summary( $since ) {
+		global $wpdb;
+
+		$table = self::demand_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT COUNT(*) AS total,
+						SUM( CASE WHEN was_answered = 0 THEN 1 ELSE 0 END ) AS unanswered,
+						SUM( CASE WHEN matched_results_count = 0 THEN 1 ELSE 0 END ) AS zero_match
+				 FROM {$table}
+				 WHERE created_at >= %s",
+				$since
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return array(
+			'total'      => isset( $row['total'] ) ? (int) $row['total'] : 0,
+			'unanswered' => isset( $row['unanswered'] ) ? (int) $row['unanswered'] : 0,
+			'zero_match' => isset( $row['zero_match'] ) ? (int) $row['zero_match'] : 0,
+		);
+	}
+
+	/**
+	 * Top queries that returned zero product matches (unmet demand).
+	 *
+	 * @param string $since MySQL datetime lower bound.
+	 * @param int    $limit Max rows.
+	 * @return array List of [ query_text, hits, last_seen, intents ].
+	 */
+	public static function demand_zero_matches( $since, $limit = 10 ) {
+		return self::demand_grouped( 'matched_results_count = 0', $since, $limit );
+	}
+
+	/**
+	 * Top queries the assistant could not answer confidently.
+	 *
+	 * @param string $since MySQL datetime lower bound.
+	 * @param int    $limit Max rows.
+	 * @return array List of [ query_text, hits, last_seen, intents ].
+	 */
+	public static function demand_unanswered( $since, $limit = 10 ) {
+		return self::demand_grouped( 'was_answered = 0', $since, $limit );
+	}
+
+	/**
+	 * Shared grouped-by-query aggregation for the demand tables.
+	 *
+	 * @param string $where Extra WHERE condition (trusted, internal literal).
+	 * @param string $since MySQL datetime lower bound.
+	 * @param int    $limit Max rows.
+	 * @return array
+	 */
+	private static function demand_grouped( $where, $since, $limit ) {
+		global $wpdb;
+
+		$table = self::demand_table();
+		$limit = max( 1, (int) $limit );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT query_text,
+						COUNT(*) AS hits,
+						MAX(created_at) AS last_seen,
+						SUBSTRING_INDEX( GROUP_CONCAT( DISTINCT intent ORDER BY intent SEPARATOR ',' ), ',', 5 ) AS intents
+				 FROM {$table}
+				 WHERE {$where} AND query_text <> '' AND created_at >= %s
+				 GROUP BY query_text
+				 ORDER BY hits DESC, last_seen DESC
+				 LIMIT %d",
+				$since,
+				$limit
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Trending search terms: top queries in the window, split into a recent vs
+	 * prior half so the UI can show a direction of travel.
+	 *
+	 * @param string $since MySQL datetime lower bound (start of window).
+	 * @param string $mid   MySQL datetime midpoint separating prior vs recent.
+	 * @param int    $limit Max rows.
+	 * @return array List of [ query_text, hits, recent, prior, last_seen ].
+	 */
+	public static function demand_trending( $since, $mid, $limit = 10 ) {
+		global $wpdb;
+
+		$table = self::demand_table();
+		$limit = max( 1, (int) $limit );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT query_text,
+						COUNT(*) AS hits,
+						SUM( CASE WHEN created_at >= %s THEN 1 ELSE 0 END ) AS recent,
+						SUM( CASE WHEN created_at <  %s THEN 1 ELSE 0 END ) AS prior,
+						MAX(created_at) AS last_seen
+				 FROM {$table}
+				 WHERE query_text <> '' AND created_at >= %s
+				 GROUP BY query_text
+				 ORDER BY recent DESC, hits DESC
+				 LIMIT %d",
+				$mid,
+				$mid,
+				$since,
+				$limit
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Total demand rows stored.
+	 *
+	 * @return int
+	 */
+	public static function count_demand() {
+		global $wpdb;
+
+		$table = self::demand_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return (int) $count;
+	}
+
+	/**
+	 * Deletes demand rows older than the given number of days.
+	 *
+	 * @param int $days Retention window in days.
+	 * @return int Rows removed.
+	 */
+	public static function purge_demand( $days ) {
+		$days = (int) $days;
+
+		if ( $days <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+
+		$table  = self::demand_table();
+		$cutoff = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$deleted = $wpdb->query(
+			$wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", $cutoff )
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DateTime.CurrentTimeTimestamp.Requested
+
+		return (int) $deleted;
 	}
 }

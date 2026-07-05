@@ -36,13 +36,25 @@ class Tuki_Analytics {
 	const ZERO_RESULT_THRESHOLD = 0.35;
 
 	/**
-	 * Registers sale-attribution hooks. Logging itself is done via static calls.
+	 * Cron hook that auto-purges demand logs beyond the retention window.
+	 */
+	const PURGE_HOOK = 'tuki_purge_demand';
+
+	/**
+	 * Registers sale-attribution hooks and the daily demand-log purge. Logging
+	 * itself is done via static calls.
 	 */
 	public function __construct() {
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'capture_order_session' ), 20, 2 );
 		add_action( 'woocommerce_store_api_checkout_order_processed', array( $this, 'capture_order_session' ), 20 );
 		add_action( 'woocommerce_order_status_processing', array( $this, 'attribute_sale' ), 20 );
 		add_action( 'woocommerce_order_status_completed', array( $this, 'attribute_sale' ), 20 );
+
+		add_action( self::PURGE_HOOK, array( __CLASS__, 'purge_demand' ) );
+
+		if ( ! wp_next_scheduled( self::PURGE_HOOK ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::PURGE_HOOK );
+		}
 	}
 
 	/**
@@ -150,6 +162,92 @@ class Tuki_Analytics {
 		}
 
 		Tuki_DB::insert_event( 'query', $text, $hits, self::session_id() );
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Demand insights
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Logs a chat query and its outcome for demand analysis.
+	 *
+	 * Anonymized by design: only the (PII-scrubbed) query, whether products were
+	 * returned, whether the answer was confident, and a coarse intent are stored.
+	 * No session id, no user id, no conversation. Gated by its own setting so it
+	 * can be disabled independently of the other analytics.
+	 *
+	 * @param string $query  The user's chat message.
+	 * @param array  $result The result array returned by Tuki_Chat::respond().
+	 * @return void
+	 */
+	public static function record_demand( $query, array $result ) {
+		if ( ! (bool) Tuki_Settings::get( 'demand_logging' ) ) {
+			return;
+		}
+
+		$query = self::scrub_pii( trim( (string) $query ) );
+
+		if ( '' === $query ) {
+			return;
+		}
+
+		// How many products were shown (chat cards or a comparison set).
+		$products = ( isset( $result['products'] ) && is_array( $result['products'] ) ) ? $result['products'] : array();
+		$count    = count( $products );
+
+		if ( isset( $result['comparison']['products'] ) && is_array( $result['comparison']['products'] ) ) {
+			$count = max( $count, count( $result['comparison']['products'] ) );
+		}
+
+		$intent = isset( $result['intent'] ) ? (string) $result['intent'] : 'browse';
+
+		// Prefer the explicit confidence flag from the KB path; otherwise derive
+		// it from the intent/outcome (rescue -> 'zero_result', clarify, etc.).
+		if ( array_key_exists( 'answered', $result ) ) {
+			$answered = (bool) $result['answered'];
+		} else {
+			switch ( $intent ) {
+				case 'zero_result':
+				case 'clarify':
+					$answered = false;
+					break;
+				case 'order_status':
+					$answered = true;
+					break;
+				default:
+					$answered = $count > 0;
+			}
+		}
+
+		Tuki_DB::insert_demand( $query, $count, $answered, $intent );
+	}
+
+	/**
+	 * Removes obvious personal data (e-mail addresses) from a query before it is
+	 * stored, so demand logs never retain contact details a shopper typed.
+	 *
+	 * @param string $text Query text.
+	 * @return string
+	 */
+	private static function scrub_pii( $text ) {
+		return (string) preg_replace(
+			'/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i',
+			'[email]',
+			(string) $text
+		);
+	}
+
+	/**
+	 * Cron callback: deletes demand rows older than the configured retention.
+	 *
+	 * @return void
+	 */
+	public static function purge_demand() {
+		$days = (int) Tuki_Settings::get( 'demand_retention_days' );
+
+		if ( $days > 0 ) {
+			Tuki_DB::purge_demand( $days );
+		}
 	}
 
 	/**

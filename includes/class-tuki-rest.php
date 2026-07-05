@@ -272,6 +272,9 @@ class Tuki_Rest {
 			return new WP_Error( 'tuki_chat_failed', $e->getMessage(), array( 'status' => 502 ) );
 		}
 
+		// Demand insights: log the query + outcome (anonymized, gated by setting).
+		Tuki_Analytics::record_demand( $message, is_array( $result ) ? $result : array() );
+
 		return rest_ensure_response( $result );
 	}
 
