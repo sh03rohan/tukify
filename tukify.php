@@ -5,7 +5,7 @@
  * Description:       AI shopping assistant for WooCommerce: semantic product search and grounded conversational recommendations, all data on your own server.
  * Version:           1.4.0
  * Requires at least: 6.0
- * Requires PHP:      8.1
+ * Requires PHP:      7.4
  * Author:            Tukify
  * Author URI:        https://tukify.com/
  * License:           GPL-2.0-or-later
