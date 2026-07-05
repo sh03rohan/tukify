@@ -444,8 +444,19 @@ class Tuki_Rest {
 			return new WP_Error( 'tuki_image_too_large', __( 'That image is too large — please use one under 4 MB.', 'tukify' ), array( 'status' => 413 ) );
 		}
 
-		// Normalize jpg → jpeg for the provider.
-		if ( 'image/jpg' === $mime ) {
+		// Do NOT trust the client-declared MIME. Detect the real type from the
+		// decoded bytes; when detection is available it is authoritative, so a file
+		// masquerading as an image (wrong data-URL prefix) is rejected.
+		$detected = self::detect_image_mime( $decoded );
+
+		if ( '' !== $detected ) {
+			if ( ! in_array( $detected, array( 'image/jpeg', 'image/png', 'image/webp' ), true ) ) {
+				return new WP_Error( 'tuki_bad_image', __( 'That file is not a supported image (JPG, PNG, or WebP).', 'tukify' ), array( 'status' => 400 ) );
+			}
+			$mime = $detected;
+		} elseif ( 'image/jpg' === $mime ) {
+			// No detector on this host — fall back to the (already allowlisted)
+			// declared type, normalizing jpg → jpeg for the provider.
 			$mime = 'image/jpeg';
 		}
 
@@ -457,6 +468,37 @@ class Tuki_Rest {
 		}
 
 		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Detects an image's real MIME type from its raw bytes (no file is written).
+	 *
+	 * Uses ext-fileinfo when present, falling back to getimagesizefromstring().
+	 * Returns '' if neither is available so the caller can decide how to proceed.
+	 *
+	 * @param string $bytes Decoded image bytes.
+	 * @return string Lowercased MIME type, or '' if it could not be determined.
+	 */
+	private function detect_image_mime( $bytes ) {
+		if ( class_exists( 'finfo' ) ) {
+			$finfo = new finfo( FILEINFO_MIME_TYPE );
+			$mime  = strtolower( (string) $finfo->buffer( $bytes ) );
+
+			if ( '' !== $mime ) {
+				return ( 'image/jpg' === $mime ) ? 'image/jpeg' : $mime;
+			}
+		}
+
+		if ( function_exists( 'getimagesizefromstring' ) ) {
+			// Suppress warnings on malformed data; we only trust a valid result.
+			$info = @getimagesizefromstring( $bytes ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+
+			if ( is_array( $info ) && ! empty( $info['mime'] ) ) {
+				return strtolower( (string) $info['mime'] );
+			}
+		}
+
+		return '';
 	}
 
 	/**
