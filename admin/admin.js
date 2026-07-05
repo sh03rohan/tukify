@@ -16,7 +16,33 @@
 		initSearchTest();
 		initReindex();
 		initKnowledgeBase();
+		initSizeCharts();
 	} );
+
+	/**
+	 * Size-chart repeater: add/remove per-category size bands.
+	 */
+	function initSizeCharts() {
+		var $wrap = $( '#tuki-size-charts' );
+		var $add = $( '#tuki-size-add' );
+		var $tpl = $( '#tuki-size-tpl' );
+
+		if ( ! $add.length || ! $wrap.length || ! $tpl.length ) {
+			return;
+		}
+
+		$add.on( 'click', function ( event ) {
+			event.preventDefault();
+			var i = parseInt( $wrap.data( 'next' ), 10 ) || 0;
+			$wrap.data( 'next', i + 1 );
+			$wrap.append( $tpl.text().replace( /__IDX__/g, i ) );
+		} );
+
+		$wrap.on( 'click', '.tuki-size-remove', function ( event ) {
+			event.preventDefault();
+			$( this ).closest( '.tuki-size-row' ).remove();
+		} );
+	}
 
 	/**
 	 * Knowledge-base Q&A repeater + reindex button.

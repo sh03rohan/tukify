@@ -1016,6 +1016,54 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Size-chart repeater (Products & Cart tab)
+ * ------------------------------------------------------------------------- */
+
+.tuki-size-colhead,
+.tuki-size-row {
+	display: grid;
+	grid-template-columns: 1.6fr 0.8fr repeat(4, 0.9fr) auto;
+	gap: var(--sp-2);
+	align-items: center;
+}
+
+.tuki-size-colhead {
+	margin-bottom: var(--sp-1);
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .03em;
+	color: var(--text-muted);
+}
+
+.tuki-size-row {
+	margin-bottom: var(--sp-2);
+}
+
+.tkfy .tuki-size-row .tuki-input {
+	max-width: none;
+	min-height: 34px;
+	padding: 6px 8px;
+}
+
+@media ( max-width: 900px ) {
+	.tuki-size-colhead {
+		display: none;
+	}
+
+	.tuki-size-row {
+		grid-template-columns: 1fr 1fr;
+		padding: var(--sp-3);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-ctl);
+	}
+
+	.tuki-size-row .tuki-size-cat,
+	.tuki-size-row .tuki-size-remove {
+		grid-column: 1 / -1;
+	}
+}
+
+/* ---------------------------------------------------------------------------
  * Save bar
  * ------------------------------------------------------------------------- */
 

@@ -251,6 +251,107 @@ $tuki_tabs = array(
 							</div>
 						</div>
 					</div>
+
+					<?php
+					// Category options + a reusable size-band row renderer (used for the
+					// saved rows and the JS "add" template).
+					$tuki_size_cats = get_terms(
+						array(
+							'taxonomy'   => 'product_cat',
+							'hide_empty' => false,
+						)
+					);
+					if ( is_wp_error( $tuki_size_cats ) ) {
+						$tuki_size_cats = array();
+					}
+
+					$tuki_cat_options = function ( $selected ) use ( $tuki_size_cats ) {
+						$html = '<option value="0">' . esc_html__( 'Select category…', 'tukify' ) . '</option>';
+						foreach ( $tuki_size_cats as $tuki_term ) {
+							$html .= sprintf(
+								'<option value="%1$d"%2$s>%3$s</option>',
+								(int) $tuki_term->term_id,
+								selected( (int) $selected, (int) $tuki_term->term_id, false ),
+								esc_html( $tuki_term->name )
+							);
+						}
+						return $html;
+					};
+
+					$tuki_size_row = function ( $idx, $row ) use ( $tuki_option, $tuki_cat_options ) {
+						$base = esc_attr( $tuki_option ) . '[size_charts][' . $idx . ']';
+						$val  = function ( $row, $k ) {
+							return isset( $row[ $k ] ) && '' !== $row[ $k ] && 0 != $row[ $k ] ? esc_attr( $row[ $k ] ) : ''; // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual
+						};
+						ob_start();
+						?>
+						<div class="tuki-size-row">
+							<select class="tuki-input tuki-size-cat" name="<?php echo $base; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[category]"><?php echo $tuki_cat_options( isset( $row['category'] ) ? $row['category'] : 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></select>
+							<input class="tuki-input" name="<?php echo $base; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[label]" value="<?php echo esc_attr( isset( $row['label'] ) ? $row['label'] : '' ); ?>" placeholder="<?php esc_attr_e( 'S', 'tukify' ); ?>" />
+							<input class="tuki-input" type="number" step="any" min="0" name="<?php echo $base; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[h_min]" value="<?php echo $val( $row, 'h_min' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" placeholder="<?php esc_attr_e( 'H min', 'tukify' ); ?>" />
+							<input class="tuki-input" type="number" step="any" min="0" name="<?php echo $base; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[h_max]" value="<?php echo $val( $row, 'h_max' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" placeholder="<?php esc_attr_e( 'H max', 'tukify' ); ?>" />
+							<input class="tuki-input" type="number" step="any" min="0" name="<?php echo $base; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[w_min]" value="<?php echo $val( $row, 'w_min' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" placeholder="<?php esc_attr_e( 'W min', 'tukify' ); ?>" />
+							<input class="tuki-input" type="number" step="any" min="0" name="<?php echo $base; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[w_max]" value="<?php echo $val( $row, 'w_max' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" placeholder="<?php esc_attr_e( 'W max', 'tukify' ); ?>" />
+							<button type="button" class="tuki-btn tuki-btn--ghost tuki-size-remove"><?php esc_html_e( 'Remove', 'tukify' ); ?></button>
+						</div>
+						<?php
+						return ob_get_clean();
+					};
+
+					$tuki_size_rows = array_values( (array) $tuki_settings['size_charts'] );
+					?>
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Size & fit advisor', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Offer a short guided size recommendation in chat for products with size options.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[size_advisor_enabled]" value="1" <?php checked( $tuki_settings['size_advisor_enabled'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Offer a guided size & fit recommendation in chat', 'tukify' ); ?></span>
+								</label>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_size_unit"><?php esc_html_e( 'Measurement unit', 'tukify' ); ?></label>
+								<select class="tuki-input" id="tuki_size_unit" name="<?php echo esc_attr( $tuki_option ); ?>[size_unit]">
+									<option value="metric" <?php selected( $tuki_settings['size_unit'], 'metric' ); ?>><?php esc_html_e( 'Metric (cm / kg)', 'tukify' ); ?></option>
+									<option value="imperial" <?php selected( $tuki_settings['size_unit'], 'imperial' ); ?>><?php esc_html_e( 'Imperial (in / lb)', 'tukify' ); ?></option>
+								</select>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_size_attribute"><?php esc_html_e( 'Size attribute name', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_size_attribute" name="<?php echo esc_attr( $tuki_option ); ?>[size_attribute]" value="<?php echo esc_attr( $tuki_settings['size_attribute'] ); ?>" placeholder="size" />
+								<p class="tkfy-hint"><?php esc_html_e( 'The product attribute that holds sizes, e.g. "size" or "pa_size".', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label"><?php esc_html_e( 'Size charts (per category)', 'tukify' ); ?></label>
+								<div class="tuki-size-colhead">
+									<span><?php esc_html_e( 'Category', 'tukify' ); ?></span>
+									<span><?php esc_html_e( 'Size', 'tukify' ); ?></span>
+									<span><?php esc_html_e( 'Height min', 'tukify' ); ?></span>
+									<span><?php esc_html_e( 'Height max', 'tukify' ); ?></span>
+									<span><?php esc_html_e( 'Weight min', 'tukify' ); ?></span>
+									<span><?php esc_html_e( 'Weight max', 'tukify' ); ?></span>
+									<span></span>
+								</div>
+								<div id="tuki-size-charts" data-next="<?php echo esc_attr( count( $tuki_size_rows ) ); ?>">
+									<?php
+									foreach ( $tuki_size_rows as $tuki_i => $tuki_row ) {
+										echo $tuki_size_row( $tuki_i, $tuki_row ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_* helpers.
+									}
+									?>
+								</div>
+								<script type="text/html" id="tuki-size-tpl"><?php echo $tuki_size_row( '__IDX__', array() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_* helpers. ?></script>
+								<div class="tkfy-inline">
+									<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki-size-add"><?php esc_html_e( 'Add size band', 'tukify' ); ?></button>
+								</div>
+								<p class="tkfy-hint"><?php esc_html_e( 'Add one row per size band. The advisor scores the shopper\'s height and weight against these ranges (in the unit above) to suggest a size. Leave a range blank to ignore it.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
 				</section>
 
 				<!-- ============================ KNOWLEDGE BASE ============================ -->

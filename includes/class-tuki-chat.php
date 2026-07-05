@@ -148,6 +148,21 @@ class Tuki_Chat {
 			);
 		}
 
+		// Size & fit advisor: when the shopper asks for sizing help on a product
+		// that has size variations, offer a short guided form. The recommendation
+		// itself is computed deterministically server-side (no AI), so wording
+		// stays neutral and never medical or body-shaming.
+		if ( 'size_advice' === $decision['intent'] && Tuki_Size::is_enabled() ) {
+			$size_pid = $this->resolve_size_product( $decision, $retrieved, $context_ids );
+
+			if ( $size_pid ) {
+				Tuki_Analytics::record_event( 'size_advice_offered' );
+
+				return Tuki_Size::form_payload( $size_pid, $reply );
+			}
+			// No sizeable product resolved — fall through to a normal reply.
+		}
+
 		// Feature 4 + site-wide RAG: answer store policy/FAQ questions and general
 		// informational questions about the site from the knowledge base, grounded.
 		if ( 'policy' === $decision['intent'] || ( 'info' === $decision['intent'] && $kb_available ) ) {
@@ -264,6 +279,47 @@ class Tuki_Chat {
 	}
 
 	/**
+	 * Picks the product a size-advice request is about: an explicitly named
+	 * product, else the most recently shown one, else the top retrieved match —
+	 * whichever first has size variations.
+	 *
+	 * @param array $decision    Parsed decision.
+	 * @param array $retrieved   Map of retrieved product_id => WC_Product.
+	 * @param array $context_ids Product ids shown earlier in the chat.
+	 * @return int Product id, or 0 if none is sizeable.
+	 */
+	private function resolve_size_product( $decision, $retrieved, $context_ids ) {
+		$candidates = array();
+
+		foreach ( (array) $decision['show_product_ids'] as $id ) {
+			$candidates[] = (int) $id;
+		}
+		foreach ( array_reverse( (array) $context_ids ) as $id ) {
+			$candidates[] = (int) $id;
+		}
+		foreach ( array_keys( (array) $retrieved ) as $id ) {
+			$candidates[] = (int) $id;
+		}
+
+		$seen = array();
+
+		foreach ( $candidates as $id ) {
+			if ( $id <= 0 || isset( $seen[ $id ] ) ) {
+				continue;
+			}
+			$seen[ $id ] = true;
+
+			$product = function_exists( 'wc_get_product' ) ? wc_get_product( $id ) : null;
+
+			if ( $product && 'publish' === $product->get_status() && Tuki_Size::has_sizes( $product ) ) {
+				return $id;
+			}
+		}
+
+		return 0;
+	}
+
+	/**
 	 * Shapes browse pagination metadata for the client "Show more" control.
 	 *
 	 * @param array  $browse   Result from Tuki_Cart::browse().
@@ -293,7 +349,7 @@ class Tuki_Chat {
 				'reply'                   => array( 'type' => 'STRING' ),
 				'intent'                  => array(
 					'type' => 'STRING',
-					'enum' => array( 'clarify', 'policy', 'compare', 'browse', 'category_browse', 'browse_all', 'info', 'order_status' ),
+					'enum' => array( 'clarify', 'policy', 'compare', 'browse', 'category_browse', 'browse_all', 'info', 'order_status', 'size_advice' ),
 				),
 				'category'                => array( 'type' => 'STRING' ),
 				'show_product_ids'        => array(
@@ -360,7 +416,7 @@ class Tuki_Chat {
 		}
 
 		$intent  = isset( $data['intent'] ) ? (string) $data['intent'] : 'browse';
-		$allowed = array( 'clarify', 'policy', 'compare', 'browse', 'category_browse', 'browse_all', 'info', 'order_status' );
+		$allowed = array( 'clarify', 'policy', 'compare', 'browse', 'category_browse', 'browse_all', 'info', 'order_status', 'size_advice' );
 
 		if ( ! in_array( $intent, $allowed, true ) ) {
 			$intent = 'browse';
@@ -1164,6 +1220,8 @@ class Tuki_Chat {
 		if ( $rescue && ! $may_clarify ) {
 			$rules[] = __( 'IMPORTANT: no product in the catalog closely matches this request. The CONTEXT below lists only the CLOSEST available alternatives. Warmly acknowledge that you could not find an exact match, then gently suggest these closest options. Do not pretend they are an exact match.', 'tukify' );
 		}
+
+		$rules[] = __( 'If the shopper asks for help choosing a size, what size to buy, or whether an item runs small or large for a specific product, set "intent" to "size_advice" and put the product they mean in "show_product_ids" if you can identify it. In "reply", offer to help find their size in one friendly sentence. Never estimate or comment on the shopper\'s body and never give medical advice — a short guided form and the size chart handle the details.', 'tukify' );
 
 		$rules[] = __( 'If the shopper asks about the status of an order they already placed — tracking, delivery, "where is my order", "has my order shipped" — set "intent" to "order_status". In "reply", briefly ask for their order number and the billing email used on the order, and mention the email is not needed if the order is on their logged-in account. NEVER state, guess, or invent an order\'s status, tracking, dates, or contents yourself: a secure lookup handles that after they provide details. Do not use this intent for general shipping-policy questions (those are "policy").', 'tukify' );
 

@@ -63,6 +63,10 @@ class Tuki_Settings {
 			'upsell_enabled'    => 1,
 			'upsell_max'        => 3,
 			'upsell_proactive'  => 1,
+			'size_advisor_enabled' => 1,
+			'size_unit'            => 'metric',
+			'size_attribute'       => 'size',
+			'size_charts'          => array(),
 			'exit_intent_enabled'      => 1,
 			'exit_intent_mobile'       => 1,
 			'exit_intent_cooldown'     => 24,
@@ -203,6 +207,38 @@ class Tuki_Settings {
 		$out['upsell_enabled']   = empty( $input['upsell_enabled'] ) ? 0 : 1;
 		$out['upsell_max']       = min( 4, max( 1, absint( $input['upsell_max'] ?? 3 ) ) );
 		$out['upsell_proactive'] = empty( $input['upsell_proactive'] ) ? 0 : 1;
+
+		$out['size_advisor_enabled'] = empty( $input['size_advisor_enabled'] ) ? 0 : 1;
+		$out['size_unit']            = in_array( ( $input['size_unit'] ?? '' ), array( 'metric', 'imperial' ), true ) ? $input['size_unit'] : 'metric';
+		$out['size_attribute']       = sanitize_text_field( $input['size_attribute'] ?? 'size' );
+		if ( '' === trim( $out['size_attribute'] ) ) {
+			$out['size_attribute'] = 'size';
+		}
+
+		$out['size_charts'] = array();
+		if ( isset( $input['size_charts'] ) && is_array( $input['size_charts'] ) ) {
+			foreach ( $input['size_charts'] as $size_row ) {
+				if ( ! is_array( $size_row ) ) {
+					continue;
+				}
+
+				$size_cat   = isset( $size_row['category'] ) ? absint( $size_row['category'] ) : 0;
+				$size_label = isset( $size_row['label'] ) ? sanitize_text_field( $size_row['label'] ) : '';
+
+				if ( $size_cat <= 0 || '' === trim( $size_label ) ) {
+					continue;
+				}
+
+				$out['size_charts'][] = array(
+					'category' => $size_cat,
+					'label'    => $size_label,
+					'h_min'    => isset( $size_row['h_min'] ) ? max( 0, (float) $size_row['h_min'] ) : 0,
+					'h_max'    => isset( $size_row['h_max'] ) ? max( 0, (float) $size_row['h_max'] ) : 0,
+					'w_min'    => isset( $size_row['w_min'] ) ? max( 0, (float) $size_row['w_min'] ) : 0,
+					'w_max'    => isset( $size_row['w_max'] ) ? max( 0, (float) $size_row['w_max'] ) : 0,
+				);
+			}
+		}
 
 		$out['exit_intent_enabled']      = empty( $input['exit_intent_enabled'] ) ? 0 : 1;
 		$out['exit_intent_mobile']       = empty( $input['exit_intent_mobile'] ) ? 0 : 1;

@@ -732,6 +732,135 @@
 			scrollDown();
 		}
 
+		// Size & fit advisor: a short guided form. The recommendation itself is
+		// computed server-side (deterministic, neutral wording).
+		function addSizeForm( meta ) {
+			var imperial = meta && 'imperial' === meta.unit;
+			var wrap = el( 'div', 'tuki-size-form' );
+
+			if ( meta && meta.title ) {
+				var head = el( 'div', 'tuki-size-formhead' );
+				head.textContent = ( S.sizeIntro || 'Find your size' ) + ' — ' + meta.title;
+				wrap.appendChild( head );
+			}
+
+			function field( labelText, node ) {
+				var f = el( 'label', 'tuki-size-field' );
+				var l = el( 'span', 'tuki-size-flabel' );
+				l.textContent = labelText;
+				f.appendChild( l );
+				f.appendChild( node );
+				wrap.appendChild( f );
+				return node;
+			}
+
+			var height = el( 'input', 'tuki-input' );
+			height.type = 'number';
+			height.min = '0';
+			height.inputMode = 'decimal';
+			height.placeholder = imperial ? '68' : '173';
+			field( ( S.sizeHeight || 'Height' ) + ' (' + ( imperial ? ( S.sizeIn || 'in' ) : ( S.sizeCm || 'cm' ) ) + ')', height );
+
+			var weight = el( 'input', 'tuki-input' );
+			weight.type = 'number';
+			weight.min = '0';
+			weight.inputMode = 'decimal';
+			weight.placeholder = imperial ? '160' : '72';
+			field( ( S.sizeWeight || 'Weight' ) + ' (' + ( imperial ? ( S.sizeLb || 'lb' ) : ( S.sizeKg || 'kg' ) ) + ')', weight );
+
+			var brand = el( 'input', 'tuki-input' );
+			brand.type = 'text';
+			brand.placeholder = S.sizeBrandPh || 'e.g. M, or 32';
+			field( S.sizeBrand || 'Your usual size in another brand (optional)', brand );
+
+			var fit = el( 'select', 'tuki-input' );
+			[
+				[ 'slim', S.sizeFitSlim || 'Slim / snug' ],
+				[ 'regular', S.sizeFitRegular || 'Regular' ],
+				[ 'loose', S.sizeFitLoose || 'Loose / relaxed' ]
+			].forEach( function ( o ) {
+				var opt = document.createElement( 'option' );
+				opt.value = o[0];
+				opt.textContent = o[1];
+				if ( 'regular' === o[0] ) {
+					opt.selected = true;
+				}
+				fit.appendChild( opt );
+			} );
+			field( S.sizeFit || 'Preferred fit', fit );
+
+			var submit = el( 'button', 'tuki-order-submit' );
+			submit.type = 'button';
+			submit.textContent = S.sizeSubmit || 'Recommend my size';
+			var err = el( 'div', 'tuki-order-error' );
+
+			submit.addEventListener( 'click', function () {
+				if ( submit.disabled ) {
+					return;
+				}
+				err.textContent = '';
+				submit.disabled = true;
+				submit.textContent = S.sizeChecking || 'Checking…';
+				api( 'size-advice', {
+					product_id: meta.product_id,
+					height: parseFloat( height.value ) || 0,
+					weight: parseFloat( weight.value ) || 0,
+					brand_size: ( brand.value || '' ).trim(),
+					fit: fit.value
+				} )
+					.then( function ( data ) {
+						submit.disabled = false;
+						submit.textContent = S.sizeSubmit || 'Recommend my size';
+						addSizeResult( data );
+					} )
+					.catch( function ( e ) {
+						submit.disabled = false;
+						submit.textContent = S.sizeSubmit || 'Recommend my size';
+						err.textContent = ( e && e.data && e.data.message ) ? e.data.message : ( S.error || '' );
+					} );
+			} );
+
+			wrap.appendChild( submit );
+			wrap.appendChild( err );
+			msgsEl.appendChild( wrap );
+			scrollDown();
+		}
+
+		function addSizeResult( data ) {
+			var card = el( 'div', 'tuki-size-card' );
+
+			if ( data && data.recommended ) {
+				var head = el( 'div', 'tuki-size-head' );
+				var lbl = el( 'span', 'tuki-size-reclabel' );
+				lbl.textContent = S.sizeRecommended || 'Recommended size';
+				var val = el( 'span', 'tuki-size-recsize' );
+				val.textContent = data.recommended;
+				head.appendChild( lbl );
+				head.appendChild( val );
+				if ( data.confidence_label ) {
+					var badge = el( 'span', 'tuki-size-conf tuki-size-conf--' + ( data.confidence || 'low' ) );
+					badge.textContent = data.confidence_label;
+					head.appendChild( badge );
+				}
+				card.appendChild( head );
+			}
+
+			if ( data && data.rationale ) {
+				var why = el( 'div', 'tuki-size-why' );
+				why.textContent = data.rationale;
+				card.appendChild( why );
+			}
+
+			if ( data && data.caveat ) {
+				var caveat = el( 'div', 'tuki-size-caveat' );
+				caveat.textContent = data.caveat;
+				card.appendChild( caveat );
+			}
+
+			msgsEl.appendChild( card );
+			scrollDown();
+		}
+
 		// "Shop the look": render one product group per detected item.
 		function addLookGroups( groups ) {
 			groups.forEach( function ( g ) {
@@ -850,6 +979,9 @@
 					}
 					if ( data && data.order_form ) {
 						addOrderForm( data.order_form );
+					}
+					if ( data && data.size_form ) {
+						addSizeForm( data.size_form );
 					}
 				} )
 				.catch( function ( err ) {

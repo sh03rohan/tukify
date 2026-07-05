@@ -224,6 +224,38 @@ class Tuki_Rest {
 				),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/size-advice',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_size_advice' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'product_id' => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+					'height'     => array(
+						'required' => false,
+						'type'     => 'number',
+					),
+					'weight'     => array(
+						'required' => false,
+						'type'     => 'number',
+					),
+					'fit'        => array(
+						'required' => false,
+						'type'     => 'string',
+					),
+					'brand_size' => array(
+						'required' => false,
+						'type'     => 'string',
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -610,6 +642,38 @@ class Tuki_Rest {
 		}
 
 		return rest_ensure_response( array( 'order' => $data ) );
+	}
+
+	/**
+	 * POST /size-advice — recommends a size for a product from its category size
+	 * chart and the shopper's answers. Deterministic (no AI), neutral wording.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_size_advice( WP_REST_Request $request ) {
+		if ( ! Tuki_Size::is_enabled() ) {
+			return new WP_Error( 'tuki_size_disabled', __( 'The size advisor is turned off.', 'tukify' ), array( 'status' => 403 ) );
+		}
+
+		if ( ! function_exists( 'wc_get_product' ) ) {
+			return new WP_Error( 'tuki_no_wc', __( 'Size advice is unavailable right now.', 'tukify' ), array( 'status' => 500 ) );
+		}
+
+		$product = wc_get_product( absint( $request->get_param( 'product_id' ) ) );
+
+		if ( ! $product || 'publish' !== $product->get_status() ) {
+			return new WP_Error( 'tuki_not_found', __( 'That product could not be found.', 'tukify' ), array( 'status' => 404 ) );
+		}
+
+		$answers = array(
+			'height'     => max( 0, (float) $request->get_param( 'height' ) ),
+			'weight'     => max( 0, (float) $request->get_param( 'weight' ) ),
+			'fit'        => sanitize_key( (string) $request->get_param( 'fit' ) ),
+			'brand_size' => sanitize_text_field( (string) $request->get_param( 'brand_size' ) ),
+		);
+
+		return rest_ensure_response( Tuki_Size::recommend( $product, $answers ) );
 	}
 
 	/**
