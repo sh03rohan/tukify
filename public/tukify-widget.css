@@ -296,6 +296,62 @@
 	color: var(--tuki-accent);
 }
 
+/* ---- Re-engagement coupon pill ---- */
+
+.tuki-coupon {
+	align-self: flex-start;
+	max-width: 90%;
+	padding: 10px 12px;
+	background: var(--tuki-surface);
+	border: 1px dashed var(--tuki-accent);
+	border-radius: var(--tuki-radius, 12px);
+}
+
+.tuki-coupon-label {
+	font-size: 12px;
+	color: var(--tuki-muted, var(--tuki-text));
+	margin-bottom: 6px;
+}
+
+.tuki-coupon-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.tuki-coupon-code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-weight: 700;
+	font-size: 14px;
+	letter-spacing: 0.06em;
+	color: var(--tuki-text);
+	padding: 4px 8px;
+	border-radius: 6px;
+	background: var(--tuki-bg, rgba(0, 0, 0, 0.08));
+}
+
+.tuki-coupon-copy {
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--tuki-accent-ink);
+	background: var(--tuki-accent);
+	border: none;
+	border-radius: 8px;
+	padding: 6px 12px;
+	cursor: pointer;
+	transition: opacity 0.15s ease;
+}
+
+.tuki-coupon-copy:hover {
+	opacity: 0.9;
+}
+
+.tuki-coupon-copy.is-copied {
+	opacity: 0.7;
+	cursor: default;
+}
+
 /* ---- Typing indicator ---- */
 
 .tuki-typing {

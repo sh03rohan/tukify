@@ -778,6 +778,62 @@ $tuki_tabs = array(
 
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Proactive re-engagement', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Nudge a shopper who has stalled — idle on checkout, or sitting with items in the cart.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_enabled]" value="1" <?php checked( $tuki_settings['reengage_enabled'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Open the chat when a shopper goes idle on a selected page', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint"><?php esc_html_e( 'Fires at most once per session, never while the chat is open or after it has been used, and is always dismissible. Needs the floating widget enabled.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_reengage_idle"><?php esc_html_e( 'Idle threshold (seconds)', 'tukify' ); ?></label>
+								<input type="number" class="tuki-input tuki-input--sm" id="tuki_reengage_idle" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_idle_seconds]" value="<?php echo esc_attr( $tuki_settings['reengage_idle_seconds'] ); ?>" min="5" max="600" />
+								<p class="tkfy-hint"><?php esc_html_e( 'How long without interaction before the nudge appears. Default 45.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field">
+								<span class="tkfy-label" id="tuki_reengage_pages_label"><?php esc_html_e( 'Show on these pages', 'tukify' ); ?></span>
+								<div class="tkfy-checklist" role="group" aria-labelledby="tuki_reengage_pages_label">
+									<?php
+									$tuki_reengage_pages = array_map( 'sanitize_key', (array) $tuki_settings['reengage_pages'] );
+									$tuki_page_choices   = array(
+										'checkout' => __( 'Checkout page', 'tukify' ),
+										'cart'     => __( 'Cart page', 'tukify' ),
+										'product'  => __( 'Product pages', 'tukify' ),
+										'shop'     => __( 'Shop / category pages', 'tukify' ),
+										'any'      => __( 'Any page', 'tukify' ),
+									);
+									foreach ( $tuki_page_choices as $tuki_pc_value => $tuki_pc_label ) {
+										printf(
+											'<label class="tkfy-check-row"><input type="checkbox" class="tkfy-check-input" name="%1$s[reengage_pages][]" value="%2$s" %3$s /><span class="tkfy-check-box" aria-hidden="true"></span><span class="tkfy-check-text">%4$s</span></label>',
+											esc_attr( $tuki_option ),
+											esc_attr( $tuki_pc_value ),
+											checked( in_array( $tuki_pc_value, $tuki_reengage_pages, true ), true, false ),
+											esc_html( $tuki_pc_label )
+										);
+									}
+									?>
+								</div>
+								<p class="tkfy-hint"><?php esc_html_e( 'On checkout and cart, lingering itself is the signal. On product, shop, or any page, the nudge only fires when there are already items in the cart.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_reengage_message"><?php esc_html_e( 'Message', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_reengage_message" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_message]" value="<?php echo esc_attr( $tuki_settings['reengage_message'] ); ?>" placeholder="<?php esc_attr_e( 'Still deciding? I can answer any questions or help you check out.', 'tukify' ); ?>" />
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_reengage_coupon"><?php esc_html_e( 'Coupon code (optional)', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input tuki-input--sm" id="tuki_reengage_coupon" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_coupon]" value="<?php echo esc_attr( $tuki_settings['reengage_coupon'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. SAVE10', 'tukify' ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Shown as a copy-able code with the nudge. Leave blank to just offer help. Create the coupon under WooCommerce → Coupons first.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Search test', 'tukify' ); ?></h2>
 							<p class="tkfy-card-cap"><?php esc_html_e( 'Run a semantic search against your indexed catalog to sanity-check ranking.', 'tukify' ); ?></p>
 						</div>

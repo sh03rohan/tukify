@@ -309,6 +309,7 @@
 		var upsellShown = false;
 		var engaged = false;
 		var exitFired = false;
+		var reengageFired = false;
 		var msgsEl;
 		var inputEl;
 		var sendBtn;
@@ -410,6 +411,10 @@
 			setupExitIntent();
 		}
 
+		if ( 'floating' === kind && cfg.reengage && cfg.reengage.enabled ) {
+			setupReengage();
+		}
+
 		function greet() {
 			if ( ! greeted ) {
 				greeted = true;
@@ -509,6 +514,171 @@
 					}
 				} );
 			}
+		}
+
+		/* -----------------------------------------------------------------
+		 * Proactive re-engagement — nudge a stalling shopper.
+		 *
+		 * Triggers on inactivity ("idle") while the shopper is on a page the
+		 * owner selected: lingering on checkout/cart, or idle anywhere with
+		 * items already in the cart. Fires at most once per session (sessionStorage),
+		 * never while the chat is already open or has been used, and is fully
+		 * dismissible (the standard close button). It only opens the panel and
+		 * drops a friendly message plus an optional coupon — nothing blocking.
+		 * ----------------------------------------------------------------- */
+
+		// Whether re-engagement is allowed to fire on THIS page right now.
+		function reengageEligible() {
+			var re = cfg.reengage;
+			if ( ! re || ! re.enabled ) {
+				return false;
+			}
+			var pages = re.pages || [];
+			// "any" means every context qualifies; otherwise the current page's
+			// server-resolved context must be in the owner's selected list.
+			if ( pages.indexOf( 'any' ) === -1 && pages.indexOf( re.context ) === -1 ) {
+				return false;
+			}
+			// On checkout/cart, simply being there (lingering) is the signal. Anywhere
+			// else, require items already in the cart so we only nudge real intent.
+			if ( 'checkout' === re.context || 'cart' === re.context ) {
+				return true;
+			}
+			return readCartCount() > 0;
+		}
+
+		// Frequency cap: once per browsing session, so it never nags.
+		function reengageSeen() {
+			try {
+				return '1' === window.sessionStorage.getItem( 'tuki_reengage_seen' );
+			} catch ( e ) {
+				return false;
+			}
+		}
+
+		function markReengageSeen() {
+			try {
+				window.sessionStorage.setItem( 'tuki_reengage_seen', '1' );
+			} catch ( e ) {}
+		}
+
+		function fireReengage() {
+			// Never nag: bail if already shown this session, if the shopper has
+			// engaged the chat, if it is already open, or if we're no longer eligible
+			// (e.g. the cart was emptied while idle).
+			if ( reengageFired || reengageSeen() || engaged || exitFired || panel.classList.contains( 'is-open' ) ) {
+				return;
+			}
+			if ( ! reengageEligible() ) {
+				return;
+			}
+
+			reengageFired = true;
+			markReengageSeen();
+			greeted = true; // suppress the standard greeting on this open
+
+			panel.classList.add( 'is-open' );
+			addBubble( 'bot', cfg.reengage.message );
+			if ( cfg.reengage.coupon ) {
+				addCoupon( cfg.reengage.coupon );
+			}
+			setTimeout( function () {
+				inputEl.focus();
+			}, 50 );
+
+			api( 'event', { type: 'reengage_shown' } ).catch( function () {} );
+			try {
+				document.dispatchEvent( new CustomEvent( 'tuki:reengage', { detail: { context: cfg.reengage.context } } ) );
+			} catch ( e ) {}
+		}
+
+		function setupReengage() {
+			// Nothing to arm if it already fired this session or can't fire here.
+			if ( reengageSeen() || ! reengageEligible() ) {
+				return;
+			}
+
+			var idleMs = Math.max( 5, cfg.reengage.idleSeconds || 45 ) * 1000;
+			var timer = null;
+			var events = [ 'mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel' ];
+
+			function detach() {
+				if ( timer ) {
+					clearTimeout( timer );
+					timer = null;
+				}
+				events.forEach( function ( ev ) {
+					window.removeEventListener( ev, onActivity, true );
+				} );
+			}
+
+			function arm() {
+				if ( timer ) {
+					clearTimeout( timer );
+				}
+				timer = setTimeout( fireReengage, idleMs );
+			}
+
+			function onActivity() {
+				// Once it has fired (or the shopper opened the chat), stop watching.
+				if ( reengageFired || reengageSeen() || engaged ) {
+					detach();
+					return;
+				}
+				arm(); // reset the idle countdown on every interaction
+			}
+
+			events.forEach( function ( ev ) {
+				window.addEventListener( ev, onActivity, { passive: true, capture: true } );
+			} );
+
+			arm(); // start the idle countdown immediately on load
+		}
+
+		// A small, dismissible coupon pill with a one-tap copy. We never auto-apply
+		// a coupon — the shopper stays in control.
+		function addCoupon( code ) {
+			var wrap = el( 'div', 'tuki-coupon' );
+
+			var label = el( 'div', 'tuki-coupon-label' );
+			label.textContent = S.couponLabel || 'Here\'s a code for you';
+			wrap.appendChild( label );
+
+			var row = el( 'div', 'tuki-coupon-row' );
+			var codeEl = el( 'span', 'tuki-coupon-code' );
+			codeEl.textContent = code;
+
+			var copy = el( 'button', 'tuki-coupon-copy' );
+			copy.type = 'button';
+			copy.textContent = S.couponCopy || 'Copy code';
+			copy.addEventListener( 'click', function () {
+				var done = function () {
+					copy.textContent = S.couponCopied || 'Copied';
+					copy.classList.add( 'is-copied' );
+				};
+				try {
+					if ( navigator.clipboard && navigator.clipboard.writeText ) {
+						navigator.clipboard.writeText( code ).then( done, function () {} );
+					} else {
+						var tmp = document.createElement( 'textarea' );
+						tmp.value = code;
+						tmp.style.position = 'fixed';
+						tmp.style.opacity = '0';
+						document.body.appendChild( tmp );
+						tmp.focus();
+						tmp.select();
+						document.execCommand( 'copy' );
+						document.body.removeChild( tmp );
+						done();
+					}
+				} catch ( e ) {}
+			} );
+
+			row.appendChild( codeEl );
+			row.appendChild( copy );
+			wrap.appendChild( row );
+			msgsEl.appendChild( wrap );
+			scrollDown();
 		}
 
 		function autosize() {

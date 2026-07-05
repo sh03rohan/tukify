@@ -72,6 +72,11 @@ class Tuki_Settings {
 			'exit_intent_cooldown'     => 24,
 			'exit_intent_msg_browsing' => '',
 			'exit_intent_msg_cart'     => '',
+			'reengage_enabled'      => 0,
+			'reengage_idle_seconds' => 45,
+			'reengage_pages'        => array( 'checkout', 'cart' ),
+			'reengage_message'      => '',
+			'reengage_coupon'       => '',
 			'guest_rate_limit'  => 20,
 			'demand_logging'        => 1,
 			'demand_retention_days' => 90,
@@ -245,6 +250,26 @@ class Tuki_Settings {
 		$out['exit_intent_cooldown']     = min( 720, max( 0, absint( $input['exit_intent_cooldown'] ?? 24 ) ) );
 		$out['exit_intent_msg_browsing'] = isset( $input['exit_intent_msg_browsing'] ) ? sanitize_text_field( $input['exit_intent_msg_browsing'] ) : '';
 		$out['exit_intent_msg_cart']     = isset( $input['exit_intent_msg_cart'] ) ? sanitize_text_field( $input['exit_intent_msg_cart'] ) : '';
+
+		// Proactive re-engagement (idle/dwell nudge). Distinct from exit intent:
+		// fires after inactivity on selected pages, once per session.
+		$out['reengage_enabled']      = empty( $input['reengage_enabled'] ) ? 0 : 1;
+		$out['reengage_idle_seconds'] = min( 600, max( 5, absint( $input['reengage_idle_seconds'] ?? 45 ) ) );
+
+		// Whitelist page contexts against the ones the widget understands.
+		$out['reengage_pages'] = array();
+		if ( isset( $input['reengage_pages'] ) && is_array( $input['reengage_pages'] ) ) {
+			$allowed_pages         = array( 'checkout', 'cart', 'product', 'shop', 'any' );
+			$out['reengage_pages'] = array_values(
+				array_intersect( $allowed_pages, array_map( 'sanitize_key', $input['reengage_pages'] ) )
+			);
+		}
+
+		$out['reengage_message'] = isset( $input['reengage_message'] ) ? sanitize_text_field( $input['reengage_message'] ) : '';
+
+		$reengage_coupon        = isset( $input['reengage_coupon'] ) ? sanitize_text_field( $input['reengage_coupon'] ) : '';
+		$out['reengage_coupon'] = function_exists( 'wc_format_coupon_code' ) ? wc_format_coupon_code( $reengage_coupon ) : $reengage_coupon;
+
 		$out['guest_rate_limit']  = min( 1000, max( 1, absint( $input['guest_rate_limit'] ?? 20 ) ) );
 
 		$out['demand_logging']        = empty( $input['demand_logging'] ) ? 0 : 1;

@@ -131,6 +131,28 @@ class Tuki_Frontend {
 			)
 		);
 
+		/**
+		 * Proactive re-engagement config. Fires after the shopper goes idle on a
+		 * selected page (e.g. lingering on checkout, or with items in the cart).
+		 * The current page context is resolved server-side so the widget never has
+		 * to guess it. Filterable so an owner can vary the offer per context.
+		 *
+		 * @param array $reengage Re-engagement settings passed to the widget.
+		 */
+		$reengage = apply_filters(
+			'tuki_reengage',
+			array(
+				'enabled'     => (bool) $settings['reengage_enabled'],
+				'idleSeconds' => (int) $settings['reengage_idle_seconds'],
+				'pages'       => array_values( (array) $settings['reengage_pages'] ),
+				'context'     => self::page_context(),
+				'message'     => '' !== $settings['reengage_message']
+					? $settings['reengage_message']
+					: __( 'Still deciding? I can answer any questions or help you check out.', 'tukify' ),
+				'coupon'      => (string) $settings['reengage_coupon'],
+			)
+		);
+
 		return array(
 			'restUrl'       => esc_url_raw( rest_url( 'tukify/v1/' ) ),
 			'nonce'         => wp_create_nonce( 'wp_rest' ),
@@ -141,6 +163,7 @@ class Tuki_Frontend {
 			'maxImageBytes'   => 4194304,
 			'upsellProactive' => (bool) $settings['upsell_enabled'] && (bool) $settings['upsell_proactive'],
 			'exitIntent'      => $exit_intent,
+			'reengage'        => $reengage,
 			'strings'   => array(
 				'title'       => $assistant,
 				'subtitle'    => __( 'AI shopping assistant', 'tukify' ),
@@ -202,7 +225,46 @@ class Tuki_Frontend {
 				'orderTotalLabel'      => __( 'Total', 'tukify' ),
 				'orderItemsLabel'      => __( 'Items', 'tukify' ),
 				'orderTrackingLabel'   => __( 'Tracking', 'tukify' ),
+				'couponLabel'          => __( 'Here\'s a code for you', 'tukify' ),
+				'couponCopy'           => __( 'Copy code', 'tukify' ),
+				'couponCopied'         => __( 'Copied', 'tukify' ),
 			),
 		);
+	}
+
+	/**
+	 * Resolves the current storefront page to a coarse context the widget uses
+	 * to decide whether proactive re-engagement is allowed to fire here.
+	 *
+	 * @return string One of: checkout, cart, product, shop, other.
+	 */
+	private static function page_context() {
+		// The order-received/thank-you page is a checkout endpoint but the shopper
+		// has already converted, so it must never count as "lingering on checkout".
+		if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+			return 'other';
+		}
+
+		if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+			return 'checkout';
+		}
+
+		if ( function_exists( 'is_cart' ) && is_cart() ) {
+			return 'cart';
+		}
+
+		if ( function_exists( 'is_product' ) && is_product() ) {
+			return 'product';
+		}
+
+		if (
+			( function_exists( 'is_shop' ) && is_shop() ) ||
+			( function_exists( 'is_product_category' ) && is_product_category() ) ||
+			( function_exists( 'is_product_tag' ) && is_product_tag() )
+		) {
+			return 'shop';
+		}
+
+		return 'other';
 	}
 }

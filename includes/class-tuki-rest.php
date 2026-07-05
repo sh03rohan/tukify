@@ -511,6 +511,8 @@ class Tuki_Rest {
 			Tuki_Analytics::record_click( $product_id );
 		} elseif ( 'exit_intent_shown' === $type ) {
 			Tuki_Analytics::record_event( 'exit_intent_shown' );
+		} elseif ( 'reengage_shown' === $type ) {
+			Tuki_Analytics::record_event( 'reengage_shown' );
 		}
 
 		return rest_ensure_response( array( 'success' => true ) );
