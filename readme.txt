@@ -39,7 +39,7 @@ All AI calls are made server-side; your API key is never sent to the browser. Pr
 
 * WooCommerce (active).
 * A Google Gemini API key (a free key from Google AI Studio is enough for development and small stores).
-* PHP 8.1+.
+* PHP 7.4+.
 * Elementor is optional (only needed for the Elementor widgets).
 
 == External services ==
@@ -90,6 +90,10 @@ Yes. The global floating chat widget works on any theme. Elementor is only requi
 = Will it invent products that aren't in my store? =
 
 No. Every answer is grounded in real retrieval — the assistant can only recommend products that exist in your catalog, and policy answers come only from your own content.
+
+= What happens to my data if I delete the plugin? =
+
+By default, deleting Tukify removes all of its data: its settings, its custom tables (product embeddings, knowledge base, analytics, back-in-stock subscribers, usage counters) and any cached data. If you'd rather keep everything for a later reinstall, enable "Keep Tukify's data when the plugin is deleted" under Settings → Advanced before deleting. Deactivating the plugin never removes any data.
 
 == Screenshots ==
 

@@ -887,6 +887,23 @@ $tuki_tabs = array(
 				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-advanced" data-tab="advanced" aria-labelledby="tkfy-tab-advanced" tabindex="0" hidden>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Data & cleanup', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'What happens to Tukify\'s data when you delete the plugin.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[preserve_data_on_uninstall]" value="1" <?php checked( $tuki_settings['preserve_data_on_uninstall'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Keep Tukify\'s data when the plugin is deleted', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint"><?php esc_html_e( 'By default, deleting Tukify removes its settings, custom tables (embeddings, knowledge base, analytics, back-in-stock, usage) and cached data. Turn this on to preserve everything for a later reinstall. Deactivating never removes data.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Retrieval & limits', 'tukify' ); ?></h2>
 							<p class="tkfy-card-cap"><?php esc_html_e( 'How many products to retrieve and how hard guests can hit the API.', 'tukify' ); ?></p>
 						</div>
