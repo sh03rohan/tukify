@@ -79,6 +79,10 @@ class Tuki_Gemini implements Tuki_Provider {
 		$endpoint = self::API_BASE . $model . ':batchEmbedContents';
 		$response = $this->request( $endpoint, array( 'requests' => $requests ) );
 
+		// The embeddings endpoint doesn't report token usage, so estimate from the
+		// input text. One batch call = one request regardless of item count.
+		$this->track_usage( 'embedding', $response, $this->estimate( $texts ), 0 );
+
 		$vectors = array();
 
 		if ( isset( $response['embeddings'] ) && is_array( $response['embeddings'] ) ) {
@@ -130,6 +134,8 @@ class Tuki_Gemini implements Tuki_Provider {
 		$endpoint = self::API_BASE . $model . ':generateContent';
 		$response = $this->request( $endpoint, $body );
 
+		$this->track_usage( 'chat', $response, $this->estimate( wp_json_encode( $body ) ), 0 );
+
 		if ( isset( $response['candidates'][0]['content']['parts'][0]['text'] ) ) {
 			return (string) $response['candidates'][0]['content']['parts'][0]['text'];
 		}
@@ -177,11 +183,47 @@ class Tuki_Gemini implements Tuki_Provider {
 		$endpoint = self::API_BASE . $model . ':generateContent';
 		$response = $this->request( $endpoint, $body );
 
+		// Image bytes dominate the payload, so the fallback estimate uses the prompt
+		// text only; usageMetadata (when present) supersedes it anyway.
+		$this->track_usage( 'chat', $response, $this->estimate( (string) $prompt ), 0 );
+
 		if ( isset( $response['candidates'][0]['content']['parts'][0]['text'] ) ) {
 			return (string) $response['candidates'][0]['content']['parts'][0]['text'];
 		}
 
 		return '';
+	}
+
+	/**
+	 * Records usage for one API call. Prefers Gemini's exact usageMetadata token
+	 * counts; falls back to the caller's estimate when the response omits them.
+	 *
+	 * @param string $kind             'embedding' or 'chat'.
+	 * @param array  $response         Decoded API response.
+	 * @param int    $fallback_prompt  Estimated prompt tokens if none reported.
+	 * @param int    $fallback_output  Estimated output tokens if none reported.
+	 * @return void
+	 */
+	private function track_usage( $kind, $response, $fallback_prompt, $fallback_output ) {
+		if ( ! class_exists( 'Tuki_Usage' ) ) {
+			return;
+		}
+
+		$meta       = isset( $response['usageMetadata'] ) && is_array( $response['usageMetadata'] ) ? $response['usageMetadata'] : array();
+		$prompt     = isset( $meta['promptTokenCount'] ) ? (int) $meta['promptTokenCount'] : (int) $fallback_prompt;
+		$completion = isset( $meta['candidatesTokenCount'] ) ? (int) $meta['candidatesTokenCount'] : (int) $fallback_output;
+
+		Tuki_Usage::record( $kind, 1, $prompt, $completion );
+	}
+
+	/**
+	 * Rough token estimate for a string or list of strings (≈4 chars/token).
+	 *
+	 * @param string|array $text Text or list of texts.
+	 * @return int
+	 */
+	private function estimate( $text ) {
+		return class_exists( 'Tuki_Usage' ) ? Tuki_Usage::estimate_tokens( $text ) : 0;
 	}
 
 	/**

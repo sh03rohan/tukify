@@ -75,6 +75,17 @@ class Tuki_DB {
 	}
 
 	/**
+	 * Returns the fully-qualified API-usage table name (with prefix).
+	 *
+	 * @return string
+	 */
+	public static function usage_table() {
+		global $wpdb;
+
+		return $wpdb->prefix . 'tuki_usage';
+	}
+
+	/**
 	 * Creates (or updates) all custom tables via dbDelta.
 	 *
 	 * Safe to call repeatedly: dbDelta only applies the necessary changes.
@@ -170,11 +181,28 @@ class Tuki_DB {
 			KEY token (token)
 		) {$charset_collate};";
 
+		// API usage: one aggregated row per day + kind (embedding|chat). No personal
+		// data — just counters used for the cost estimate and usage chart.
+		$usage     = self::usage_table();
+		$sql_usage = "CREATE TABLE {$usage} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			day DATE NOT NULL DEFAULT '0000-00-00',
+			kind VARCHAR(20) NOT NULL DEFAULT '',
+			requests BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			prompt_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			completion_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			updated_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+			PRIMARY KEY  (id),
+			UNIQUE KEY day_kind (day, kind),
+			KEY day (day)
+		) {$charset_collate};";
+
 		dbDelta( $sql_embeddings );
 		dbDelta( $sql_events );
 		dbDelta( $sql_kb );
 		dbDelta( $sql_demand );
 		dbDelta( $sql_stock_notify );
+		dbDelta( $sql_usage );
 
 		update_option( 'tuki_db_version', TUKI_VERSION );
 	}
@@ -210,11 +238,13 @@ class Tuki_DB {
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$demand        = self::demand_table();
 		$stock_notify  = self::stock_notify_table();
+		$usage         = self::usage_table();
 		$wpdb->query( "DROP TABLE IF EXISTS {$embeddings}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$events}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$kb}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$demand}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$stock_notify}" );
+		$wpdb->query( "DROP TABLE IF EXISTS {$usage}" );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
@@ -1040,5 +1070,112 @@ class Tuki_DB {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( self::stock_notify_table(), array( 'id' => absint( $id ) ), array( '%d' ) );
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	}
+
+	/* ---------------------------------------------------------------------
+	 * API usage tracking
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Adds to the day's usage counters for a kind (atomic upsert).
+	 *
+	 * @param string $day        Date (Y-m-d).
+	 * @param string $kind       'embedding' or 'chat'.
+	 * @param int    $requests   Requests to add.
+	 * @param int    $prompt     Prompt/input tokens to add.
+	 * @param int    $completion Completion/output tokens to add.
+	 * @return void
+	 */
+	public static function record_usage( $day, $kind, $requests, $prompt, $completion ) {
+		global $wpdb;
+
+		$table = self::usage_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO {$table} (day, kind, requests, prompt_tokens, completion_tokens, updated_at)
+				 VALUES (%s, %s, %d, %d, %d, %s)
+				 ON DUPLICATE KEY UPDATE
+					requests = requests + VALUES(requests),
+					prompt_tokens = prompt_tokens + VALUES(prompt_tokens),
+					completion_tokens = completion_tokens + VALUES(completion_tokens),
+					updated_at = VALUES(updated_at)",
+				substr( (string) $day, 0, 10 ),
+				substr( (string) $kind, 0, 20 ),
+				max( 0, (int) $requests ),
+				max( 0, (int) $prompt ),
+				max( 0, (int) $completion ),
+				current_time( 'mysql' )
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * Per-day usage rows on/after a date, oldest first (for the chart).
+	 *
+	 * @param string $since_date Lower-bound date (Y-m-d).
+	 * @return array List of [ day, kind, requests, prompt_tokens, completion_tokens ].
+	 */
+	public static function usage_daily( $since_date ) {
+		global $wpdb;
+
+		$table = self::usage_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT day, kind, requests, prompt_tokens, completion_tokens
+				 FROM {$table}
+				 WHERE day >= %s
+				 ORDER BY day ASC",
+				substr( (string) $since_date, 0, 10 )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Usage totals by kind on/after a date (for the cost estimate).
+	 *
+	 * @param string $since_date Lower-bound date (Y-m-d).
+	 * @return array Map of kind => [ requests, prompt_tokens, completion_tokens ].
+	 */
+	public static function usage_totals( $since_date ) {
+		global $wpdb;
+
+		$table = self::usage_table();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT kind,
+						SUM(requests) AS requests,
+						SUM(prompt_tokens) AS prompt_tokens,
+						SUM(completion_tokens) AS completion_tokens
+				 FROM {$table}
+				 WHERE day >= %s
+				 GROUP BY kind",
+				substr( (string) $since_date, 0, 10 )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$out = array();
+
+		foreach ( (array) $rows as $row ) {
+			$out[ (string) $row['kind'] ] = array(
+				'requests'          => (int) $row['requests'],
+				'prompt_tokens'     => (int) $row['prompt_tokens'],
+				'completion_tokens' => (int) $row['completion_tokens'],
+			);
+		}
+
+		return $out;
 	}
 }

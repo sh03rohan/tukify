@@ -58,6 +58,7 @@ class Tuki_Admin {
 		add_action( 'wp_ajax_tuki_cancel_reindex', array( $this, 'ajax_cancel_reindex' ) );
 		add_action( 'wp_ajax_tuki_test_search', array( $this, 'ajax_test_search' ) );
 		add_action( 'wp_ajax_tuki_kb_reindex', array( $this, 'ajax_kb_reindex' ) );
+		add_action( 'wp_ajax_tuki_clear_cache', array( $this, 'ajax_clear_cache' ) );
 	}
 
 	/**
@@ -300,6 +301,9 @@ class Tuki_Admin {
 				'qPlaceholder'     => __( 'Question', 'tukify' ),
 				'aPlaceholder'     => __( 'Answer', 'tukify' ),
 				'remove'           => __( 'Remove', 'tukify' ),
+				'cacheClearing'    => __( 'Clearing…', 'tukify' ),
+				'cacheCleared'     => __( 'Cache cleared', 'tukify' ),
+				'cacheClearError'  => __( 'Couldn\'t clear the cache — please try again', 'tukify' ),
 			)
 		);
 	}
@@ -433,6 +437,17 @@ class Tuki_Admin {
 				'removed'  => (int) $result['removed'],
 			)
 		);
+	}
+
+	/**
+	 * AJAX: clears the response/embedding cache (rotates the cache salt).
+	 */
+	public function ajax_clear_cache() {
+		$this->verify_admin_request();
+
+		Tuki_Cache::clear();
+
+		wp_send_json_success( array( 'message' => __( 'Cache cleared.', 'tukify' ) ) );
 	}
 
 	/**

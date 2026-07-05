@@ -20,16 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Tuki_Embeddings {
 
 	/**
-	 * Transient key prefix for cached query embeddings.
-	 */
-	const CACHE_PREFIX = 'tuki_emb_';
-
-	/**
-	 * How long to cache a query embedding.
-	 */
-	const CACHE_TTL = DAY_IN_SECONDS;
-
-	/**
 	 * Returns the currently configured embedding model name.
 	 *
 	 * @return string
@@ -62,7 +52,8 @@ class Tuki_Embeddings {
 	}
 
 	/**
-	 * Embeds a single query string, cached in a transient.
+	 * Embeds a single query string, cached (near-identical repeats reuse the
+	 * cached vector, so no API call — and no cost — is incurred).
 	 *
 	 * @param string $text Query text.
 	 * @return array       Float vector (empty on failure).
@@ -75,10 +66,11 @@ class Tuki_Embeddings {
 			return array();
 		}
 
-		$cache_key = self::CACHE_PREFIX . md5( $this->model() . '|' . $text );
-		$cached    = get_transient( $cache_key );
+		$model = $this->model();
 
-		if ( is_array( $cached ) ) {
+		$cached = Tuki_Cache::get_embedding( $model, $text );
+
+		if ( null !== $cached ) {
 			return $cached;
 		}
 
@@ -86,7 +78,7 @@ class Tuki_Embeddings {
 		$vector  = isset( $vectors[0] ) ? $vectors[0] : array();
 
 		if ( ! empty( $vector ) ) {
-			set_transient( $cache_key, $vector, self::CACHE_TTL );
+			Tuki_Cache::set_embedding( $model, $text, $vector );
 		}
 
 		return $vector;

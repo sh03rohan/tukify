@@ -17,7 +17,42 @@
 		initReindex();
 		initKnowledgeBase();
 		initSizeCharts();
+		initClearCache();
 	} );
+
+	/**
+	 * "Clear cache" button on the Analytics tab.
+	 */
+	function initClearCache() {
+		var $btn = $( '#tuki-clear-cache' );
+
+		if ( ! $btn.length ) {
+			return;
+		}
+
+		var $status = $( '#tuki-cache-status' );
+
+		$btn.on( 'click', function ( event ) {
+			event.preventDefault();
+			$btn.prop( 'disabled', true );
+			$status.removeClass( 'is-success is-error' ).text( tukiAdmin.cacheClearing );
+
+			$.post( tukiAdmin.ajaxUrl, {
+				action: 'tuki_clear_cache',
+				nonce: tukiAdmin.nonce
+			} ).done( function ( response ) {
+				if ( response && response.success ) {
+					$status.addClass( 'is-success' ).text( tukiAdmin.cacheCleared );
+				} else {
+					$status.addClass( 'is-error' ).text( tukiAdmin.cacheClearError );
+				}
+			} ).fail( function () {
+				$status.addClass( 'is-error' ).text( tukiAdmin.cacheClearError );
+			} ).always( function () {
+				$btn.prop( 'disabled', false );
+			} );
+		} );
+	}
 
 	/**
 	 * Size-chart repeater: add/remove per-category size bands.

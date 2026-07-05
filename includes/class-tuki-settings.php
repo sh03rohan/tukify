@@ -85,6 +85,11 @@ class Tuki_Settings {
 			'guest_rate_limit'  => 20,
 			'demand_logging'        => 1,
 			'demand_retention_days' => 90,
+			'cache_enabled'         => 1,
+			'cache_ttl_hours'       => 24,
+			'price_chat_input'      => 0.30,
+			'price_chat_output'     => 2.50,
+			'price_embedding'       => 0.15,
 			'accent_color'      => '#7C6FF0',
 			'color_scheme'      => 'dark',
 			'floating_widget'   => 0,
@@ -290,6 +295,14 @@ class Tuki_Settings {
 
 		$out['demand_logging']        = empty( $input['demand_logging'] ) ? 0 : 1;
 		$out['demand_retention_days'] = min( 3650, max( 0, absint( $input['demand_retention_days'] ?? 90 ) ) );
+
+		// Caching + cost estimation.
+		$out['cache_enabled']   = empty( $input['cache_enabled'] ) ? 0 : 1;
+		$out['cache_ttl_hours'] = min( 720, max( 1, absint( $input['cache_ttl_hours'] ?? 24 ) ) );
+
+		foreach ( array( 'price_chat_input', 'price_chat_output', 'price_embedding' ) as $price_field ) {
+			$out[ $price_field ] = isset( $input[ $price_field ] ) ? max( 0, (float) $input[ $price_field ] ) : $out[ $price_field ];
+		}
 		$out['accent_color']      = sanitize_hex_color( $input['accent_color'] ?? '' );
 		$out['color_scheme']      = in_array( ( $input['color_scheme'] ?? '' ), array( 'dark', 'light' ), true ) ? $input['color_scheme'] : 'dark';
 		$out['floating_widget']   = empty( $input['floating_widget'] ) ? 0 : 1;

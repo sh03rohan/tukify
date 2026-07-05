@@ -31,6 +31,21 @@ class Tuki_Chat {
 		$message = trim( (string) $message );
 		$count   = (int) Tuki_Settings::get( 'retrieval_count' );
 
+		// Answer cache: an identical/near-identical repeat of a standalone question
+		// (no conversation history, no on-screen product context) can be served
+		// without any API call. Only non-personal KB answers are ever stored below,
+		// so order lookups, size advice, and cart/catalog-dependent replies are
+		// never cached or served from here.
+		$cacheable_turn = empty( $history ) && empty( $context_ids );
+
+		if ( $cacheable_turn && '' !== $message ) {
+			$cached_answer = Tuki_Cache::get_answer( $message );
+
+			if ( is_array( $cached_answer ) ) {
+				return $cached_answer;
+			}
+		}
+
 		$may_clarify = Tuki_Settings::get( 'clarify_enabled' ) && (int) $clarify_count < (int) Tuki_Settings::get( 'clarify_max' );
 
 		$search  = new Tuki_Search();
@@ -166,7 +181,15 @@ class Tuki_Chat {
 		// Feature 4 + site-wide RAG: answer store policy/FAQ questions and general
 		// informational questions about the site from the knowledge base, grounded.
 		if ( 'policy' === $decision['intent'] || ( 'info' === $decision['intent'] && $kb_available ) ) {
-			return $this->kb_response( $reply, $kb_snippets, $decision['intent'] );
+			$kb_result = $this->kb_response( $reply, $kb_snippets, $decision['intent'] );
+
+			// Cache only these grounded, non-personal answers, and only for a
+			// standalone turn — so nothing user- or session-specific is ever stored.
+			if ( $cacheable_turn ) {
+				Tuki_Cache::set_answer( $message, $kb_result );
+			}
+
+			return $kb_result;
 		}
 
 		// Feature 3: side-by-side comparison of 2-3 products.

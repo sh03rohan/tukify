@@ -607,6 +607,127 @@ $tuki_tabs = array(
 						</div>
 					</div>
 
+					<?php
+					// -------- API usage + estimated cost --------
+					$tuki_usage_days  = ( 0 === $tuki_range ) ? 90 : $tuki_range;
+					$tuki_usage       = Tuki_Usage::series( $tuki_usage_days );
+					$tuki_usage_since = gmdate( 'Y-m-d', $tuki_now - ( ( $tuki_usage_days - 1 ) * DAY_IN_SECONDS ) );
+					$tuki_utotals     = Tuki_DB::usage_totals( $tuki_usage_since );
+					$tuki_cost        = Tuki_Usage::estimated_cost( $tuki_utotals );
+					$tuki_chat_tot    = isset( $tuki_utotals['chat'] ) ? $tuki_utotals['chat'] : array( 'requests' => 0 );
+					$tuki_emb_tot     = isset( $tuki_utotals['embedding'] ) ? $tuki_utotals['embedding'] : array( 'requests' => 0 );
+					?>
+					<!-- API usage & cost -->
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'API usage & estimated cost', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Tokens and requests spent on your Gemini key. Caching (below) reduces these.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-demand-summary tkfy-field--wide">
+								<div class="tkfy-tile">
+									<span class="tkfy-tile-value">$<?php echo esc_html( number_format( (float) $tuki_cost, 4 ) ); ?></span>
+									<span class="tkfy-tile-label"><?php esc_html_e( 'Estimated cost', 'tukify' ); ?></span>
+								</div>
+								<div class="tkfy-tile">
+									<span class="tkfy-tile-value"><?php echo esc_html( number_format_i18n( (int) $tuki_usage['total_tokens'] ) ); ?></span>
+									<span class="tkfy-tile-label"><?php esc_html_e( 'Tokens in range', 'tukify' ); ?></span>
+								</div>
+								<div class="tkfy-tile">
+									<span class="tkfy-tile-value"><?php echo esc_html( number_format_i18n( (int) $tuki_chat_tot['requests'] ) ); ?></span>
+									<span class="tkfy-tile-label"><?php esc_html_e( 'Chat requests', 'tukify' ); ?></span>
+								</div>
+								<div class="tkfy-tile">
+									<span class="tkfy-tile-value"><?php echo esc_html( number_format_i18n( (int) $tuki_emb_tot['requests'] ) ); ?></span>
+									<span class="tkfy-tile-label"><?php esc_html_e( 'Embedding requests', 'tukify' ); ?></span>
+								</div>
+							</div>
+
+							<?php if ( (int) $tuki_usage['total_tokens'] <= 0 ) : ?>
+								<div class="tkfy-empty tkfy-field--wide">
+									<p><?php esc_html_e( 'No API usage recorded in this range yet.', 'tukify' ); ?></p>
+								</div>
+							<?php else : ?>
+								<div class="tkfy-field--wide">
+									<div class="tkfy-legend">
+										<span class="tkfy-legend-item"><span class="tkfy-legend-dot tkfy-legend-dot--chat"></span><?php esc_html_e( 'Chat', 'tukify' ); ?></span>
+										<span class="tkfy-legend-item"><span class="tkfy-legend-dot tkfy-legend-dot--embed"></span><?php esc_html_e( 'Embeddings', 'tukify' ); ?></span>
+									</div>
+									<div class="tkfy-usage-chart" role="img" aria-label="<?php esc_attr_e( 'Tokens used per day', 'tukify' ); ?>">
+										<?php
+										$tuki_umax = max( 1, (int) $tuki_usage['max'] );
+										foreach ( $tuki_usage['days'] as $tuki_d ) :
+											$tuki_chat_pct = ( $tuki_d['chat'] / $tuki_umax ) * 100;
+											$tuki_emb_pct  = ( $tuki_d['embed'] / $tuki_umax ) * 100;
+											$tuki_bar_ttl  = sprintf(
+												/* translators: 1: date, 2: token count. */
+												__( '%1$s — %2$s tokens', 'tukify' ),
+												$tuki_d['day'],
+												number_format_i18n( (int) $tuki_d['tokens'] )
+											);
+											?>
+											<div class="tkfy-ubar" title="<?php echo esc_attr( $tuki_bar_ttl ); ?>">
+												<div class="tkfy-ubar-track">
+													<span class="tkfy-ubar-seg tkfy-ubar-seg--chat" style="height:<?php echo esc_attr( round( $tuki_chat_pct, 2 ) ); ?>%;"></span>
+													<span class="tkfy-ubar-seg tkfy-ubar-seg--embed" style="height:<?php echo esc_attr( round( $tuki_emb_pct, 2 ) ); ?>%;"></span>
+												</div>
+											</div>
+										<?php endforeach; ?>
+									</div>
+									<p class="tkfy-hint">
+										<?php
+										/* translators: %d: number of days. */
+										printf( esc_html__( 'Tokens per day over the last %d days. Estimated cost uses the prices set below.', 'tukify' ), (int) $tuki_usage_days );
+										?>
+									</p>
+								</div>
+							<?php endif; ?>
+						</div>
+					</div>
+
+					<!-- Response caching -->
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Response caching', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Reuse results for repeat work to cut API calls. Never caches order lookups or anything personal.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[cache_enabled]" value="1" <?php checked( $tuki_settings['cache_enabled'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Cache query embeddings and knowledge-base answers', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint"><?php esc_html_e( 'Identical or near-identical repeat queries reuse a cached result instead of calling Gemini again.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_cache_ttl"><?php esc_html_e( 'Cache lifetime (hours)', 'tukify' ); ?></label>
+								<input type="number" class="tuki-input tuki-input--sm" id="tuki_cache_ttl" name="<?php echo esc_attr( $tuki_option ); ?>[cache_ttl_hours]" value="<?php echo esc_attr( $tuki_settings['cache_ttl_hours'] ); ?>" min="1" max="720" />
+								<p class="tkfy-hint"><?php esc_html_e( 'How long a cached answer/embedding stays valid. Default 24.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<div class="tkfy-inline">
+									<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki-clear-cache"><?php esc_html_e( 'Clear cache now', 'tukify' ); ?></button>
+									<span id="tuki-cache-status" class="tuki-status" role="status" aria-live="polite"></span>
+								</div>
+								<p class="tkfy-hint"><?php esc_html_e( 'Removes all cached embeddings and answers immediately (e.g. after editing policy pages).', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_price_chat_input"><?php esc_html_e( 'Chat input $ / 1M tokens', 'tukify' ); ?></label>
+								<input type="number" step="0.01" min="0" class="tuki-input tuki-input--sm" id="tuki_price_chat_input" name="<?php echo esc_attr( $tuki_option ); ?>[price_chat_input]" value="<?php echo esc_attr( $tuki_settings['price_chat_input'] ); ?>" />
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_price_chat_output"><?php esc_html_e( 'Chat output $ / 1M tokens', 'tukify' ); ?></label>
+								<input type="number" step="0.01" min="0" class="tuki-input tuki-input--sm" id="tuki_price_chat_output" name="<?php echo esc_attr( $tuki_option ); ?>[price_chat_output]" value="<?php echo esc_attr( $tuki_settings['price_chat_output'] ); ?>" />
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_price_embedding"><?php esc_html_e( 'Embedding $ / 1M tokens', 'tukify' ); ?></label>
+								<input type="number" step="0.01" min="0" class="tuki-input tuki-input--sm" id="tuki_price_embedding" name="<?php echo esc_attr( $tuki_option ); ?>[price_embedding]" value="<?php echo esc_attr( $tuki_settings['price_embedding'] ); ?>" />
+							</div>
+							<p class="tkfy-hint tkfy-field--wide"><?php esc_html_e( 'Prices are only used for the cost estimate above — set them to match your Gemini pricing tier.', 'tukify' ); ?></p>
+						</div>
+					</div>
+
 					<!-- Demand insights -->
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
