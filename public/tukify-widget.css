@@ -340,6 +340,57 @@
 	gap: 8px;
 }
 
+/* ---- "Shop the look" grouped results ---- */
+
+.tuki-look-group {
+	align-self: stretch;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 4px;
+	padding-top: 10px;
+	border-top: 0.5px solid var(--tuki-border);
+}
+
+.tuki-look-group:first-of-type {
+	border-top: none;
+	padding-top: 0;
+}
+
+.tuki-look-head {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.tuki-look-label {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+	color: var(--tuki-accent);
+}
+
+.tuki-look-sub {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+}
+
+.tuki-look-note {
+	font-size: 11px;
+	color: var(--tuki-text-faint);
+}
+
+.tuki-look-none {
+	font-size: 12px;
+	color: var(--tuki-text-muted);
+	padding: 8px 10px;
+	background: var(--tuki-surface);
+	border: 0.5px solid var(--tuki-border);
+	border-radius: var(--tuki-radius);
+}
+
 .tuki-pcard {
 	display: flex;
 	gap: 10px;

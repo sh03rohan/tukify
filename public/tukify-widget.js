@@ -732,6 +732,45 @@
 			scrollDown();
 		}
 
+		// "Shop the look": render one product group per detected item.
+		function addLookGroups( groups ) {
+			groups.forEach( function ( g ) {
+				var section = el( 'div', 'tuki-look-group' );
+
+				var head = el( 'div', 'tuki-look-head' );
+				var label = el( 'span', 'tuki-look-label' );
+				label.textContent = ( g.group || S.lookItem || 'Item' ) + ':';
+				head.appendChild( label );
+				if ( g.title ) {
+					var sub = el( 'span', 'tuki-look-sub' );
+					sub.textContent = g.title;
+					head.appendChild( sub );
+				}
+				section.appendChild( head );
+
+				if ( g.products && g.products.length ) {
+					if ( g.rescue ) {
+						var note = el( 'div', 'tuki-look-note' );
+						note.textContent = S.lookClosest || 'Closest matches';
+						section.appendChild( note );
+					}
+					var cards = el( 'div', 'tuki-cards' );
+					g.products.forEach( function ( p ) {
+						cards.appendChild( buildCard( p ) );
+						shownIds.push( p.id );
+					} );
+					section.appendChild( cards );
+				} else {
+					var none = el( 'div', 'tuki-look-none' );
+					none.textContent = S.lookNone || 'No close match found for this item.';
+					section.appendChild( none );
+				}
+
+				msgsEl.appendChild( section );
+			} );
+			scrollDown();
+		}
+
 		function addChatCards( products, browse ) {
 			var wrap = el( 'div', 'tuki-cards' );
 			products.forEach( function ( p ) {
@@ -895,7 +934,9 @@
 				.then( function ( data ) {
 					typing.remove();
 					addBubble( 'bot', data && data.reply ? data.reply : ( S.empty || '' ) );
-					if ( data && data.products && data.products.length ) {
+					if ( data && data.groups && data.groups.length ) {
+						addLookGroups( data.groups );
+					} else if ( data && data.products && data.products.length ) {
 						addChatCards( data.products, data.browse );
 					}
 				} )

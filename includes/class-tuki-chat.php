@@ -774,35 +774,116 @@ class Tuki_Chat {
 			throw new Exception( esc_html__( 'Image search is not available with the current provider.', 'tukify' ) );
 		}
 
-		$schema = array(
-			'type'       => 'OBJECT',
-			'properties' => array(
-				'query' => array( 'type' => 'STRING' ),
-				'reply' => array( 'type' => 'STRING' ),
-			),
-			'required'   => array( 'query' ),
-		);
-
-		$prompt = __( 'You are a shopping assistant. Look at the product in this image. In "query", write a short search phrase describing the product type and key visible attributes (color, material, style). In "reply", write one friendly sentence telling the shopper you will look for similar items — do NOT mention any specific store product, price, or stock.', 'tukify' );
-
-		$raw  = (string) $provider->vision( $base64, $mime, $prompt, $schema );
+		$raw  = (string) $provider->vision( $base64, $mime, $this->look_prompt(), $this->look_schema() );
 		$data = json_decode( $raw, true );
 
-		$query = is_array( $data ) && isset( $data['query'] ) ? trim( (string) $data['query'] ) : '';
-		$reply = is_array( $data ) && isset( $data['reply'] ) ? trim( (string) $data['reply'] ) : '';
+		$reply     = ( is_array( $data ) && isset( $data['reply'] ) ) ? trim( (string) $data['reply'] ) : '';
+		$raw_items = ( is_array( $data ) && isset( $data['items'] ) && is_array( $data['items'] ) ) ? $data['items'] : array();
 
-		if ( '' === $query ) {
-			$query = trim( wp_strip_all_tags( $raw ) );
+		// Normalize detected items down to those with a usable search query.
+		$items = array();
+
+		foreach ( $raw_items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$type  = isset( $item['type'] ) ? sanitize_text_field( (string) $item['type'] ) : '';
+			$color = isset( $item['color'] ) ? sanitize_text_field( (string) $item['color'] ) : '';
+			$query = isset( $item['query'] ) ? trim( (string) $item['query'] ) : '';
+
+			if ( '' === $query ) {
+				$query = trim( $color . ' ' . $type );
+			}
+
+			if ( '' === $query ) {
+				continue;
+			}
+
+			$items[] = array(
+				'group' => isset( $item['group'] ) ? sanitize_text_field( (string) $item['group'] ) : '',
+				'type'  => $type,
+				'color' => $color,
+				'style' => isset( $item['style'] ) ? sanitize_text_field( (string) $item['style'] ) : '',
+				'query' => $query,
+			);
+
+			if ( count( $items ) >= 6 ) {
+				break;
+			}
 		}
 
-		if ( '' === $query ) {
+		// No clear products in the image.
+		if ( empty( $items ) ) {
 			return array(
-				'reply'    => __( 'I couldn\'t tell what that image shows. Could you describe what you\'re looking for?', 'tukify' ),
+				'reply'    => __( 'I couldn\'t spot any clear products in that image. Could you describe what you\'re looking for?', 'tukify' ),
 				'products' => array(),
 				'intent'   => 'zero_result',
 			);
 		}
 
+		// One item → the original single-item flow (flat product list).
+		if ( 1 === count( $items ) ) {
+			return $this->single_look_response( $items[0], $reply );
+		}
+
+		// Multiple items → "shop the look", grouped per detected item.
+		return $this->grouped_look_response( $items, $reply );
+	}
+
+	/**
+	 * Vision prompt for multi-item "shop the look" detection.
+	 *
+	 * @return string
+	 */
+	private function look_prompt() {
+		return __(
+			'You are a visual shopping assistant for an online store. Look at the image and detect each DISTINCT purchasable item a shopper might want to buy. For an outfit that means each garment and accessory separately (e.g. top, bottom, jacket, shoes, belt, bag, hat); for other images, the main products shown. For EACH item return: "group" (one of Top, Bottom, Outerwear, Footwear, Accessory, Bag, Headwear, Other), "type" (the item, e.g. "denim jacket"), "color", "style", and "query" (a short search phrase combining the type and key visible attributes such as colour, material and style). List at most 6 items, most prominent first, and do not repeat the same item. Ignore people, faces, backgrounds and anything not purchasable. If the image shows no clear products, return an empty "items" array. In "reply", write one short friendly sentence — do NOT mention any specific store product, price, or stock.',
+			'tukify'
+		);
+	}
+
+	/**
+	 * Structured-output schema for multi-item vision detection.
+	 *
+	 * @return array
+	 */
+	private function look_schema() {
+		return array(
+			'type'       => 'OBJECT',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'ARRAY',
+					'items' => array(
+						'type'       => 'OBJECT',
+						'properties' => array(
+							'group' => array(
+								'type' => 'STRING',
+								'enum' => array( 'Top', 'Bottom', 'Outerwear', 'Footwear', 'Accessory', 'Bag', 'Headwear', 'Other' ),
+							),
+							'type'  => array( 'type' => 'STRING' ),
+							'color' => array( 'type' => 'STRING' ),
+							'style' => array( 'type' => 'STRING' ),
+							'query' => array( 'type' => 'STRING' ),
+						),
+						'required'   => array( 'type', 'query' ),
+					),
+				),
+				'reply' => array( 'type' => 'STRING' ),
+			),
+			'required'   => array( 'items' ),
+		);
+	}
+
+	/**
+	 * Single-item visual search (backward-compatible flat result).
+	 *
+	 * @param array  $item  Detected item (query/type/color/...).
+	 * @param string $reply Model's friendly lead-in, if any.
+	 * @return array{reply:string,products:array,intent:string}
+	 */
+	private function single_look_response( array $item, $reply ) {
+		$query   = $item['query'];
 		$count   = (int) Tuki_Settings::get( 'retrieval_count' );
 		$search  = new Tuki_Search();
 		$results = $search->query( $query, $count );
@@ -815,8 +896,8 @@ class Tuki_Chat {
 		$above = array_values(
 			array_filter(
 				$scored,
-				static function ( $item ) use ( $threshold ) {
-					return $item['score'] >= $threshold;
+				static function ( $entry ) use ( $threshold ) {
+					return $entry['score'] >= $threshold;
 				}
 			)
 		);
@@ -826,8 +907,8 @@ class Tuki_Chat {
 
 		$products = array();
 
-		foreach ( $pool as $item ) {
-			$products[] = Tuki_Cart::product_card( $item['product'] );
+		foreach ( $pool as $entry ) {
+			$products[] = Tuki_Cart::product_card( $entry['product'] );
 		}
 
 		if ( $rescue ) {
@@ -841,6 +922,125 @@ class Tuki_Chat {
 			'products' => $products,
 			'intent'   => $rescue ? 'zero_result' : 'visual',
 		);
+	}
+
+	/**
+	 * Multi-item "shop the look": run the catalog search per detected item and
+	 * return the best matches grouped per item. Products already shown in an
+	 * earlier group are not repeated in a later one.
+	 *
+	 * @param array  $items Detected items.
+	 * @param string $reply Model's friendly lead-in, if any.
+	 * @return array{reply:string,products:array,groups:array,intent:string}
+	 */
+	private function grouped_look_response( array $items, $reply ) {
+		$threshold = (float) Tuki_Settings::get( 'relevance_threshold' );
+		$per_group = max( 2, min( 4, (int) Tuki_Settings::get( 'retrieval_count' ) ) );
+		$search    = new Tuki_Search();
+
+		$seen   = array();
+		$groups = array();
+		$any    = false;
+
+		foreach ( $items as $item ) {
+			$results = $search->query( $item['query'], $per_group + 6 );
+
+			Tuki_Analytics::record_query( '[image] ' . $item['query'], $results );
+
+			$scored = $this->scored_products( $results );
+
+			$above = array_values(
+				array_filter(
+					$scored,
+					static function ( $entry ) use ( $threshold ) {
+						return $entry['score'] >= $threshold;
+					}
+				)
+			);
+
+			$rescue = empty( $above );
+			$pool   = $rescue ? array_slice( $scored, 0, $per_group ) : $above;
+
+			$cards = array();
+
+			foreach ( $pool as $entry ) {
+				$pid = (int) $entry['product']->get_id();
+
+				if ( isset( $seen[ $pid ] ) ) {
+					continue; // Already shown under an earlier item.
+				}
+
+				$seen[ $pid ] = true;
+				$cards[]      = Tuki_Cart::product_card( $entry['product'] );
+
+				if ( count( $cards ) >= $per_group ) {
+					break;
+				}
+			}
+
+			if ( ! empty( $cards ) ) {
+				$any = true;
+			}
+
+			$groups[] = array(
+				'group'    => $this->look_group_label( $item['group'] ),
+				'title'    => $this->look_item_title( $item ),
+				'products' => $cards,
+				'rescue'   => $rescue && ! empty( $cards ),
+			);
+		}
+
+		if ( '' === $reply || ! $any ) {
+			$reply = $any
+				? __( 'Here\'s how you can shop this look — grouped by item.', 'tukify' )
+				: __( 'I spotted a few items in that image, but couldn\'t find close matches in the store right now.', 'tukify' );
+		}
+
+		return array(
+			'reply'    => $reply,
+			'products' => array(),
+			'groups'   => $groups,
+			'intent'   => 'shop_the_look',
+		);
+	}
+
+	/**
+	 * Localized display label for a detected item's group.
+	 *
+	 * @param string $group Raw group from the vision model.
+	 * @return string
+	 */
+	private function look_group_label( $group ) {
+		$map = array(
+			'top'       => __( 'Top', 'tukify' ),
+			'bottom'    => __( 'Bottom', 'tukify' ),
+			'outerwear' => __( 'Outerwear', 'tukify' ),
+			'footwear'  => __( 'Footwear', 'tukify' ),
+			'accessory' => __( 'Accessory', 'tukify' ),
+			'bag'       => __( 'Bag', 'tukify' ),
+			'headwear'  => __( 'Headwear', 'tukify' ),
+			'other'     => __( 'Item', 'tukify' ),
+		);
+
+		$key = strtolower( trim( (string) $group ) );
+
+		if ( isset( $map[ $key ] ) ) {
+			return $map[ $key ];
+		}
+
+		return '' !== trim( (string) $group ) ? ucfirst( trim( (string) $group ) ) : __( 'Item', 'tukify' );
+	}
+
+	/**
+	 * Short human subtitle for a detected item (e.g. "blue denim jacket").
+	 *
+	 * @param array $item Detected item.
+	 * @return string
+	 */
+	private function look_item_title( array $item ) {
+		$title = trim( trim( (string) $item['color'] ) . ' ' . trim( (string) $item['type'] ) );
+
+		return '' !== $title ? $title : trim( (string) $item['type'] );
 	}
 
 	/**
