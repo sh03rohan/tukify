@@ -20,6 +20,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Tuki_DB {
 
 	/**
+	 * Truncates a string to a character length without splitting a multibyte
+	 * character. Byte-based substr() can cut an emoji / Bangla / RTL glyph in half
+	 * and produce invalid UTF-8 (MySQL "Incorrect string value"); this keeps the
+	 * value valid and within the column's character length.
+	 *
+	 * @param string $str   Value to truncate.
+	 * @param int    $chars Maximum number of characters.
+	 * @return string
+	 */
+	private static function truncate( $str, $chars ) {
+		$str = (string) $str;
+
+		if ( function_exists( 'mb_substr' ) ) {
+			return mb_substr( $str, 0, $chars, 'UTF-8' );
+		}
+
+		// No mbstring: byte-truncate (<= $chars characters), then drop any partial
+		// trailing multibyte sequence so the result is always valid UTF-8.
+		$str = substr( $str, 0, $chars );
+
+		return (string) preg_replace( '/[\x80-\xBF]+$|[\xC0-\xFD][\x80-\xBF]*$/', '', $str );
+	}
+
+	/**
 	 * Returns the fully-qualified embeddings table name (with prefix).
 	 *
 	 * @return string
@@ -404,7 +428,7 @@ class Tuki_DB {
 			'source_type'  => substr( (string) $data['source_type'], 0, 20 ),
 			'source_id'    => absint( $data['source_id'] ),
 			'chunk'        => absint( $data['chunk'] ),
-			'title'        => substr( (string) $data['title'], 0, 255 ),
+			'title'        => self::truncate( $data['title'], 255 ),
 			'content'      => (string) $data['content'],
 			'url'          => (string) $data['url'],
 			'content_hash' => (string) $data['content_hash'],
@@ -704,7 +728,7 @@ class Tuki_DB {
 		global $wpdb;
 
 		$data   = array(
-			'query_text'            => substr( (string) $query_text, 0, 191 ),
+			'query_text'            => self::truncate( $query_text, 191 ),
 			'matched_results_count' => max( 0, (int) $matched_count ),
 			'was_answered'          => $was_answered ? 1 : 0,
 			'intent'                => substr( (string) $intent, 0, 30 ),

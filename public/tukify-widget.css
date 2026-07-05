@@ -1048,6 +1048,14 @@
 	cursor: pointer;
 }
 
+/* "View product" link (variable/grouped/external) — looks like the add button
+   but is an anchor, so reset link styling. */
+.tuki-add--link {
+	display: inline-block;
+	text-decoration: none;
+	text-align: center;
+}
+
 .tuki-add[disabled] {
 	opacity: 0.6;
 	cursor: default;

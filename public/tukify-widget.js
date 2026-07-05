@@ -238,6 +238,18 @@
 			} );
 			actions.appendChild( stepper );
 			actions.appendChild( add );
+		} else if ( p.needs_options ) {
+			// Variable / grouped / external product: can't be added by id, so send
+			// the shopper to the product page to choose options.
+			var opts = el( 'a', 'tuki-add tuki-add--link' );
+			opts.href = p.url || '#';
+			opts.target = '_blank';
+			opts.rel = 'noopener';
+			opts.textContent = S.viewProduct || 'View product';
+			opts.addEventListener( 'click', function () {
+				logClick( p.id );
+			} );
+			actions.appendChild( opts );
 		} else {
 			var oos = el( 'span', 'tuki-oos' );
 			oos.textContent = S.outOfStock || '';
@@ -1301,6 +1313,13 @@
 						addToCart( p, add );
 					} );
 					th.appendChild( add );
+				} else if ( p.needs_options ) {
+					var vopts = el( 'a', 'tuki-add tuki-add--link' );
+					vopts.href = p.url || '#';
+					vopts.target = '_blank';
+					vopts.rel = 'noopener';
+					vopts.textContent = S.viewProduct || 'View product';
+					th.appendChild( vopts );
 				} else {
 					var oos = el( 'span', 'tuki-oos' );
 					oos.textContent = S.outOfStock || '';

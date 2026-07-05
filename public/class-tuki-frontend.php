@@ -189,6 +189,7 @@ class Tuki_Frontend {
 				'added'                 => __( 'Added', 'tukify' ),
 				'outOfStock'            => __( 'Out of stock', 'tukify' ),
 				'inStock'               => __( 'In stock', 'tukify' ),
+				'viewProduct'           => __( 'View product', 'tukify' ),
 				'quantity'              => __( 'Quantity', 'tukify' ),
 				'increase'              => __( 'Increase quantity', 'tukify' ),
 				'decrease'              => __( 'Decrease quantity', 'tukify' ),

@@ -153,8 +153,18 @@ class Tuki_Indexer {
 		}
 
 		$embeddings = new Tuki_Embeddings();
-		$vectors    = $embeddings->embed_batch( array( $text ) );
-		$vector     = isset( $vectors[0] ) ? $vectors[0] : array();
+
+		try {
+			$vectors = $embeddings->embed_batch( array( $text ) );
+		} catch ( Exception $e ) {
+			// No/invalid key or a transient provider error: leave any existing
+			// embedding in place and let the next save or a manual reindex retry.
+			// Swallowing this keeps a missing key from turning every product save
+			// into a failed (and logged) Action Scheduler job.
+			return;
+		}
+
+		$vector = isset( $vectors[0] ) ? $vectors[0] : array();
 
 		if ( empty( $vector ) ) {
 			return;

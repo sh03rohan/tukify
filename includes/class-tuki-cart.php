@@ -50,18 +50,27 @@ class Tuki_Cart {
 			}
 		}
 
+		// Only SIMPLE products can be added straight to the cart by id. Variable,
+		// grouped and external products need the shopper to pick a variation / act
+		// on the product page, so those get a "view product" link instead of a
+		// direct add button (a parent-id add would otherwise fail server-side).
+		$purchasable   = $product->is_purchasable() && $in_stock;
+		$can_add       = $purchasable && $product->is_type( 'simple' );
+		$needs_options = $purchasable && ! $product->is_type( 'simple' );
+
 		return array(
-			'id'           => $product->get_id(),
-			'title'        => $product->get_name(),
-			'price'        => wp_strip_all_tags( $product->get_price_html() ),
-			'price_raw'    => (float) $product->get_price(),
-			'currency'     => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
-			'stock'        => $in_stock,
-			'stock_status' => $product->get_stock_status(),
-			'max_qty'      => $max_qty,
-			'add_to_cart'  => $product->is_purchasable() && $in_stock,
-			'image'        => $image ? $image : '',
-			'url'          => get_permalink( $product->get_id() ),
+			'id'            => $product->get_id(),
+			'title'         => $product->get_name(),
+			'price'         => wp_strip_all_tags( $product->get_price_html() ),
+			'price_raw'     => (float) $product->get_price(),
+			'currency'      => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
+			'stock'         => $in_stock,
+			'stock_status'  => $product->get_stock_status(),
+			'max_qty'       => $max_qty,
+			'add_to_cart'   => $can_add,
+			'needs_options' => $needs_options,
+			'image'         => $image ? $image : '',
+			'url'           => get_permalink( $product->get_id() ),
 		);
 	}
 
