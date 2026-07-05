@@ -77,6 +77,7 @@ class Tuki_Settings {
 			'reengage_pages'        => array( 'checkout', 'cart' ),
 			'reengage_message'      => '',
 			'reengage_coupon'       => '',
+			'checkout_in_chat'      => 0,
 			'guest_rate_limit'  => 20,
 			'demand_logging'        => 1,
 			'demand_retention_days' => 90,
@@ -269,6 +270,10 @@ class Tuki_Settings {
 
 		$reengage_coupon        = isset( $input['reengage_coupon'] ) ? sanitize_text_field( $input['reengage_coupon'] ) : '';
 		$out['reengage_coupon'] = function_exists( 'wc_format_coupon_code' ) ? wc_format_coupon_code( $reengage_coupon ) : $reengage_coupon;
+
+		// In-chat checkout is a sensitive flow (creates real orders), so it is an
+		// explicit opt-in and defaults off.
+		$out['checkout_in_chat'] = empty( $input['checkout_in_chat'] ) ? 0 : 1;
 
 		$out['guest_rate_limit']  = min( 1000, max( 1, absint( $input['guest_rate_limit'] ?? 20 ) ) );
 

@@ -164,6 +164,14 @@ class Tuki_Frontend {
 			'upsellProactive' => (bool) $settings['upsell_enabled'] && (bool) $settings['upsell_proactive'],
 			'exitIntent'      => $exit_intent,
 			'reengage'        => $reengage,
+			'checkout'        => array(
+				// Only advertise in-chat checkout when the flag is on AND WooCommerce
+				// is present; the widget hides the affordance otherwise.
+				'enabled' => class_exists( 'Tuki_Checkout' ) && Tuki_Checkout::is_enabled(),
+				// Dedicated nonce for the order-placing endpoint (belt-and-braces on
+				// top of the REST cookie nonce).
+				'nonce'   => wp_create_nonce( 'tuki_checkout' ),
+			),
 			'strings'   => array(
 				'title'       => $assistant,
 				'subtitle'    => __( 'AI shopping assistant', 'tukify' ),
@@ -228,6 +236,34 @@ class Tuki_Frontend {
 				'couponLabel'          => __( 'Here\'s a code for you', 'tukify' ),
 				'couponCopy'           => __( 'Copy code', 'tukify' ),
 				'couponCopied'         => __( 'Copied', 'tukify' ),
+				'checkoutStart'        => __( 'Check out here', 'tukify' ),
+				'checkoutTitle'        => __( 'Checkout', 'tukify' ),
+				'checkoutReview'       => __( 'Your cart', 'tukify' ),
+				'checkoutTotal'        => __( 'Total', 'tukify' ),
+				'checkoutDetails'      => __( 'Shipping details', 'tukify' ),
+				'checkoutFirstName'    => __( 'First name', 'tukify' ),
+				'checkoutLastName'     => __( 'Last name', 'tukify' ),
+				'checkoutEmail'        => __( 'Email', 'tukify' ),
+				'checkoutPhone'        => __( 'Phone (optional)', 'tukify' ),
+				'checkoutAddress1'     => __( 'Address', 'tukify' ),
+				'checkoutAddress2'     => __( 'Apartment, suite, etc. (optional)', 'tukify' ),
+				'checkoutCity'         => __( 'Town / City', 'tukify' ),
+				'checkoutState'        => __( 'State / County', 'tukify' ),
+				'checkoutPostcode'     => __( 'Postcode / ZIP', 'tukify' ),
+				'checkoutCountry'      => __( 'Country', 'tukify' ),
+				'checkoutContinue'     => __( 'Continue', 'tukify' ),
+				'checkoutShipping'     => __( 'Shipping method', 'tukify' ),
+				'checkoutPayment'      => __( 'Payment method', 'tukify' ),
+				'checkoutPayNote'      => __( 'You\'ll finish payment securely on the next screen.', 'tukify' ),
+				'checkoutPlace'        => __( 'Place order', 'tukify' ),
+				'checkoutPlacing'      => __( 'Placing your order…', 'tukify' ),
+				'checkoutRedirecting'  => __( 'Redirecting you to complete payment…', 'tukify' ),
+				'checkoutPlaced'       => __( 'Order placed — thank you!', 'tukify' ),
+				'checkoutViewOrder'    => __( 'View your order', 'tukify' ),
+				'checkoutFallback'     => __( 'Let\'s finish on the secure checkout page.', 'tukify' ),
+				'checkoutFallbackBtn'  => __( 'Go to checkout', 'tukify' ),
+				'checkoutMustLogin'    => __( 'Please log in or use the full checkout page to continue.', 'tukify' ),
+				'checkoutError'        => __( 'Please fix the highlighted fields.', 'tukify' ),
 			),
 		);
 	}

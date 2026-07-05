@@ -256,6 +256,39 @@ class Tuki_Rest {
 				),
 			)
 		);
+
+		// In-chat checkout (opt-in feature flag). state/update are read-mostly; the
+		// place endpoint creates a real order and additionally verifies a checkout
+		// nonce, on top of the REST cookie-nonce that every route already requires.
+		register_rest_route(
+			self::NAMESPACE,
+			'/checkout-state',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_checkout_state' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/checkout-update',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_checkout_update' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/checkout-place',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_checkout_place' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
 	}
 
 	/**
@@ -676,6 +709,62 @@ class Tuki_Rest {
 		);
 
 		return rest_ensure_response( Tuki_Size::recommend( $product, $answers ) );
+	}
+
+	/**
+	 * POST /checkout-state — cart review + address + shipping/payment options.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_checkout_state( WP_REST_Request $request ) {
+		unset( $request );
+
+		if ( ! Tuki_Checkout::is_enabled() ) {
+			return new WP_Error( 'tuki_checkout_disabled', __( 'In-chat checkout is turned off.', 'tukify' ), array( 'status' => 403 ) );
+		}
+
+		return rest_ensure_response( Tuki_Checkout::state() );
+	}
+
+	/**
+	 * POST /checkout-update — set address + shipping method, return fresh state.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_checkout_update( WP_REST_Request $request ) {
+		if ( ! Tuki_Checkout::is_enabled() ) {
+			return new WP_Error( 'tuki_checkout_disabled', __( 'In-chat checkout is turned off.', 'tukify' ), array( 'status' => 403 ) );
+		}
+
+		return rest_ensure_response( Tuki_Checkout::update( (array) $request->get_json_params() ) );
+	}
+
+	/**
+	 * POST /checkout-place — validate and place the order through WooCommerce.
+	 *
+	 * Requires a valid `checkout_nonce` (bound to the tuki_checkout action) in
+	 * addition to the REST cookie nonce every route enforces, so a placed order
+	 * can only originate from our own freshly-issued chat session.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_checkout_place( WP_REST_Request $request ) {
+		if ( ! Tuki_Checkout::is_enabled() ) {
+			return new WP_Error( 'tuki_checkout_disabled', __( 'In-chat checkout is turned off.', 'tukify' ), array( 'status' => 403 ) );
+		}
+
+		$data = (array) $request->get_json_params();
+
+		$nonce = isset( $data['checkout_nonce'] ) ? sanitize_text_field( $data['checkout_nonce'] ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, 'tuki_checkout' ) ) {
+			return new WP_Error( 'tuki_bad_nonce', __( 'Your session expired. Please refresh and try again.', 'tukify' ), array( 'status' => 403 ) );
+		}
+
+		return rest_ensure_response( Tuki_Checkout::place( $data ) );
 	}
 
 	/**

@@ -252,6 +252,28 @@ $tuki_tabs = array(
 						</div>
 					</div>
 
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'In-chat checkout', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Let shoppers review, address, ship, and pay without leaving the chat.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[checkout_in_chat]" value="1" <?php checked( $tuki_settings['checkout_in_chat'], 1 ); ?> <?php disabled( ! class_exists( 'WooCommerce' ) ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Enable in-chat checkout (creates real WooCommerce orders)', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint">
+									<?php esc_html_e( 'Uses WooCommerce\'s own cart, checkout, and order APIs — no pricing, tax, or payment logic is re-implemented. Offline gateways (Cash on Delivery, bank transfer, cheque) complete inside the chat; redirect gateways (e.g. PayPal) send the shopper to the gateway; gateways with on-page card fields (e.g. Stripe) hand off to WooCommerce\'s secure pay-for-order page. Anything unsupported falls back to the normal checkout page. Off by default.', 'tukify' ); ?>
+								</p>
+								<?php if ( ! class_exists( 'WooCommerce' ) ) : ?>
+									<p class="tkfy-hint"><strong><?php esc_html_e( 'WooCommerce is not active, so in-chat checkout is unavailable.', 'tukify' ); ?></strong></p>
+								<?php endif; ?>
+							</div>
+						</div>
+					</div>
+
 					<?php
 					// Category options + a reusable size-band row renderer (used for the
 					// saved rows and the JS "add" template).

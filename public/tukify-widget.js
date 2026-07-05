@@ -310,6 +310,7 @@
 		var engaged = false;
 		var exitFired = false;
 		var reengageFired = false;
+		var checkoutOffered = false;
 		var msgsEl;
 		var inputEl;
 		var sendBtn;
@@ -420,7 +421,28 @@
 				greeted = true;
 				addBubble( 'bot', S.greeting || '' );
 				setTimeout( maybeUpsell, 700 );
+				setTimeout( maybeOfferCheckout, 900 );
 			}
+		}
+
+		// When in-chat checkout is enabled and the cart has items, offer a one-tap
+		// way into the flow. Hidden entirely when the flag is off.
+		function maybeOfferCheckout() {
+			if ( checkoutOffered || ! cfg.checkout || ! cfg.checkout.enabled || readCartCount() < 1 ) {
+				return;
+			}
+			checkoutOffered = true;
+			var wrap = el( 'div', 'tuki-chips' );
+			var chip = el( 'button', 'tuki-chip tuki-chip--cta' );
+			chip.type = 'button';
+			chip.textContent = S.checkoutStart || 'Check out here';
+			chip.addEventListener( 'click', function () {
+				wrap.remove();
+				startCheckout();
+			} );
+			wrap.appendChild( chip );
+			msgsEl.appendChild( wrap );
+			scrollDown();
 		}
 
 		function maybeUpsell() {
@@ -677,6 +699,449 @@
 			row.appendChild( codeEl );
 			row.appendChild( copy );
 			wrap.appendChild( row );
+			msgsEl.appendChild( wrap );
+			scrollDown();
+		}
+
+		/* -----------------------------------------------------------------
+		 * In-chat checkout (feature-flagged; server does all the real work).
+		 *
+		 * The widget only collects input and renders WooCommerce's own numbers.
+		 * Every total, shipping rate, tax line, and the order itself come from the
+		 * server, which drives WooCommerce's cart/checkout/order APIs. Payment is
+		 * never handled here: offline gateways finish in chat, redirect gateways
+		 * send the browser to the gateway, and card gateways hand off to
+		 * WooCommerce's secure order-pay page. Anything unsupported falls back to
+		 * the normal checkout page.
+		 * ----------------------------------------------------------------- */
+
+		function startCheckout() {
+			if ( busy ) {
+				return;
+			}
+			engaged = true;
+			setBusy( true );
+			var typing = addTyping();
+			api( 'checkout-state', {} )
+				.then( function ( state ) {
+					typing.remove();
+					setBusy( false );
+					if ( ! state || ! state.ok ) {
+						addBubble( 'bot', S.checkoutFallback || '' );
+						addCheckoutFallback( state && state.fallback_url );
+						return;
+					}
+					if ( state.must_login ) {
+						addBubble( 'bot', S.checkoutMustLogin || '' );
+						addCheckoutFallback( state.fallback_url );
+						return;
+					}
+					buildCheckout( state );
+				} )
+				.catch( function ( err ) {
+					typing.remove();
+					setBusy( false );
+					addBubble( 'bot', ( err && err.data && err.data.message ) ? err.data.message : ( S.error || '' ) );
+				} );
+		}
+
+		function buildReview( review ) {
+			var wrap = el( 'div', 'tuki-co-review' );
+			var t = el( 'div', 'tuki-co-section-title' );
+			t.textContent = S.checkoutReview || 'Your cart';
+			wrap.appendChild( t );
+
+			( review.items || [] ).forEach( function ( it ) {
+				var row = el( 'div', 'tuki-co-item' );
+				if ( it.image ) {
+					var img = document.createElement( 'img' );
+					img.className = 'tuki-co-thumb';
+					img.src = it.image;
+					img.alt = it.name || '';
+					row.appendChild( img );
+				}
+				var name = el( 'span', 'tuki-co-item-name' );
+				name.textContent = ( it.name || '' ) + ' × ' + it.qty;
+				var price = el( 'span', 'tuki-co-item-price' );
+				price.textContent = it.total || '';
+				row.appendChild( name );
+				row.appendChild( price );
+				wrap.appendChild( row );
+			} );
+
+			( review.totals || [] ).forEach( function ( tt ) {
+				var row = el( 'div', 'tuki-co-total' );
+				var k = el( 'span', 'tuki-co-total-k' );
+				k.textContent = tt.label || '';
+				var v = el( 'span', 'tuki-co-total-v' );
+				v.textContent = tt.value || '';
+				row.appendChild( k );
+				row.appendChild( v );
+				wrap.appendChild( row );
+			} );
+
+			var grand = el( 'div', 'tuki-co-total tuki-co-total--grand' );
+			var gk = el( 'span', 'tuki-co-total-k' );
+			gk.textContent = S.checkoutTotal || 'Total';
+			var gv = el( 'span', 'tuki-co-total-v' );
+			gv.textContent = review.total || '';
+			grand.appendChild( gk );
+			grand.appendChild( gv );
+			wrap.appendChild( grand );
+
+			return wrap;
+		}
+
+		function buildCheckout( state ) {
+			var co = { state: state, fields: {}, selectedShipping: '', selectedPayment: '', busy: false };
+			var box = el( 'div', 'tuki-co' );
+			co.box = box;
+
+			var head = el( 'div', 'tuki-co-head' );
+			head.textContent = S.checkoutTitle || 'Checkout';
+			box.appendChild( head );
+
+			co.reviewEl = buildReview( state.review || {} );
+			box.appendChild( co.reviewEl );
+
+			var form = el( 'div', 'tuki-co-form' );
+			co.form = form;
+			var sect = el( 'div', 'tuki-co-section-title' );
+			sect.textContent = S.checkoutDetails || 'Shipping details';
+			form.appendChild( sect );
+
+			var addr = state.address || {};
+
+			function field( key, label, type, opts ) {
+				opts = opts || {};
+				var f = el( 'label', 'tuki-co-field' + ( opts.wide ? ' tuki-co-field--wide' : '' ) );
+				var l = el( 'span', 'tuki-co-flabel' );
+				l.textContent = label || '';
+				var input;
+				if ( opts.select ) {
+					input = el( 'select', 'tuki-co-input' );
+					( opts.options || [] ).forEach( function ( o ) {
+						var op = document.createElement( 'option' );
+						op.value = o.value;
+						op.textContent = o.label;
+						if ( o.value === ( addr[ key ] || '' ) ) {
+							op.selected = true;
+						}
+						input.appendChild( op );
+					} );
+				} else {
+					input = el( 'input', 'tuki-co-input' );
+					input.type = type || 'text';
+					input.value = addr[ key ] || '';
+				}
+				var err = el( 'span', 'tuki-co-err' );
+				f.appendChild( l );
+				f.appendChild( input );
+				f.appendChild( err );
+				co.fields[ key ] = { input: input, err: err };
+				form.appendChild( f );
+			}
+
+			field( 'first_name', S.checkoutFirstName, 'text' );
+			field( 'last_name', S.checkoutLastName, 'text' );
+			field( 'email', S.checkoutEmail, 'email', { wide: true } );
+			field( 'phone', S.checkoutPhone, 'tel', { wide: true } );
+			field( 'address_1', S.checkoutAddress1, 'text', { wide: true } );
+			field( 'city', S.checkoutCity, 'text' );
+			field( 'postcode', S.checkoutPostcode, 'text' );
+			field( 'state', S.checkoutState, 'text' );
+			field( 'country', S.checkoutCountry, 'text', {
+				select: true,
+				options: ( state.countries || [] ).map( function ( c ) {
+					return { value: c.code, label: c.name };
+				} )
+			} );
+
+			box.appendChild( form );
+
+			co.optsEl = el( 'div', 'tuki-co-options' );
+			box.appendChild( co.optsEl );
+
+			co.generalErr = el( 'div', 'tuki-co-generr' );
+			box.appendChild( co.generalErr );
+
+			co.actions = el( 'div', 'tuki-co-actions' );
+			co.continueBtn = el( 'button', 'tuki-co-btn' );
+			co.continueBtn.type = 'button';
+			co.continueBtn.textContent = S.checkoutContinue || 'Continue';
+			co.continueBtn.addEventListener( 'click', function () {
+				refreshCheckout( co );
+			} );
+			co.actions.appendChild( co.continueBtn );
+			box.appendChild( co.actions );
+
+			msgsEl.appendChild( box );
+			scrollDown();
+		}
+
+		function collectCheckout( co ) {
+			var d = {};
+			Object.keys( co.fields ).forEach( function ( k ) {
+				d[ k ] = co.fields[ k ].input.value;
+			} );
+			d.shipping_method = co.selectedShipping || '';
+			d.payment_method = co.selectedPayment || '';
+			return d;
+		}
+
+		function clearCheckoutErrors( co ) {
+			co.generalErr.textContent = '';
+			Object.keys( co.fields ).forEach( function ( k ) {
+				co.fields[ k ].err.textContent = '';
+				co.fields[ k ].input.classList.remove( 'is-err' );
+			} );
+			if ( co.shipErr ) {
+				co.shipErr.textContent = '';
+			}
+			if ( co.payErr ) {
+				co.payErr.textContent = '';
+			}
+		}
+
+		// Sends the current address + shipping choice to the server, which recalcs
+		// through WooCommerce and returns fresh totals + options.
+		function refreshCheckout( co ) {
+			if ( co.busy ) {
+				return;
+			}
+			co.busy = true;
+			clearCheckoutErrors( co );
+			co.continueBtn.disabled = true;
+			var prev = co.continueBtn.textContent;
+			co.continueBtn.textContent = S.loading || '…';
+
+			api( 'checkout-update', collectCheckout( co ) )
+				.then( function ( state ) {
+					co.busy = false;
+					co.continueBtn.disabled = false;
+					co.continueBtn.textContent = prev;
+					if ( ! state || ! state.ok ) {
+						addBubble( 'bot', S.checkoutFallback || '' );
+						addCheckoutFallback( state && state.fallback_url );
+						return;
+					}
+					co.state = state;
+					renderCheckoutOptions( co, state );
+				} )
+				.catch( function ( err ) {
+					co.busy = false;
+					co.continueBtn.disabled = false;
+					co.continueBtn.textContent = prev;
+					co.generalErr.textContent = ( err && err.data && err.data.message ) ? err.data.message : ( S.error || '' );
+				} );
+		}
+
+		function renderCheckoutOptions( co, state ) {
+			co.optsEl.textContent = '';
+
+			// Swap in the freshly-calculated review (totals may have changed).
+			if ( co.reviewEl && state.review ) {
+				var fresh = buildReview( state.review );
+				co.reviewEl.replaceWith( fresh );
+				co.reviewEl = fresh;
+			}
+
+			if ( state.needs_shipping && state.shipping && state.shipping.rates && state.shipping.rates.length ) {
+				if ( ! co.selectedShipping ) {
+					co.selectedShipping = state.shipping.chosen || state.shipping.rates[0].id;
+				}
+				var shipTitle = el( 'div', 'tuki-co-section-title' );
+				shipTitle.textContent = S.checkoutShipping || 'Shipping method';
+				co.optsEl.appendChild( shipTitle );
+				var shipGroup = el( 'div', 'tuki-co-radios' );
+				state.shipping.rates.forEach( function ( r ) {
+					var row = el( 'label', 'tuki-co-radio' );
+					var input = document.createElement( 'input' );
+					input.type = 'radio';
+					input.name = 'tuki-ship';
+					input.value = r.id;
+					input.checked = ( r.id === co.selectedShipping );
+					input.addEventListener( 'change', function () {
+						co.selectedShipping = r.id;
+						refreshCheckout( co );
+					} );
+					var txt = el( 'span', 'tuki-co-radio-text' );
+					txt.textContent = r.label + ' — ' + r.cost;
+					row.appendChild( input );
+					row.appendChild( txt );
+					shipGroup.appendChild( row );
+				} );
+				co.optsEl.appendChild( shipGroup );
+				co.shipErr = el( 'div', 'tuki-co-err' );
+				co.optsEl.appendChild( co.shipErr );
+			}
+
+			if ( state.needs_payment && state.payment && state.payment.length ) {
+				var payTitle = el( 'div', 'tuki-co-section-title' );
+				payTitle.textContent = S.checkoutPayment || 'Payment method';
+				co.optsEl.appendChild( payTitle );
+				var payGroup = el( 'div', 'tuki-co-radios' );
+				state.payment.forEach( function ( p, idx ) {
+					if ( ! co.selectedPayment && 0 === idx ) {
+						co.selectedPayment = p.id;
+					}
+					var row = el( 'label', 'tuki-co-radio' );
+					var input = document.createElement( 'input' );
+					input.type = 'radio';
+					input.name = 'tuki-pay';
+					input.value = p.id;
+					input.checked = ( p.id === co.selectedPayment );
+					input.addEventListener( 'change', function () {
+						co.selectedPayment = p.id;
+					} );
+					var txt = el( 'span', 'tuki-co-radio-text' );
+					txt.textContent = p.title;
+					row.appendChild( input );
+					row.appendChild( txt );
+					// Gateways that need their own secure UI finish on the next screen.
+					if ( ! p.in_chat ) {
+						var note = el( 'span', 'tuki-co-paynote' );
+						note.textContent = S.checkoutPayNote || '';
+						row.appendChild( note );
+					}
+					payGroup.appendChild( row );
+				} );
+				co.optsEl.appendChild( payGroup );
+				co.payErr = el( 'div', 'tuki-co-err' );
+				co.optsEl.appendChild( co.payErr );
+			}
+
+			if ( ! co.placeBtn ) {
+				co.placeBtn = el( 'button', 'tuki-co-btn tuki-co-btn--primary' );
+				co.placeBtn.type = 'button';
+				co.placeBtn.textContent = S.checkoutPlace || 'Place order';
+				co.placeBtn.addEventListener( 'click', function () {
+					placeOrder( co );
+				} );
+				co.actions.appendChild( co.placeBtn );
+			}
+			scrollDown();
+		}
+
+		function placeOrder( co ) {
+			if ( co.busy ) {
+				return;
+			}
+			co.busy = true;
+			clearCheckoutErrors( co );
+			co.placeBtn.disabled = true;
+			co.placeBtn.textContent = S.checkoutPlacing || '…';
+
+			var payload = collectCheckout( co );
+			payload.checkout_nonce = ( cfg.checkout && cfg.checkout.nonce ) || '';
+
+			api( 'checkout-place', payload )
+				.then( function ( res ) {
+					co.busy = false;
+					handlePlaceResult( co, res );
+				} )
+				.catch( function ( err ) {
+					co.busy = false;
+					co.placeBtn.disabled = false;
+					co.placeBtn.textContent = S.checkoutPlace || 'Place order';
+					co.generalErr.textContent = ( err && err.data && err.data.message ) ? err.data.message : ( S.error || '' );
+				} );
+		}
+
+		function handlePlaceResult( co, res ) {
+			var r = res && res.result;
+
+			if ( 'error' === r ) {
+				showCheckoutFieldErrors( co, res.errors || {} );
+				co.placeBtn.disabled = false;
+				co.placeBtn.textContent = S.checkoutPlace || 'Place order';
+				co.generalErr.textContent = S.checkoutError || '';
+				scrollDown();
+				return;
+			}
+
+			if ( 'placed' === r ) {
+				finalizeCheckout( co );
+				addOrderPlaced( res.order, res.view_url );
+				return;
+			}
+
+			if ( 'redirect' === r || 'handoff' === r ) {
+				finalizeCheckout( co );
+				addBubble( 'bot', 'redirect' === r ? ( S.checkoutRedirecting || '' ) : ( S.checkoutPayNote || '' ) );
+				if ( res.redirect ) {
+					addCheckoutFallback( res.redirect, S.checkoutContinue );
+					// Give the message a beat to render, then navigate to the gateway
+					// / order-pay page in the same tab.
+					setTimeout( function () {
+						window.location.assign( res.redirect );
+					}, 700 );
+				}
+				return;
+			}
+
+			// fallback (or anything unexpected) → the normal checkout page.
+			finalizeCheckout( co );
+			addBubble( 'bot', S.checkoutFallback || '' );
+			( ( res && res.details ) || [] ).forEach( function ( d ) {
+				addBubble( 'bot', d );
+			} );
+			addCheckoutFallback( res && res.redirect );
+		}
+
+		function showCheckoutFieldErrors( co, errors ) {
+			Object.keys( errors ).forEach( function ( k ) {
+				if ( co.fields[ k ] ) {
+					co.fields[ k ].err.textContent = errors[ k ];
+					co.fields[ k ].input.classList.add( 'is-err' );
+				} else if ( 'shipping_method' === k && co.shipErr ) {
+					co.shipErr.textContent = errors[ k ];
+				} else if ( 'payment_method' === k && co.payErr ) {
+					co.payErr.textContent = errors[ k ];
+				}
+			} );
+		}
+
+		function finalizeCheckout( co ) {
+			co.box.classList.add( 'is-done' );
+			if ( co.actions ) {
+				co.actions.remove();
+			}
+			Object.keys( co.fields ).forEach( function ( k ) {
+				co.fields[ k ].input.disabled = true;
+			} );
+		}
+
+		function addOrderPlaced( order, url ) {
+			var card = el( 'div', 'tuki-co-placed' );
+			var t = el( 'div', 'tuki-co-placed-title' );
+			t.textContent = S.checkoutPlaced || 'Order placed';
+			card.appendChild( t );
+			if ( order ) {
+				var line = el( 'div', 'tuki-co-placed-line' );
+				line.textContent = ( S.orderTitle || 'Order #%s' ).replace( '%s', order.number ) +
+					' · ' + ( order.status || '' ) + ' · ' + ( order.total || '' );
+				card.appendChild( line );
+			}
+			if ( url ) {
+				var link = el( 'a', 'tuki-co-btn' );
+				link.href = url;
+				link.textContent = S.checkoutViewOrder || 'View your order';
+				card.appendChild( link );
+			}
+			msgsEl.appendChild( card );
+			scrollDown();
+		}
+
+		function addCheckoutFallback( url, label ) {
+			if ( ! url ) {
+				return;
+			}
+			var wrap = el( 'div', 'tuki-co-actions' );
+			var link = el( 'a', 'tuki-co-btn' );
+			link.href = url;
+			link.textContent = label || S.checkoutFallbackBtn || 'Go to checkout';
+			wrap.appendChild( link );
 			msgsEl.appendChild( wrap );
 			scrollDown();
 		}
