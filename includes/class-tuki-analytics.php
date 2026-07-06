@@ -238,7 +238,8 @@ class Tuki_Analytics {
 	}
 
 	/**
-	 * Cron callback: deletes demand rows older than the configured retention.
+	 * Cron callback: deletes demand + event rows older than the configured
+	 * retention, keeping both analytics tables bounded.
 	 *
 	 * @return void
 	 */
@@ -247,6 +248,7 @@ class Tuki_Analytics {
 
 		if ( $days > 0 ) {
 			Tuki_DB::purge_demand( $days );
+			Tuki_DB::purge_events( $days );
 		}
 	}
 

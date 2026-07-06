@@ -150,6 +150,8 @@ class Tuki_DB {
 			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
 			PRIMARY KEY  (id),
 			KEY event_type (event_type),
+			KEY type_created (event_type, created_at),
+			KEY created_at (created_at),
 			KEY product_id (product_id),
 			KEY session_id (session_id)
 		) {$charset_collate};";
@@ -907,6 +909,37 @@ class Tuki_DB {
 		// Site-local timestamp on purpose: rows store created_at via current_time(
 		// 'mysql' ) (site time), so the retention cutoff must be computed in the same
 		// zone to avoid trimming a few hours early/late.
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$cutoff = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$deleted = $wpdb->query(
+			$wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", $cutoff )
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DateTime.CurrentTimeTimestamp.Requested
+
+		return (int) $deleted;
+	}
+
+	/**
+	 * Deletes analytics-event rows older than the given number of days, so the
+	 * events table stays bounded (its size otherwise grows with every interaction
+	 * and slows the dashboard aggregations over time).
+	 *
+	 * @param int $days Retention window in days.
+	 * @return int Rows removed.
+	 */
+	public static function purge_events( $days ) {
+		$days = (int) $days;
+
+		if ( $days <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+
+		$table = self::events_table();
+		// Site-local timestamp: rows store created_at via current_time( 'mysql' ).
 		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 		$cutoff = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
 

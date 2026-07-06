@@ -4,7 +4,7 @@ Tags: woocommerce, ai, chatbot, semantic search, recommendations
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,10 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 5. The three Tukify Elementor widgets.
 
 == Changelog ==
+
+= 1.4.1 =
+* Performance: added an (event_type, created_at) index for analytics range queries and a daily purge so the events table stays bounded.
+* Performance: the semantic-search scan now reads embeddings in batches to cap peak memory on larger catalogs.
 
 = 1.4.0 =
 * Added API usage tracking with a per-day tokens/requests chart and estimated cost in Logs / Analytics.
