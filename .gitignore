@@ -12,3 +12,7 @@ Thumbs.db
 # Build / logs
 *.log
 /dist/
+
+# Build artifacts
+/tukify.zip
+*.zip
