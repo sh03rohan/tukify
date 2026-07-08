@@ -65,13 +65,19 @@ class Tuki_Search_MySQL implements Tuki_Search_Backend {
 			return array();
 		}
 
+		// Only compare against vectors built with the CURRENT embedding model.
+		// Embeddings from a different provider/model have different dimensions, so
+		// scoring across them would be meaningless — filtering by model keeps the
+		// index from silently mixing incompatible vectors after a provider change.
+		$model = Tuki_Settings::embedding_model();
+
 		// Hybrid path: filters already narrowed the catalog to a bounded set, so a
 		// single query over those ids is enough. Full path: stream the whole table
 		// in batches so only one batch of vector JSON sits in memory at a time.
 		if ( is_array( $candidate_ids ) ) {
-			$scored = $this->score_rows( $this->fetch_candidates( $candidate_ids ), $query_vector, $query_norm );
+			$scored = $this->score_rows( $this->fetch_candidates( $candidate_ids, $model ), $query_vector, $query_norm );
 		} else {
-			$scored = $this->score_full_catalog( $query_vector, $query_norm );
+			$scored = $this->score_full_catalog( $query_vector, $query_norm, $model );
 		}
 
 		usort(
@@ -87,10 +93,11 @@ class Tuki_Search_MySQL implements Tuki_Search_Backend {
 	/**
 	 * Fetches embedding rows for a bounded candidate set (hybrid filtering).
 	 *
-	 * @param array $candidate_ids Product IDs to restrict to.
+	 * @param array  $candidate_ids Product IDs to restrict to.
+	 * @param string $model         Active embedding model (rows must match).
 	 * @return array Rows of [ product_id, embedding ].
 	 */
-	private function fetch_candidates( array $candidate_ids ) {
+	private function fetch_candidates( array $candidate_ids, $model ) {
 		global $wpdb;
 
 		$ids = array_map( 'absint', $candidate_ids );
@@ -101,13 +108,14 @@ class Tuki_Search_MySQL implements Tuki_Search_Backend {
 
 		$table        = Tuki_DB::embeddings_table();
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$params       = array_merge( $ids, array( (string) $model ) );
 
 		// The IN() list is a run of %d placeholders built from the id count and
 		// bound via prepare() (UnfinishedPrepare is a false positive — the
 		// placeholders live inside the interpolated $placeholders string).
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		$rows = $wpdb->get_results(
-			$wpdb->prepare( "SELECT product_id, embedding FROM {$table} WHERE product_id IN ({$placeholders})", $ids ),
+			$wpdb->prepare( "SELECT product_id, embedding FROM {$table} WHERE product_id IN ({$placeholders}) AND model = %s", $params ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
@@ -119,11 +127,12 @@ class Tuki_Search_MySQL implements Tuki_Search_Backend {
 	 * Scores the whole catalog in batches so peak memory stays bounded no matter
 	 * how many products are stored (only SCAN_BATCH vector strings held at once).
 	 *
-	 * @param array $query_vector Query embedding.
-	 * @param float $query_norm   Precomputed query norm.
+	 * @param array  $query_vector Query embedding.
+	 * @param float  $query_norm   Precomputed query norm.
+	 * @param string $model        Active embedding model (rows must match).
 	 * @return array List of [ product_id, score ].
 	 */
-	private function score_full_catalog( array $query_vector, $query_norm ) {
+	private function score_full_catalog( array $query_vector, $query_norm, $model ) {
 		global $wpdb;
 
 		$table  = Tuki_DB::embeddings_table();
@@ -134,7 +143,8 @@ class Tuki_Search_MySQL implements Tuki_Search_Backend {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT product_id, embedding FROM {$table} ORDER BY id ASC LIMIT %d OFFSET %d",
+					"SELECT product_id, embedding FROM {$table} WHERE model = %s ORDER BY id ASC LIMIT %d OFFSET %d",
+					(string) $model,
 					self::SCAN_BATCH,
 					$offset
 				),

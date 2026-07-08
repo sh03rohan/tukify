@@ -114,7 +114,7 @@ class Tuki_Chat {
 			$kb_snippets = $kb->search( $message, 3 );
 		}
 
-		$provider = Tuki_Settings::make_provider();
+		$provider = Tuki_Settings::make_chat_provider();
 
 		if ( ! $provider ) {
 			throw new Exception( esc_html__( 'No chat provider is configured.', 'tukify' ) );
@@ -122,11 +122,11 @@ class Tuki_Chat {
 
 		$system   = $this->build_system_prompt( $context_lines, $rescue, $may_clarify, $kb_snippets, $kb_available );
 		$messages = $this->build_messages( $history, $message );
-		$raw      = (string) $provider->chat(
+		$raw      = (string) $provider->generate_chat(
 			$messages,
 			array(
-				'system'          => $system,
-				'response_schema' => $this->decision_schema(),
+				'system'      => $system,
+				'json_schema' => $this->decision_schema(),
 			)
 		);
 
@@ -875,13 +875,15 @@ class Tuki_Chat {
 	 * @throws Exception If the provider call fails.
 	 */
 	public function visual_search( $base64, $mime ) {
-		$provider = Tuki_Settings::make_provider();
+		// Route to a vision-capable provider: the selected chat provider if it
+		// supports image input, otherwise a configured fallback (Gemini/OpenAI).
+		$provider = Tuki_Settings::make_vision_provider();
 
-		if ( ! $provider || ! method_exists( $provider, 'vision' ) ) {
-			throw new Exception( esc_html__( 'Image search is not available with the current provider.', 'tukify' ) );
+		if ( ! $provider ) {
+			throw new Exception( esc_html__( 'Image search needs a vision-capable provider. Set your chat provider (or an embedding provider) to one that accepts images, and add its API key.', 'tukify' ) );
 		}
 
-		$raw  = (string) $provider->vision( $base64, $mime, $this->look_prompt(), $this->look_schema() );
+		$raw  = (string) $provider->generate_vision( $base64, $mime, $this->look_prompt(), $this->look_schema() );
 		$data = json_decode( $raw, true );
 
 		$reply     = ( is_array( $data ) && isset( $data['reply'] ) ) ? trim( (string) $data['reply'] ) : '';

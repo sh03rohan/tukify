@@ -14,7 +14,7 @@ AI shopping assistant for WooCommerce: semantic product search and grounded, con
 
 Tukify adds an AI shopping assistant to your WooCommerce store. A shopper types in plain language ("a gift for my dad, he likes wine and hiking") and Tukify understands the intent, finds matching products with semantic search, and replies conversationally with product cards — image, price, stock, and add-to-cart — right inside a chat interface, without the shopper leaving the page.
 
-Tukify is **bring-your-own-key**: you enter your own Google Gemini API key and Tukify never pays for inference. All AI requests are made server-side in PHP — your API key is never exposed to the browser. Your product embeddings are stored in your own site database, so your catalog data stays on your server.
+Tukify is **bring-your-own-key**: you connect your own AI provider — Google Gemini, OpenAI (ChatGPT), Anthropic (Claude), or xAI (Grok) — and Tukify never pays for inference. All AI requests are made server-side in PHP — your API keys are never exposed to the browser. Your product embeddings are stored in your own site database, so your catalog data stays on your server.
 
 = Key features =
 
@@ -38,27 +38,39 @@ All AI calls are made server-side; your API key is never sent to the browser. Pr
 = Requirements =
 
 * WooCommerce (active).
-* A Google Gemini API key (a free key from Google AI Studio is enough for development and small stores).
+* An API key for at least one supported AI provider: Google Gemini, OpenAI, Anthropic (Claude), or xAI (Grok). Gemini offers a free tier that is enough for development and small stores.
+* If you pick Claude or Grok for chat, you also need a Gemini or OpenAI key for embeddings (those two providers have no embeddings endpoint).
 * PHP 7.4+.
 * Elementor is optional (only needed for the Elementor widgets).
 
+= Which provider does what =
+
+* **Google Gemini** — chat, embeddings, vision (image search). Default.
+* **OpenAI (ChatGPT)** — chat, embeddings, vision.
+* **Anthropic (Claude)** — chat, vision. No embeddings — use Gemini or OpenAI as the embedding provider.
+* **xAI (Grok)** — chat, vision. No embeddings — use Gemini or OpenAI as the embedding provider.
+
+You choose a **chat provider** and an **embedding provider** independently in Settings. Retrieval (RAG) always uses the embedding provider. If you change the embedding provider or model, Tukify prompts you to reindex, because embeddings from different models are not compatible and are never mixed in the same index.
+
 == External services ==
 
-Tukify connects to the **Google Gemini API** (Google's Generative Language API) to provide semantic search, conversational answers, natural-language understanding, and image-based (visual) search. This is required for the plugin's AI features to work, and it only happens when you have entered your own Google Gemini API key in the plugin settings.
+Tukify connects to the AI provider(s) you configure to power semantic search, conversational answers, natural-language understanding, and image-based (visual) search. A provider is only contacted when you have entered its API key and selected it, and only for the feature that needs it. All requests are made from your server (PHP); your API keys are never exposed to the browser, and Tukify does not send data to any other third party.
 
 **What data is sent, and when:**
 
-* **Catalog indexing** — when you index or re-index your products, the text of each product (title, short description, categories and key attributes) is sent to Google to generate a numeric embedding. This runs in the background and only for products that have changed.
-* **Knowledge base indexing** — if you enable the policy/FAQ knowledge base, the content of the pages you select and any custom Q&A you enter is sent to Google to generate embeddings.
-* **Search and chat** — when a shopper searches or chats, their message, a short recent conversation history, and the retrieved product context are sent to Google to embed the query and generate a grounded reply.
-* **Visual search** — if a shopper uploads an image, that image is sent to Google to identify the product type before matching your catalog.
+* **Catalog indexing** — when you index or re-index your products, the text of each product (title, short description, categories and key attributes) is sent to your **embedding provider** to generate numeric embeddings. This runs in the background and only for products that have changed.
+* **Knowledge base indexing** — if you enable the policy/FAQ knowledge base, the content of the pages you select and any custom Q&A you enter is sent to your **embedding provider**.
+* **Search and chat** — when a shopper searches or chats, their message, a short recent conversation history, and the retrieved product context are sent to your **embedding provider** (to embed the query) and your **chat provider** (to generate a grounded reply).
+* **Visual search** — if a shopper uploads an image, that image is sent to a vision-capable provider to identify the product type before matching your catalog.
 
-Data is sent to Google's servers. Tukify does not send data to any other third party. All requests are made from your server (PHP); the API key is never exposed to the browser.
+Provider terms and privacy policies (review the ones you use):
 
-* Google Gemini API terms of service: https://ai.google.dev/terms
-* Google privacy policy: https://policies.google.com/privacy
+* Google Gemini — https://ai.google.dev/terms · https://policies.google.com/privacy
+* OpenAI — https://openai.com/policies/terms-of-use · https://openai.com/policies/privacy-policy
+* Anthropic (Claude) — https://www.anthropic.com/legal/consumer-terms · https://www.anthropic.com/legal/privacy
+* xAI (Grok) — https://x.ai/legal/terms-of-service · https://x.ai/legal/privacy-policy
 
-Note: on Google's free tier, inputs may be used by Google to improve their models. If you handle real customer data, use a paid Google Gemini key (which is not used for model training) and review Google's terms.
+Note: some providers may use free-tier inputs to improve their models. If you handle real customer data, use a paid plan/key (typically excluded from training) and review that provider's terms.
 
 == Installation ==
 

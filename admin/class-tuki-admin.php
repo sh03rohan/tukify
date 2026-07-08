@@ -322,20 +322,14 @@ class Tuki_Admin {
 		$api_key  = isset( $_POST['api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		if ( 'gemini' !== $provider ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Only Gemini can be tested in this version. OpenAI and Anthropic support arrives in a later phase.', 'tukify' ),
-				)
-			);
+		$registry = Tuki_Settings::providers_registry();
+
+		if ( ! isset( $registry[ $provider ] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unknown provider.', 'tukify' ) ) );
 		}
 
-		$provider_obj = Tuki_Settings::make_provider(
-			array(
-				'provider' => $provider,
-				'api_key'  => $api_key,
-			)
-		);
+		// Try the just-typed key if one was supplied; otherwise the saved key.
+		$provider_obj = Tuki_Settings::instantiate( $provider, $api_key );
 
 		if ( ! $provider_obj ) {
 			wp_send_json_error( array( 'message' => __( 'Selected provider is not available.', 'tukify' ) ) );
@@ -518,7 +512,10 @@ class Tuki_Admin {
 	 * @return array{state:string,label:string}
 	 */
 	public static function connection_state() {
-		$key = (string) Tuki_Settings::get( 'gemini_api_key' );
+		$registry = Tuki_Settings::providers_registry();
+		$provider = Tuki_Settings::chat_provider();
+		$label    = isset( $registry[ $provider ] ) ? $registry[ $provider ]['label'] : $provider;
+		$key      = Tuki_Settings::provider_key( $provider );
 
 		if ( '' === $key ) {
 			return array(
@@ -536,7 +533,8 @@ class Tuki_Admin {
 
 		return array(
 			'state' => 'ok',
-			'label' => __( 'Gemini connected', 'tukify' ),
+			/* translators: %s: provider name. */
+			'label' => sprintf( __( '%s connected', 'tukify' ), $label ),
 		);
 	}
 

@@ -20,12 +20,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Tuki_Embeddings {
 
 	/**
-	 * Returns the currently configured embedding model name.
+	 * Returns the currently active embedding model name (for the selected
+	 * embedding provider — Gemini or OpenAI).
 	 *
 	 * @return string
 	 */
 	private function model() {
-		return (string) Tuki_Settings::get( 'embedding_model' );
+		return Tuki_Settings::embedding_model();
 	}
 
 	/**
@@ -42,13 +43,13 @@ class Tuki_Embeddings {
 			return array();
 		}
 
-		$provider = Tuki_Settings::make_provider();
+		$provider = Tuki_Settings::make_embedding_provider();
 
 		if ( ! $provider ) {
-			throw new Exception( esc_html__( 'No embedding provider is configured. Anthropic has no embeddings endpoint; select Gemini or OpenAI.', 'tukify' ) );
+			throw new Exception( esc_html__( 'No embedding provider is configured. Claude and Grok have no embeddings endpoint; set your embedding provider to Gemini or OpenAI.', 'tukify' ) );
 		}
 
-		return $provider->embed( $texts );
+		return $provider->create_embeddings( $texts );
 	}
 
 	/**

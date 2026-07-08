@@ -13,6 +13,7 @@
 
 	$( function () {
 		initTestConnection();
+		initProviderToggles();
 		initSearchTest();
 		initReindex();
 		initKnowledgeBase();
@@ -159,15 +160,14 @@
 	 * Live "Test connection" button on the settings screen.
 	 */
 	function initTestConnection() {
-		var $button = $( '#tuki-test-connection' );
-		var $result = $( '#tuki-test-result' );
-
-		if ( ! $button.length ) {
-			return;
-		}
-
-		$button.on( 'click', function ( event ) {
+		// One "Test" button per provider key row.
+		$( '.tuki-test-conn' ).on( 'click', function ( event ) {
 			event.preventDefault();
+
+			var $button   = $( this );
+			var provider  = $button.data( 'provider' );
+			var $keyInput = $( '#' + $button.data( 'key' ) );
+			var $result   = $( '.tuki-test-result[data-provider="' + provider + '"]' );
 
 			$result.removeClass( 'is-success is-error' ).text( tukiAdmin.testing );
 			$button.prop( 'disabled', true );
@@ -175,8 +175,8 @@
 			$.post( tukiAdmin.ajaxUrl, {
 				action: 'tuki_test_connection',
 				nonce: tukiAdmin.nonce,
-				provider: $( '#tuki_provider' ).val(),
-				api_key: $( '#tuki_gemini_api_key' ).val()
+				provider: provider,
+				api_key: $keyInput.length ? $keyInput.val() : ''
 			} )
 				.done( function ( response ) {
 					if ( response && response.success ) {
@@ -196,6 +196,41 @@
 					$button.prop( 'disabled', false );
 				} );
 		} );
+	}
+
+	/**
+	 * Shows only the selected chat/embedding providers' model dropdowns, and
+	 * highlights the "no embeddings" note when the chat provider lacks them.
+	 */
+	function initProviderToggles() {
+		var $chat = $( '#tuki_chat_provider' );
+		var $emb  = $( '#tuki_embedding_provider' );
+
+		if ( ! $chat.length ) {
+			return;
+		}
+
+		function syncChat() {
+			var provider = $chat.val();
+			$( '.tuki-chatmodel-field' ).each( function () {
+				$( this ).prop( 'hidden', $( this ).data( 'provider' ) !== provider );
+			} );
+			// Emphasise the embedding note when the chat provider can't embed.
+			var hasEmbeddings = $chat.find( 'option:selected' ).data( 'embeddings' ) === 1;
+			$( '#tuki-embedding-note' ).css( 'opacity', hasEmbeddings ? '' : '1' ).toggleClass( 'is-warn', ! hasEmbeddings );
+		}
+
+		function syncEmb() {
+			var provider = $emb.val();
+			$( '.tuki-embmodel-field' ).each( function () {
+				$( this ).prop( 'hidden', $( this ).data( 'provider' ) !== provider );
+			} );
+		}
+
+		$chat.on( 'change', syncChat );
+		$emb.on( 'change', syncEmb );
+		syncChat();
+		syncEmb();
 	}
 
 	/**

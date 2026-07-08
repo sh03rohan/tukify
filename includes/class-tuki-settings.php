@@ -43,12 +43,18 @@ class Tuki_Settings {
 	 */
 	public static function defaults() {
 		return array(
-			'provider'                   => 'gemini',
+			'chat_provider'              => 'gemini',
+			'embedding_provider'         => 'gemini',
 			'gemini_api_key'             => '',
 			'openai_api_key'             => '',
 			'anthropic_api_key'          => '',
-			'embedding_model'            => 'gemini-embedding-001',
-			'chat_model'                 => 'gemini-2.5-flash',
+			'xai_api_key'                => '',
+			'chat_model_gemini'          => 'gemini-2.5-flash',
+			'chat_model_openai'          => 'gpt-4o-mini',
+			'chat_model_anthropic'       => 'claude-3-5-haiku-latest',
+			'chat_model_grok'            => 'grok-2-latest',
+			'embedding_model_gemini'     => 'gemini-embedding-001',
+			'embedding_model_openai'     => 'text-embedding-3-small',
 			'retrieval_count'            => 5,
 			'relevance_threshold'        => 0.6,
 			'browse_batch_size'          => 10,
@@ -165,17 +171,38 @@ class Tuki_Settings {
 		$existing = self::get();
 		$out      = self::defaults();
 
-		$out['provider'] = in_array( ( $input['provider'] ?? '' ), array( 'gemini', 'openai', 'anthropic' ), true )
-			? $input['provider']
+		$registry = self::providers_registry();
+
+		// Chat provider: any registered provider. Embedding provider: only the two
+		// that actually have an embeddings endpoint.
+		$out['chat_provider'] = isset( $registry[ $input['chat_provider'] ?? '' ] ) ? $input['chat_provider'] : 'gemini';
+
+		$embedding_providers       = self::embedding_providers();
+		$out['embedding_provider'] = in_array( ( $input['embedding_provider'] ?? '' ), array_keys( $embedding_providers ), true )
+			? $input['embedding_provider']
 			: 'gemini';
 
-		foreach ( array( 'gemini_api_key', 'openai_api_key', 'anthropic_api_key' ) as $key_field ) {
+		// API keys: one per provider; a blank field keeps the saved key.
+		foreach ( $registry as $meta ) {
+			$key_field         = $meta['key'];
 			$value             = isset( $input[ $key_field ] ) ? trim( sanitize_text_field( $input[ $key_field ] ) ) : '';
 			$out[ $key_field ] = ( '' === $value ) ? $existing[ $key_field ] : $value;
 		}
 
-		$out['embedding_model'] = sanitize_text_field( $input['embedding_model'] ?? $out['embedding_model'] );
-		$out['chat_model']      = sanitize_text_field( $input['chat_model'] ?? $out['chat_model'] );
+		// Per-provider chat models — whitelisted against the registry.
+		foreach ( $registry as $provider => $meta ) {
+			$field         = 'chat_model_' . $provider;
+			$submitted     = isset( $input[ $field ] ) ? sanitize_text_field( $input[ $field ] ) : '';
+			$out[ $field ] = isset( $meta['chat_models'][ $submitted ] ) ? $submitted : $meta['default_chat'];
+		}
+
+		// Per-provider embedding models (only for embedding-capable providers).
+		foreach ( $embedding_providers as $provider => $meta ) {
+			$field         = 'embedding_model_' . $provider;
+			$submitted     = isset( $input[ $field ] ) ? sanitize_text_field( $input[ $field ] ) : '';
+			$out[ $field ] = isset( $meta['embedding_models'][ $submitted ] ) ? $submitted : $meta['default_embedding'];
+		}
+
 		$out['retrieval_count'] = min( 20, max( 1, absint( $input['retrieval_count'] ?? 5 ) ) );
 
 		$threshold                  = isset( $input['relevance_threshold'] ) ? (float) $input['relevance_threshold'] : 0.6;
@@ -334,29 +361,244 @@ class Tuki_Settings {
 		return array_values( $types );
 	}
 
-	/**
-	 * Builds a provider instance from current settings, with optional overrides.
-	 *
-	 * @param array $override Optional 'provider' and/or 'api_key' overrides.
-	 * @return Tuki_Provider|null Provider instance, or null if unsupported.
+	/*
+	 * AI provider registry + factory
 	 */
-	public static function make_provider( $override = array() ) {
-		$settings = self::get();
-		$provider = isset( $override['provider'] ) ? $override['provider'] : $settings['provider'];
 
-		switch ( $provider ) {
-			case 'gemini':
-				$key = isset( $override['api_key'] ) ? trim( (string) $override['api_key'] ) : '';
+	/**
+	 * The AI provider catalog: label, implementation class, key field,
+	 * capabilities, and the selectable chat/embedding models per provider.
+	 *
+	 * This is the single place to add a provider or update its model list.
+	 *
+	 * @return array
+	 */
+	public static function providers_registry() {
+		$registry = array(
+			'gemini'    => array(
+				'label'             => __( 'Google Gemini', 'tukify' ),
+				'class'             => 'Tuki_Provider_Gemini',
+				'key'               => 'gemini_api_key',
+				'caps'              => array( 'chat', 'embeddings', 'vision' ),
+				'chat_models'       => array(
+					'gemini-2.5-flash'      => 'gemini-2.5-flash',
+					'gemini-2.5-flash-lite' => 'gemini-2.5-flash-lite (economy)',
+					'gemini-2.5-pro'        => 'gemini-2.5-pro',
+				),
+				'embedding_models'  => array(
+					'gemini-embedding-001' => 'gemini-embedding-001',
+				),
+				'default_chat'      => 'gemini-2.5-flash',
+				'default_embedding' => 'gemini-embedding-001',
+				'key_hint'          => 'aistudio.google.com',
+			),
+			'openai'    => array(
+				'label'             => __( 'OpenAI (ChatGPT)', 'tukify' ),
+				'class'             => 'Tuki_Provider_OpenAI',
+				'key'               => 'openai_api_key',
+				'caps'              => array( 'chat', 'embeddings', 'vision' ),
+				'chat_models'       => array(
+					'gpt-4o-mini'  => 'gpt-4o-mini (fast)',
+					'gpt-4o'       => 'gpt-4o',
+					'gpt-4.1-mini' => 'gpt-4.1-mini',
+					'gpt-4.1'      => 'gpt-4.1',
+				),
+				'embedding_models'  => array(
+					'text-embedding-3-small' => 'text-embedding-3-small',
+					'text-embedding-3-large' => 'text-embedding-3-large',
+				),
+				'default_chat'      => 'gpt-4o-mini',
+				'default_embedding' => 'text-embedding-3-small',
+				'key_hint'          => 'platform.openai.com',
+			),
+			'anthropic' => array(
+				'label'        => __( 'Anthropic (Claude)', 'tukify' ),
+				'class'        => 'Tuki_Provider_Anthropic',
+				'key'          => 'anthropic_api_key',
+				'caps'         => array( 'chat', 'vision' ),
+				'chat_models'  => array(
+					'claude-3-5-haiku-latest'  => 'claude-3-5-haiku (fast)',
+					'claude-3-5-sonnet-latest' => 'claude-3-5-sonnet',
+					'claude-sonnet-4-5'        => 'claude-sonnet-4-5',
+				),
+				'default_chat' => 'claude-3-5-haiku-latest',
+				'key_hint'     => 'console.anthropic.com',
+			),
+			'grok'      => array(
+				'label'        => __( 'xAI (Grok)', 'tukify' ),
+				'class'        => 'Tuki_Provider_Grok',
+				'key'          => 'xai_api_key',
+				'caps'         => array( 'chat', 'vision' ),
+				'chat_models'  => array(
+					'grok-2-latest'      => 'grok-2-latest',
+					'grok-2-vision-1212' => 'grok-2-vision-1212 (image input)',
+					'grok-3'             => 'grok-3',
+				),
+				'default_chat' => 'grok-2-latest',
+				'key_hint'     => 'console.x.ai',
+			),
+		);
 
-				if ( '' === $key ) {
-					$key = $settings['gemini_api_key'];
-				}
+		/**
+		 * Filter the AI provider registry (add providers or edit model lists).
+		 *
+		 * @param array $registry Provider definitions.
+		 */
+		return apply_filters( 'tuki_providers_registry', $registry );
+	}
 
-				return new Tuki_Gemini( $key, $settings['embedding_model'], $settings['chat_model'] );
+	/**
+	 * Registry entries that support embeddings (Gemini, OpenAI).
+	 *
+	 * @return array
+	 */
+	public static function embedding_providers() {
+		$out = array();
 
-			default:
-				// OpenAI and Anthropic providers arrive in a later phase.
-				return null;
+		foreach ( self::providers_registry() as $id => $meta ) {
+			if ( in_array( 'embeddings', $meta['caps'], true ) ) {
+				$out[ $id ] = $meta;
+			}
 		}
+
+		return $out;
+	}
+
+	/**
+	 * Whether a provider supports a capability, per the registry.
+	 *
+	 * @param string $provider   Provider id.
+	 * @param string $capability 'chat' | 'embeddings' | 'vision'.
+	 * @return bool
+	 */
+	public static function provider_supports( $provider, $capability ) {
+		$registry = self::providers_registry();
+
+		return isset( $registry[ $provider ] ) && in_array( $capability, $registry[ $provider ]['caps'], true );
+	}
+
+	/**
+	 * The selected chat provider id.
+	 *
+	 * @return string
+	 */
+	public static function chat_provider() {
+		$provider = (string) self::get( 'chat_provider' );
+		$registry = self::providers_registry();
+
+		return isset( $registry[ $provider ] ) ? $provider : 'gemini';
+	}
+
+	/**
+	 * The selected embedding provider id (always embeddings-capable).
+	 *
+	 * @return string
+	 */
+	public static function embedding_provider() {
+		$provider = (string) self::get( 'embedding_provider' );
+
+		return self::provider_supports( $provider, 'embeddings' ) ? $provider : 'gemini';
+	}
+
+	/**
+	 * The active embedding model (for the selected embedding provider).
+	 *
+	 * @return string
+	 */
+	public static function embedding_model() {
+		$provider = self::embedding_provider();
+
+		return (string) self::get( 'embedding_model_' . $provider );
+	}
+
+	/**
+	 * A signature identifying the current embedding space (provider + model).
+	 * Vectors built under a different signature are dimensionally incompatible.
+	 *
+	 * @return string
+	 */
+	public static function embedding_signature() {
+		return self::embedding_provider() . ':' . self::embedding_model();
+	}
+
+	/**
+	 * Instantiates the selected CHAT provider.
+	 *
+	 * @return Tuki_AI_Provider|null
+	 */
+	public static function make_chat_provider() {
+		return self::instantiate( self::chat_provider() );
+	}
+
+	/**
+	 * Instantiates the selected EMBEDDING provider (Gemini or OpenAI).
+	 *
+	 * @return Tuki_AI_Provider|null
+	 */
+	public static function make_embedding_provider() {
+		return self::instantiate( self::embedding_provider() );
+	}
+
+	/**
+	 * Instantiates a vision-capable provider: the chat provider if it supports
+	 * vision, otherwise a configured fallback (embedding provider, then Gemini),
+	 * or null if none can do vision.
+	 *
+	 * @return Tuki_AI_Provider|null
+	 */
+	public static function make_vision_provider() {
+		$chat = self::make_chat_provider();
+
+		if ( $chat && $chat->supports( 'vision' ) ) {
+			return $chat;
+		}
+
+		foreach ( array( self::embedding_provider(), 'gemini', 'openai' ) as $fallback ) {
+			$provider = self::instantiate( $fallback );
+
+			if ( $provider && $provider->supports( 'vision' ) && '' !== self::provider_key( $fallback ) ) {
+				return $provider;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Instantiates an arbitrary provider by id, with an optional key override
+	 * (used by "Test connection" to try a not-yet-saved key).
+	 *
+	 * @param string      $provider     Provider id.
+	 * @param string|null $key_override Optional key to use instead of the saved one.
+	 * @return Tuki_AI_Provider|null
+	 */
+	public static function instantiate( $provider, $key_override = null ) {
+		$registry = self::providers_registry();
+
+		if ( ! isset( $registry[ $provider ] ) || ! class_exists( $registry[ $provider ]['class'] ) ) {
+			return null;
+		}
+
+		$meta = $registry[ $provider ];
+		$key  = ( null !== $key_override && '' !== trim( (string) $key_override ) )
+			? trim( (string) $key_override )
+			: self::provider_key( $provider );
+
+		$chat_model      = (string) self::get( 'chat_model_' . $provider );
+		$embedding_model = in_array( 'embeddings', $meta['caps'], true ) ? (string) self::get( 'embedding_model_' . $provider ) : '';
+
+		return new $meta['class']( $key, $chat_model, $embedding_model );
+	}
+
+	/**
+	 * The stored API key for a provider.
+	 *
+	 * @param string $provider Provider id.
+	 * @return string
+	 */
+	public static function provider_key( $provider ) {
+		$registry = self::providers_registry();
+
+		return isset( $registry[ $provider ] ) ? (string) self::get( $registry[ $provider ]['key'] ) : '';
 	}
 }

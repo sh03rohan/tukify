@@ -225,7 +225,7 @@ class Tuki_KB {
 			return 0;
 		}
 
-		$model      = (string) Tuki_Settings::get( 'embedding_model' );
+		$model      = Tuki_Settings::embedding_model();
 		$embeddings = new Tuki_Embeddings();
 		$stored     = 0;
 

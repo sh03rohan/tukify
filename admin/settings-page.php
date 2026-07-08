@@ -20,10 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$tuki_settings   = Tuki_Settings::get();
-$tuki_option     = Tuki_Settings::OPTION;
-$tuki_gemini_key = $tuki_settings['gemini_api_key'];
-$tuki_conn       = Tuki_Admin::connection_state();
+$tuki_settings = Tuki_Settings::get();
+$tuki_option   = Tuki_Settings::OPTION;
+$tuki_conn     = Tuki_Admin::connection_state();
 
 $tuki_spark_svg   = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M12 3l1.8 4.9L18 9.6l-4.2 1.7L12 16l-1.8-4.7L6 9.6l4.2-1.7L12 3z" fill="currentColor"/><path d="M18.5 14l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3z" fill="currentColor" opacity="0.7"/></svg>';
 $tuki_svg_allowed = array(
@@ -94,69 +93,144 @@ $tuki_tabs = array(
 
 				<!-- ============================ GENERAL / SETUP ============================ -->
 				<section class="tkfy-panel is-active" role="tabpanel" id="tkfy-panel-general" data-tab="general" aria-labelledby="tkfy-tab-general" tabindex="0">
+					<?php
+					$tuki_registry      = Tuki_Settings::providers_registry();
+					$tuki_emb_provs     = Tuki_Settings::embedding_providers();
+					$tuki_chat_prov     = $tuki_settings['chat_provider'];
+					$tuki_emb_prov      = $tuki_settings['embedding_provider'];
+					$tuki_needs_reindex = class_exists( 'Tuki_Indexer' ) && Tuki_Indexer::index_needs_rebuild();
+
+					// Human-readable capability line for a provider.
+					$tuki_caps_label = static function ( $caps ) {
+						return in_array( 'embeddings', $caps, true )
+							? __( 'Chat · embeddings · vision', 'tukify' )
+							: __( 'Chat · vision — no embeddings', 'tukify' );
+					};
+					?>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
-							<h2 class="tkfy-card-title"><?php esc_html_e( 'AI provider', 'tukify' ); ?></h2>
-							<p class="tkfy-card-cap"><?php esc_html_e( 'All AI calls run server-side; your key is never exposed to the frontend.', 'tukify' ); ?></p>
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'AI providers', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Pick a chat provider and an embedding provider. All AI calls run server-side; keys are never exposed to the frontend.', 'tukify' ); ?></p>
 						</div>
 						<div class="tkfy-card-body">
+							<?php if ( $tuki_needs_reindex ) : ?>
+								<div class="tkfy-field tkfy-field--wide">
+									<p class="tkfy-note" style="border-left:3px solid #f0b429;">
+										<strong><?php esc_html_e( 'Embedding provider/model changed.', 'tukify' ); ?></strong>
+										<?php
+										printf(
+											/* translators: %s: link to the dashboard reindex. */
+											esc_html__( 'Your product index was built with a different embedding model and is not compatible. Rebuild it on the %s. Until you do, semantic search uses only the products already indexed with the current model.', 'tukify' ),
+											'<a href="' . esc_url( admin_url( 'admin.php?page=tukify' ) ) . '">' . esc_html__( 'Tukify dashboard → Reindex', 'tukify' ) . '</a>'
+										);
+										?>
+									</p>
+								</div>
+							<?php endif; ?>
+
 							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_provider"><?php esc_html_e( 'Provider', 'tukify' ); ?></label>
-								<select class="tuki-input" id="tuki_provider" name="<?php echo esc_attr( $tuki_option ); ?>[provider]">
-									<option value="gemini" <?php selected( $tuki_settings['provider'], 'gemini' ); ?>><?php esc_html_e( 'Google Gemini (recommended)', 'tukify' ); ?></option>
-									<option value="openai" <?php selected( $tuki_settings['provider'], 'openai' ); ?>><?php esc_html_e( 'OpenAI', 'tukify' ); ?></option>
-									<option value="anthropic" <?php selected( $tuki_settings['provider'], 'anthropic' ); ?>><?php esc_html_e( 'Anthropic (chat only — no embeddings)', 'tukify' ); ?></option>
+								<label class="tkfy-label" for="tuki_chat_provider"><?php esc_html_e( 'Chat provider', 'tukify' ); ?></label>
+								<select class="tuki-input" id="tuki_chat_provider" name="<?php echo esc_attr( $tuki_option ); ?>[chat_provider]">
+									<?php foreach ( $tuki_registry as $tuki_pid => $tuki_meta ) : ?>
+										<option value="<?php echo esc_attr( $tuki_pid ); ?>" data-embeddings="<?php echo in_array( 'embeddings', $tuki_meta['caps'], true ) ? '1' : '0'; ?>" <?php selected( $tuki_chat_prov, $tuki_pid ); ?>><?php echo esc_html( $tuki_meta['label'] ); ?></option>
+									<?php endforeach; ?>
 								</select>
-								<p class="tkfy-hint"><?php esc_html_e( 'Anthropic has no embeddings endpoint; if selected for chat, embeddings still use Gemini or OpenAI.', 'tukify' ); ?></p>
+								<p class="tkfy-hint" id="tuki-embedding-note">
+									<?php esc_html_e( 'Claude and Grok can\'t create embeddings — retrieval (RAG) always uses your Embedding provider below.', 'tukify' ); ?>
+								</p>
 							</div>
 
-							<div class="tkfy-field tkfy-field--wide">
-								<label class="tkfy-label" for="tuki_gemini_api_key"><?php esc_html_e( 'Gemini API key', 'tukify' ); ?></label>
-								<div class="tkfy-inline">
-									<input
-										type="password"
-										class="tuki-input"
-										id="tuki_gemini_api_key"
-										name="<?php echo esc_attr( $tuki_option ); ?>[gemini_api_key]"
-										autocomplete="off"
-										value=""
-										placeholder="<?php echo esc_attr( '' === $tuki_gemini_key ? __( 'AIza…', 'tukify' ) : Tuki_Settings::mask_key( $tuki_gemini_key ) ); ?>"
-									/>
-									<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki-test-connection"><?php esc_html_e( 'Test connection', 'tukify' ); ?></button>
-								</div>
-								<span id="tuki-test-result" class="tuki-status" role="status" aria-live="polite"></span>
-								<p class="tkfy-hint">
-									<?php
-									if ( '' === $tuki_gemini_key ) {
-										esc_html_e( 'Get a free key at aistudio.google.com — no billing required for the free tier.', 'tukify' );
-									} else {
-										esc_html_e( 'A key is saved. Leave blank to keep it, or paste a new key to replace it.', 'tukify' );
-									}
-									?>
-								</p>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_embedding_provider"><?php esc_html_e( 'Embedding provider', 'tukify' ); ?></label>
+								<select class="tuki-input" id="tuki_embedding_provider" name="<?php echo esc_attr( $tuki_option ); ?>[embedding_provider]">
+									<?php foreach ( $tuki_emb_provs as $tuki_pid => $tuki_meta ) : ?>
+										<option value="<?php echo esc_attr( $tuki_pid ); ?>" <?php selected( $tuki_emb_prov, $tuki_pid ); ?>><?php echo esc_html( $tuki_meta['label'] ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								<p class="tkfy-hint"><?php esc_html_e( 'Used for product/knowledge-base indexing and search. Changing this rebuilds the vector index (dimensions differ per model).', 'tukify' ); ?></p>
 							</div>
 						</div>
 					</div>
 
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
-							<h2 class="tkfy-card-title"><?php esc_html_e( 'Models', 'tukify' ); ?></h2>
-							<p class="tkfy-card-cap"><?php esc_html_e( 'Embedding and chat models used for retrieval and replies.', 'tukify' ); ?></p>
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'API keys', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'A separate key per provider — enter only the ones you use. Leave a field blank to keep its saved key.', 'tukify' ); ?></p>
 						</div>
 						<div class="tkfy-card-body">
-							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_embedding_model"><?php esc_html_e( 'Embedding model', 'tukify' ); ?></label>
-								<select class="tuki-input" id="tuki_embedding_model" name="<?php echo esc_attr( $tuki_option ); ?>[embedding_model]">
-									<option value="gemini-embedding-001" <?php selected( $tuki_settings['embedding_model'], 'gemini-embedding-001' ); ?>>gemini-embedding-001</option>
-								</select>
-							</div>
-							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_chat_model"><?php esc_html_e( 'Chat model', 'tukify' ); ?></label>
-								<select class="tuki-input" id="tuki_chat_model" name="<?php echo esc_attr( $tuki_option ); ?>[chat_model]">
-									<option value="gemini-2.5-flash" <?php selected( $tuki_settings['chat_model'], 'gemini-2.5-flash' ); ?>>gemini-2.5-flash</option>
-									<option value="gemini-2.5-flash-lite" <?php selected( $tuki_settings['chat_model'], 'gemini-2.5-flash-lite' ); ?>>gemini-2.5-flash-lite (economy)</option>
-								</select>
-							</div>
+							<?php foreach ( $tuki_registry as $tuki_pid => $tuki_meta ) : ?>
+								<?php $tuki_saved_key = (string) $tuki_settings[ $tuki_meta['key'] ]; ?>
+								<div class="tkfy-field tkfy-field--wide">
+									<label class="tkfy-label" for="tuki_key_<?php echo esc_attr( $tuki_pid ); ?>">
+										<?php
+										/* translators: %s: provider name. */
+										printf( esc_html__( '%s API key', 'tukify' ), esc_html( $tuki_meta['label'] ) );
+										?>
+									</label>
+									<div class="tkfy-inline">
+										<input
+											type="password"
+											class="tuki-input"
+											id="tuki_key_<?php echo esc_attr( $tuki_pid ); ?>"
+											name="<?php echo esc_attr( $tuki_option ); ?>[<?php echo esc_attr( $tuki_meta['key'] ); ?>]"
+											autocomplete="off"
+											value=""
+											placeholder="<?php echo esc_attr( '' === $tuki_saved_key ? '' : Tuki_Settings::mask_key( $tuki_saved_key ) ); ?>"
+										/>
+										<button type="button" class="tuki-btn tuki-btn--ghost tuki-test-conn" data-provider="<?php echo esc_attr( $tuki_pid ); ?>" data-key="tuki_key_<?php echo esc_attr( $tuki_pid ); ?>"><?php esc_html_e( 'Test', 'tukify' ); ?></button>
+									</div>
+									<span class="tuki-status tuki-test-result" data-provider="<?php echo esc_attr( $tuki_pid ); ?>" role="status" aria-live="polite"></span>
+									<p class="tkfy-hint">
+										<?php echo esc_html( $tuki_caps_label( $tuki_meta['caps'] ) ); ?>
+										<?php
+										/* translators: %s: provider console hostname. */
+										printf( ' · ' . esc_html__( 'Key from %s.', 'tukify' ), esc_html( $tuki_meta['key_hint'] ) );
+										echo '' === $tuki_saved_key ? '' : ' · ' . esc_html__( 'A key is saved.', 'tukify' );
+										?>
+									</p>
+								</div>
+							<?php endforeach; ?>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Models', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'The chat + embedding model for each provider. Only the selected providers\' models are used.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<?php foreach ( $tuki_registry as $tuki_pid => $tuki_meta ) : ?>
+								<div class="tkfy-field tuki-chatmodel-field" data-provider="<?php echo esc_attr( $tuki_pid ); ?>" <?php echo $tuki_pid === $tuki_chat_prov ? '' : 'hidden'; ?>>
+									<label class="tkfy-label" for="tuki_chat_model_<?php echo esc_attr( $tuki_pid ); ?>">
+										<?php
+										/* translators: %s: provider name. */
+										printf( esc_html__( '%s chat model', 'tukify' ), esc_html( $tuki_meta['label'] ) );
+										?>
+									</label>
+									<select class="tuki-input" id="tuki_chat_model_<?php echo esc_attr( $tuki_pid ); ?>" name="<?php echo esc_attr( $tuki_option ); ?>[chat_model_<?php echo esc_attr( $tuki_pid ); ?>]">
+										<?php foreach ( $tuki_meta['chat_models'] as $tuki_mv => $tuki_ml ) : ?>
+											<option value="<?php echo esc_attr( $tuki_mv ); ?>" <?php selected( $tuki_settings[ 'chat_model_' . $tuki_pid ], $tuki_mv ); ?>><?php echo esc_html( $tuki_ml ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</div>
+							<?php endforeach; ?>
+
+							<?php foreach ( $tuki_emb_provs as $tuki_pid => $tuki_meta ) : ?>
+								<div class="tkfy-field tuki-embmodel-field" data-provider="<?php echo esc_attr( $tuki_pid ); ?>" <?php echo $tuki_pid === $tuki_emb_prov ? '' : 'hidden'; ?>>
+									<label class="tkfy-label" for="tuki_embedding_model_<?php echo esc_attr( $tuki_pid ); ?>">
+										<?php
+										/* translators: %s: provider name. */
+										printf( esc_html__( '%s embedding model', 'tukify' ), esc_html( $tuki_meta['label'] ) );
+										?>
+									</label>
+									<select class="tuki-input" id="tuki_embedding_model_<?php echo esc_attr( $tuki_pid ); ?>" name="<?php echo esc_attr( $tuki_option ); ?>[embedding_model_<?php echo esc_attr( $tuki_pid ); ?>]">
+										<?php foreach ( $tuki_meta['embedding_models'] as $tuki_mv => $tuki_ml ) : ?>
+											<option value="<?php echo esc_attr( $tuki_mv ); ?>" <?php selected( $tuki_settings[ 'embedding_model_' . $tuki_pid ], $tuki_mv ); ?>><?php echo esc_html( $tuki_ml ); ?></option>
+										<?php endforeach; ?>
+									</select>
+									<p class="tkfy-hint"><?php esc_html_e( 'Changing the embedding model invalidates the current index — reindex from the dashboard.', 'tukify' ); ?></p>
+								</div>
+							<?php endforeach; ?>
 						</div>
 					</div>
 

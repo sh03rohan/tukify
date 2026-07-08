@@ -40,6 +40,12 @@ class Tuki_Indexer {
 	const STATE_OPTION = 'tuki_reindex_state';
 
 	/**
+	 * Option storing the embedding signature (provider:model) the index was last
+	 * built with, used to detect an incompatible embedding change.
+	 */
+	const SIGNATURE_OPTION = 'tuki_embedding_signature';
+
+	/**
 	 * Products processed per background batch.
 	 */
 	const BATCH_SIZE = 20;
@@ -144,7 +150,7 @@ class Tuki_Indexer {
 
 		$text  = self::build_product_text( $product );
 		$hash  = hash( 'sha256', $text );
-		$model = (string) Tuki_Settings::get( 'embedding_model' );
+		$model = Tuki_Settings::embedding_model();
 
 		$existing = Tuki_DB::get_embedding_row( $product_id );
 
@@ -196,7 +202,7 @@ class Tuki_Indexer {
 		}
 
 		$ids     = array_splice( $queue, 0, self::BATCH_SIZE );
-		$model   = (string) Tuki_Settings::get( 'embedding_model' );
+		$model   = Tuki_Settings::embedding_model();
 		$pending = array();
 
 		foreach ( $ids as $product_id ) {
@@ -381,6 +387,35 @@ class Tuki_Indexer {
 		$state['queue']    = array();
 		$state['finished'] = time();
 		update_option( self::STATE_OPTION, $state, false );
+
+		// Stamp the embedding space this index was built with, so a later change
+		// of embedding provider/model can be detected and a reindex prompted.
+		update_option( self::SIGNATURE_OPTION, Tuki_Settings::embedding_signature(), false );
+	}
+
+	/**
+	 * Whether the stored vector index was built with a different embedding
+	 * provider/model than is now selected. Embeddings from different models are
+	 * dimensionally incompatible, so a mismatch means a full reindex is needed.
+	 *
+	 * Returns false when nothing is indexed yet, or when the index predates
+	 * signature tracking (the search backend already filters by the active model,
+	 * so stale-model vectors are simply ignored rather than mixed in).
+	 *
+	 * @return bool
+	 */
+	public static function index_needs_rebuild() {
+		if ( Tuki_DB::count_embeddings() <= 0 ) {
+			return false;
+		}
+
+		$stored = (string) get_option( self::SIGNATURE_OPTION, '' );
+
+		if ( '' === $stored ) {
+			return false;
+		}
+
+		return Tuki_Settings::embedding_signature() !== $stored;
 	}
 
 	/**
