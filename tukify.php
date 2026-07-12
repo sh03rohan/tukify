@@ -1,12 +1,13 @@
 <?php
 /**
  * Plugin Name:       Tukify — AI Shopping Assistant for WooCommerce
- * Plugin URI:        https://tukify.com/
+ * Plugin URI:        https://github.com/sh03rohan/tukify
  * Description:       AI shopping assistant for WooCommerce: semantic product search and grounded conversational recommendations, all data on your own server.
- * Version:           1.1.1
+ * Version:           1.4.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
- * Author:            Tukify
+ * Author:            Sh Rohan
+ * Author URI:        https://github.com/sh03rohan
  * License:           GPLv2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       tukify
@@ -24,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Core plugin constants.
-define( 'TUKI_VERSION', '1.1.1' );
+define( 'TUKI_VERSION', '1.4.2' );
 define( 'TUKI_PLUGIN_FILE', __FILE__ );
 define( 'TUKI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TUKI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

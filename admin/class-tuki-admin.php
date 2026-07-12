@@ -41,14 +41,6 @@ class Tuki_Admin {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
-		// Keep Tukify's own screens clean by stripping third-party admin notices
-		// there — and only there. Priority 0 so this runs before other notice
-		// callbacks (which use the default priority 10), letting remove_all_actions
-		// clear them before they print. The callback bails on every other screen,
-		// so nothing is removed globally. See suppress_foreign_notices().
-		add_action( 'admin_notices', array( $this, 'suppress_foreign_notices' ), 0 );
-		add_action( 'all_admin_notices', array( $this, 'suppress_foreign_notices' ), 0 );
-
 		// Tag <body> on Tukify's own screens so the shell stylesheet can paint the
 		// WordPress content chrome dark (scoped to this class only).
 		add_filter( 'admin_body_class', array( $this, 'add_body_class' ) );
@@ -160,33 +152,6 @@ class Tuki_Admin {
 		}
 
 		return in_array( $screen->id, array( $this->hook_dashboard, $this->hook_settings ), true );
-	}
-
-	/**
-	 * On Tukify's own screens only, remove every admin notice other plugins or
-	 * core queued for the current hook, then re-render Tukify's own notice(s) so
-	 * they are preserved. Bails immediately on every other admin screen, so the
-	 * rest of wp-admin is never touched.
-	 *
-	 * @return void
-	 */
-	public function suppress_foreign_notices() {
-		if ( ! $this->is_plugin_screen() ) {
-			return;
-		}
-
-		// The hook currently firing: either admin_notices or all_admin_notices.
-		$hook = current_action();
-
-		// Clear everyone else's notices queued on this hook.
-		remove_all_actions( $hook );
-
-		// Re-render Tukify's own notice(s) directly — remove_all_actions() also
-		// dropped ours. Calling it here (rather than re-adding to the now-emptied
-		// hook) guarantees ours still shows regardless of hook-iteration state.
-		if ( 'admin_notices' === $hook && function_exists( 'tuki_wc_missing_notice' ) ) {
-			tuki_wc_missing_notice();
-		}
 	}
 
 	/**
