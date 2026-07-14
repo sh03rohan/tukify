@@ -22,9 +22,9 @@ $tuki_state     = Tuki_Indexer::get_state();
 $tuki_running   = ( 'running' === $tuki_state['status'] );
 $tuki_embed_pct = $tuki_total > 0 ? min( 100, (int) round( $tuki_indexed / $tuki_total * 100 ) ) : 0;
 
-// Brand + warning glyphs (inline so no icon font is needed).
-$tuki_spark_svg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M12 3l1.8 4.9L18 9.6l-4.2 1.7L12 16l-1.8-4.7L6 9.6l4.2-1.7L12 3z" fill="currentColor"/><path d="M18.5 14l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3z" fill="currentColor" opacity="0.7"/></svg>';
-$tuki_warn_svg  = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M12 4l9 16H3L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+// Warning glyph (inline so no icon font is needed). The brand mark is the
+// Tukify logo PNG shipped in images/ (rendered in the header below).
+$tuki_warn_svg = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M12 4l9 16H3L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 
 $tuki_svg_allowed = array(
 	'svg'  => array(
@@ -51,7 +51,7 @@ $tuki_svg_allowed = array(
 
 			<header class="tuki-header">
 				<div class="tuki-brand">
-					<span class="tuki-brand-chip"><?php echo wp_kses( $tuki_spark_svg, $tuki_svg_allowed ); ?></span>
+					<span class="tuki-brand-chip"><img src="<?php echo esc_url( TUKI_PLUGIN_URL . 'images/logo-128.png' ); ?>" width="34" height="34" alt="Tukify" /></span>
 					<span class="tuki-brand-text">
 						<span class="tuki-brand-title">Tukify</span>
 						<span class="tuki-brand-sub"><?php esc_html_e( 'AI shopping assistant', 'tukify' ); ?></span>

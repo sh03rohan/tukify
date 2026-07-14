@@ -24,22 +24,6 @@ $tuki_settings = Tuki_Settings::get();
 $tuki_option   = Tuki_Settings::OPTION;
 $tuki_conn     = Tuki_Admin::connection_state();
 
-$tuki_spark_svg   = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M12 3l1.8 4.9L18 9.6l-4.2 1.7L12 16l-1.8-4.7L6 9.6l4.2-1.7L12 3z" fill="currentColor"/><path d="M18.5 14l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3z" fill="currentColor" opacity="0.7"/></svg>';
-$tuki_svg_allowed = array(
-	'svg'  => array(
-		'viewbox'     => true,
-		'width'       => true,
-		'height'      => true,
-		'fill'        => true,
-		'aria-hidden' => true,
-	),
-	'path' => array(
-		'd'       => true,
-		'fill'    => true,
-		'opacity' => true,
-	),
-);
-
 // Tab definitions: key => label. The first is active by default.
 $tuki_tabs = array(
 	'general'    => __( 'General', 'tukify' ),
@@ -55,7 +39,7 @@ $tuki_tabs = array(
 
 		<header class="tkfy-header">
 			<div class="tkfy-brand">
-				<span class="tkfy-brand-chip"><?php echo wp_kses( $tuki_spark_svg, $tuki_svg_allowed ); ?></span>
+				<span class="tkfy-brand-chip"><img src="<?php echo esc_url( TUKI_PLUGIN_URL . 'images/logo-128.png' ); ?>" width="38" height="38" alt="Tukify" /></span>
 				<span class="tkfy-brand-text">
 					<span class="tkfy-brand-title">Tukify</span>
 					<span class="tkfy-brand-sub"><?php esc_html_e( 'Settings', 'tukify' ); ?></span>

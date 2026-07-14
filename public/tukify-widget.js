@@ -17,8 +17,6 @@
 	var S = cfg.strings || {};
 
 	var ICON = {
-		chat: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" fill="currentColor"/></svg>',
-		spark: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L18 9.6l-4.2 1.7L12 16l-1.8-4.7L6 9.6l4.2-1.7L12 3z" fill="currentColor"/></svg>',
 		close: '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
 		send: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 12l16-8-6 16-3-7-7-1z" fill="currentColor"/></svg>',
 		image: '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="8.5" cy="10" r="1.5" fill="currentColor"/><path d="M5 17l4.5-4.5L13 16l3-3 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -422,7 +420,7 @@
 		// Header.
 		var head = el( 'div', 'tuki-head' );
 		var avatar = el( 'div', 'tuki-head-avatar' );
-		avatar.innerHTML = ICON.spark;
+		avatar.innerHTML = cfg.logo ? '<img src="' + cfg.logo + '" alt="" draggable="false" />' : '';
 		var meta = el( 'div', 'tuki-head-meta' );
 		var title = el( 'div', 'tuki-head-title' );
 		title.textContent = opts.heading || S.title || 'Tukify';
@@ -492,7 +490,7 @@
 			var launcher = el( 'button', 'tuki-launcher' );
 			launcher.type = 'button';
 			launcher.setAttribute( 'aria-label', S.open || 'Open' );
-			launcher.innerHTML = ICON.chat;
+			launcher.innerHTML = cfg.logo ? '<img src="' + cfg.logo + '" alt="" draggable="false" />' : '';
 			launcher.addEventListener( 'click', function () {
 				var open = panel.classList.toggle( 'is-open' );
 				if ( open ) {

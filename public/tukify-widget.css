@@ -160,6 +160,20 @@
 	height: 18px;
 }
 
+/* Brand logo fills the chat avatar and launcher (replaces the old glyphs). */
+.tuki-head-avatar,
+.tuki-launcher {
+	overflow: hidden;
+}
+
+.tuki-head-avatar img,
+.tuki-launcher img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
 .tuki-head-meta {
 	display: flex;
 	flex-direction: column;

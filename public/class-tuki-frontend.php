@@ -156,6 +156,7 @@ class Tuki_Frontend {
 		return array(
 			'restUrl'         => esc_url_raw( rest_url( 'tukify/v1/' ) ),
 			'nonce'           => wp_create_nonce( 'wp_rest' ),
+			'logo'            => esc_url_raw( TUKI_PLUGIN_URL . 'images/logo-128.png' ),
 			'floating'        => (bool) $settings['floating_widget'],
 			'accent'          => $settings['accent_color'],
 			'scheme'          => 'light' === $settings['color_scheme'] ? 'light' : 'dark',
