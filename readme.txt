@@ -109,11 +109,13 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 
 == Screenshots ==
 
-1. The chat widget answering a natural-language request with product cards.
-2. The dark admin dashboard: connection status, metrics, reindex progress and top searches.
-3. The settings screen (provider, models, knowledge base, conversion).
-4. Side-by-side product comparison in chat.
-5. The three Tukify Elementor widgets.
+1. Chat assistant helping a shopper find a gift, with quantity control and add to cart.
+2. Complete checkout inside the chat — cart, totals, and shipping details.
+3. Complementary product suggestions based on what's in the cart.
+4. Order status lookup — verified with order number and billing email.
+5. Order status result showing status, date, total, and item count.
+6. Admin dashboard — AI provider, models, and settings.
+7. Analytics — top searches, product index, and unmet demand insights.
 
 == Changelog ==
 
