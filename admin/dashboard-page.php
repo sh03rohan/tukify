@@ -51,7 +51,7 @@ $tuki_svg_allowed = array(
 
 			<header class="tuki-header">
 				<div class="tuki-brand">
-					<span class="tuki-brand-chip"><?php echo wp_kses( Tuki_Settings::brand_logo_svg(), Tuki_Settings::brand_logo_kses() ); ?></span>
+					<span class="tuki-brand-chip"><img src="<?php echo esc_url( Tuki_Settings::logo_url() ); ?>" alt="Tukify" /></span>
 					<span class="tuki-brand-text">
 						<span class="tuki-brand-title">Tukify</span>
 						<span class="tuki-brand-sub"><?php esc_html_e( 'AI shopping assistant', 'tukify' ); ?></span>

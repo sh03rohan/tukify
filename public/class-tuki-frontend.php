@@ -159,7 +159,7 @@ class Tuki_Frontend {
 			'floating'        => (bool) $settings['floating_widget'],
 			'accent'          => $settings['accent_color'],
 			'bubbleBg'        => $settings['bubble_bg_color'],
-			'bagColor'        => $settings['logo_bag_color'],
+			'logo'            => esc_url_raw( Tuki_Settings::logo_url() ),
 			'scheme'          => 'light' === $settings['color_scheme'] ? 'light' : 'dark',
 			'css'             => $css,
 			'maxImageBytes'   => 4194304,

@@ -120,8 +120,8 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 == Changelog ==
 
 = 1.4.4 =
-* New Tukify logo, drawn as an inline SVG so it renders cleanly inside the round chat launcher and avatar (previously the logo's square background showed through the circle).
-* Added Appearance settings to recolour the chat bubble background and the logo, with a live preview and a low-contrast hint.
+* New Tukify logo (transparent SVG) shown in the chat launcher, avatar, and admin header — it renders cleanly inside the round chat bubble, with no square corners.
+* Added an Appearance setting to customize the chat bubble background colour, with a live preview and a low-contrast hint.
 
 = 1.4.3 =
 * Fixed prices showing as raw HTML entities (e.g. "&#36;76.00" instead of "$76.00") in the chat checkout and order-status cards. Currency output is now decoded to plain text everywhere prices appear in the chat.

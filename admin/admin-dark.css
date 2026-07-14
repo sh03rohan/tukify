@@ -119,15 +119,13 @@
 	justify-content: center;
 	width: 38px;
 	height: 38px;
-	border-radius: 10px;
-	color: var(--on-primary);
-	background: linear-gradient(135deg, var(--primary), #7aa8f5);
 }
 
-.tkfy-brand-chip .tuki-logo {
-	width: 24px;
-	height: 24px;
-	color: var(--on-primary);
+.tkfy-brand-chip img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
 }
 
 /* Live bubble/logo colour preview in the Appearance tab. */

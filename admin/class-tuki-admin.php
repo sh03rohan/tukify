@@ -54,25 +54,25 @@ class Tuki_Admin {
 	}
 
 	/**
-	 * Builds the admin-menu icon: a simplified Tukify logo (shopping bag + smile)
-	 * as a base64 SVG data-URI, so it stays crisp at the ~20px menu size.
+	 * Builds the admin-menu icon from the shipped Tukify logo SVG, encoded as a
+	 * base64 data-URI so it stays crisp at the ~20px menu size.
 	 *
-	 * Note: unlike a Dashicon/icon-font, a data-URI SVG does not auto-recolor with
-	 * the admin colour scheme; it is drawn in the standard WordPress menu grey
-	 * (#a7aaad) so it reads as native across the default and dark schemes.
+	 * The logo is a full-colour mark (not a monochrome glyph), so it does not
+	 * recolour with the admin colour scheme — it renders as the brand logo.
+	 * Falls back to a Dashicon if the file cannot be read.
 	 *
-	 * @return string data:image/svg+xml;base64 URI.
+	 * @return string data:image/svg+xml;base64 URI, or a dashicon slug.
 	 */
 	private function menu_icon() {
-		$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">'
-			. '<path d="M6 8h12l-1 11.2a1.8 1.8 0 0 1-1.8 1.8H8.8A1.8 1.8 0 0 1 7 19.2L6 8Z" stroke="#a7aaad" stroke-width="1.6" stroke-linejoin="round"/>'
-			. '<path d="M9 8V7a3 3 0 0 1 6 0v1" stroke="#a7aaad" stroke-width="1.6" stroke-linecap="round"/>'
-			. '<circle cx="10" cy="12.5" r="1" fill="#a7aaad"/>'
-			. '<circle cx="14" cy="12.5" r="1" fill="#a7aaad"/>'
-			. '<path d="M9.8 14.8a2.4 2.4 0 0 0 4.4 0" stroke="#a7aaad" stroke-width="1.6" stroke-linecap="round"/>'
-			. '</svg>';
+		$path = TUKI_PLUGIN_DIR . 'images/logo.svg';
 
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encoding an inline SVG as a data-URI menu icon, not obfuscation.
+		if ( ! is_readable( $path ) ) {
+			return 'dashicons-cart';
+		}
+
+		$svg = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled plugin asset, not a remote URL.
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encoding a bundled SVG as a data-URI menu icon, not obfuscation.
 		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
 	}
 

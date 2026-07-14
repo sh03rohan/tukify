@@ -292,14 +292,18 @@
 } )();
 
 /**
- * Appearance tab — WordPress colour pickers for the chat bubble + logo colours,
- * with a live preview bubble and a contrast hint. Requires jQuery +
- * wp-color-picker (both enqueued as dependencies on the Settings screen).
+ * Appearance tab — WordPress colour picker for the chat bubble background, with a
+ * live preview (the real logo on the chosen colour) and a contrast hint against
+ * the logo's dominant blue. Requires jQuery + wp-color-picker (both enqueued as
+ * dependencies on the Settings screen).
  */
 ( function ( $ ) {
 	if ( ! $ || ! $.fn || ! $.fn.wpColorPicker ) {
 		return;
 	}
+
+	// Dominant blue of the Tukify logo, used only for the contrast hint.
+	var LOGO_BLUE = '#2675FA';
 
 	$( function () {
 		var pickers = $( '.tuki-wp-color' );
@@ -309,7 +313,6 @@
 		}
 
 		var bubbleInput = document.getElementById( 'tuki_bubble_bg_color' );
-		var bagInput = document.getElementById( 'tuki_logo_bag_color' );
 		var preview = document.getElementById( 'tuki_bubble_preview' );
 		var note = document.getElementById( 'tuki_bubble_contrast' );
 
@@ -346,15 +349,13 @@
 
 		function render() {
 			var bubble = ( bubbleInput && bubbleInput.value ) || '#7C6FF0';
-			var bag = ( bagInput && bagInput.value ) || '#3B82F6';
 
 			if ( preview ) {
 				preview.style.background = bubble;
-				preview.style.color = bag;
 			}
 
 			if ( note ) {
-				var ratio = contrastRatio( bubble, bag );
+				var ratio = contrastRatio( bubble, LOGO_BLUE );
 
 				if ( null !== ratio && ratio < 1.6 ) {
 					note.textContent = ( window.tukiAdmin && tukiAdmin.lowContrast ) || 'These colours are very similar — the logo may be hard to see.';

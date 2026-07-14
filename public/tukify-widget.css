@@ -160,11 +160,14 @@
 	height: 18px;
 }
 
-/* Brand logo mark: the bag uses --tuki-bag; its punched-out face lets the
-   bubble/avatar background show through. */
+/* Brand logo (transparent SVG). object-fit: contain keeps the whole bag visible
+   and the bubble/avatar background shows around it. */
 .tuki-head-avatar .tuki-logo,
 .tuki-launcher .tuki-logo {
-	color: var(--tuki-bag, #3B82F6);
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
 }
 
 .tuki-head-meta {
