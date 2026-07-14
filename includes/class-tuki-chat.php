@@ -840,7 +840,7 @@ class Tuki_Chat {
 	 */
 	private function price_text( $product ) {
 		if ( function_exists( 'wc_price' ) ) {
-			return html_entity_decode( wp_strip_all_tags( wc_price( $product->get_price() ) ), ENT_QUOTES );
+			return Tuki_Cart::price_text( wc_price( $product->get_price() ) );
 		}
 
 		return (string) $product->get_price();
@@ -1185,7 +1185,7 @@ class Tuki_Chat {
 	 * @return string
 	 */
 	private function product_line( $index, $product ) {
-		$price = wp_strip_all_tags( $product->get_price_html() );
+		$price = Tuki_Cart::price_text( $product->get_price_html() );
 		$stock = $product->is_in_stock() ? __( 'in stock', 'tukify' ) : __( 'out of stock', 'tukify' );
 
 		$description = $product->get_short_description();

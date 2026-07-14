@@ -731,7 +731,7 @@ class Tuki_Rest {
 			'number'     => $order->get_order_number(),
 			'status'     => wc_get_order_status_name( $order->get_status() ),
 			'date'       => $created ? wc_format_datetime( $created ) : '',
-			'total'      => wp_strip_all_tags( $order->get_formatted_order_total() ),
+			'total'      => Tuki_Cart::price_text( $order->get_formatted_order_total() ),
 			'item_count' => (int) $order->get_item_count(),
 		);
 

@@ -16,6 +16,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Tuki_Cart {
 
 	/**
+	 * Converts WooCommerce price HTML into a plain-text string for the chat UI.
+	 *
+	 * WooCommerce price helpers (wc_price(), get_price_html(),
+	 * get_formatted_order_total(), get_cart_subtotal(), …) return HTML in which
+	 * the currency symbol is an HTML entity (e.g. "&#36;"). The chat frontend
+	 * renders these via textContent, which does NOT decode entities, so a raw
+	 * value shows as "&#36;76.00". Stripping tags alone is not enough — we must
+	 * also decode the entity so the literal symbol ("$76.00") is displayed.
+	 *
+	 * @param string $price_html WooCommerce price HTML (already safe/escaped).
+	 * @return string Plain-text price with a literal currency symbol.
+	 */
+	public static function price_text( $price_html ) {
+		return html_entity_decode( wp_strip_all_tags( (string) $price_html ), ENT_QUOTES );
+	}
+
+	/**
 	 * Builds a product-card payload for a WooCommerce product.
 	 *
 	 * @param WC_Product $product Product object.
@@ -61,7 +78,7 @@ class Tuki_Cart {
 		return array(
 			'id'            => $product->get_id(),
 			'title'         => $product->get_name(),
-			'price'         => wp_strip_all_tags( $product->get_price_html() ),
+			'price'         => self::price_text( $product->get_price_html() ),
 			'price_raw'     => (float) $product->get_price(),
 			'currency'      => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
 			'stock'         => $in_stock,

@@ -329,7 +329,7 @@ class Tuki_Checkout {
 			$items[] = array(
 				'name'  => $product->get_name(),
 				'qty'   => (int) $item['quantity'],
-				'total' => wp_strip_all_tags( $cart->get_product_subtotal( $product, $item['quantity'] ) ),
+				'total' => Tuki_Cart::price_text( $cart->get_product_subtotal( $product, $item['quantity'] ) ),
 				'image' => $image ? $image : '',
 			);
 		}
@@ -337,35 +337,35 @@ class Tuki_Checkout {
 		$totals = array(
 			array(
 				'label' => __( 'Subtotal', 'tukify' ),
-				'value' => wp_strip_all_tags( $cart->get_cart_subtotal() ),
+				'value' => Tuki_Cart::price_text( $cart->get_cart_subtotal() ),
 			),
 		);
 
 		if ( $cart->get_cart_discount_total() > 0 ) {
 			$totals[] = array(
 				'label' => __( 'Discount', 'tukify' ),
-				'value' => '-' . wp_strip_all_tags( wc_price( $cart->get_cart_discount_total() ) ),
+				'value' => '-' . Tuki_Cart::price_text( wc_price( $cart->get_cart_discount_total() ) ),
 			);
 		}
 
 		if ( $cart->needs_shipping() && $cart->show_shipping() ) {
 			$totals[] = array(
 				'label' => __( 'Shipping', 'tukify' ),
-				'value' => wp_strip_all_tags( $cart->get_cart_shipping_total() ),
+				'value' => Tuki_Cart::price_text( $cart->get_cart_shipping_total() ),
 			);
 		}
 
 		if ( wc_tax_enabled() && $cart->get_total_tax() > 0 ) {
 			$totals[] = array(
 				'label' => __( 'Tax', 'tukify' ),
-				'value' => wp_strip_all_tags( wc_price( $cart->get_total_tax() ) ),
+				'value' => Tuki_Cart::price_text( wc_price( $cart->get_total_tax() ) ),
 			);
 		}
 
 		return array(
 			'items'  => $items,
 			'totals' => $totals,
-			'total'  => wp_strip_all_tags( $cart->get_total() ),
+			'total'  => Tuki_Cart::price_text( $cart->get_total() ),
 		);
 	}
 
@@ -428,7 +428,7 @@ class Tuki_Checkout {
 				$rates[] = array(
 					'id'    => $rate_id,
 					'label' => wp_strip_all_tags( $rate->get_label() ),
-					'cost'  => wp_strip_all_tags( wc_price( (float) $rate->get_cost() + array_sum( (array) $rate->get_taxes() ) ) ),
+					'cost'  => Tuki_Cart::price_text( wc_price( (float) $rate->get_cost() + array_sum( (array) $rate->get_taxes() ) ) ),
 				);
 			}
 		}
@@ -737,7 +737,7 @@ class Tuki_Checkout {
 		return array(
 			'number' => $order->get_order_number(),
 			'status' => wc_get_order_status_name( $order->get_status() ),
-			'total'  => wp_strip_all_tags( $order->get_formatted_order_total() ),
+			'total'  => Tuki_Cart::price_text( $order->get_formatted_order_total() ),
 		);
 	}
 
