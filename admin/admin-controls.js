@@ -290,3 +290,95 @@
 		syncFromNative();
 	}
 } )();
+
+/**
+ * Appearance tab — WordPress colour pickers for the chat bubble + logo colours,
+ * with a live preview bubble and a contrast hint. Requires jQuery +
+ * wp-color-picker (both enqueued as dependencies on the Settings screen).
+ */
+( function ( $ ) {
+	if ( ! $ || ! $.fn || ! $.fn.wpColorPicker ) {
+		return;
+	}
+
+	$( function () {
+		var pickers = $( '.tuki-wp-color' );
+
+		if ( ! pickers.length ) {
+			return;
+		}
+
+		var bubbleInput = document.getElementById( 'tuki_bubble_bg_color' );
+		var bagInput = document.getElementById( 'tuki_logo_bag_color' );
+		var preview = document.getElementById( 'tuki_bubble_preview' );
+		var note = document.getElementById( 'tuki_bubble_contrast' );
+
+		// Relative luminance (WCAG) of a #hex colour, or null if unparseable.
+		function luminance( hex ) {
+			var c = ( hex || '' ).replace( '#', '' );
+
+			if ( 3 === c.length ) {
+				c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+			}
+
+			if ( 6 !== c.length ) {
+				return null;
+			}
+
+			var channels = [ 0, 2, 4 ].map( function ( i ) {
+				var v = parseInt( c.substr( i, 2 ), 16 ) / 255;
+				return v <= 0.03928 ? v / 12.92 : Math.pow( ( v + 0.055 ) / 1.055, 2.4 );
+			} );
+
+			return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+		}
+
+		function contrastRatio( a, b ) {
+			var la = luminance( a );
+			var lb = luminance( b );
+
+			if ( null === la || null === lb ) {
+				return null;
+			}
+
+			return ( Math.max( la, lb ) + 0.05 ) / ( Math.min( la, lb ) + 0.05 );
+		}
+
+		function render() {
+			var bubble = ( bubbleInput && bubbleInput.value ) || '#7C6FF0';
+			var bag = ( bagInput && bagInput.value ) || '#3B82F6';
+
+			if ( preview ) {
+				preview.style.background = bubble;
+				preview.style.color = bag;
+			}
+
+			if ( note ) {
+				var ratio = contrastRatio( bubble, bag );
+
+				if ( null !== ratio && ratio < 1.6 ) {
+					note.textContent = ( window.tukiAdmin && tukiAdmin.lowContrast ) || 'These colours are very similar — the logo may be hard to see.';
+					note.className = 'tkfy-bubble-note is-warn';
+				} else {
+					note.textContent = '';
+					note.className = 'tkfy-bubble-note';
+				}
+			}
+		}
+
+		// wpColorPicker writes the input value AFTER these callbacks fire, so the
+		// preview update is deferred a tick to read the committed value.
+		pickers.each( function () {
+			$( this ).wpColorPicker( {
+				change: function () {
+					window.setTimeout( render, 0 );
+				},
+				clear: function () {
+					window.setTimeout( render, 0 );
+				}
+			} );
+		} );
+
+		render();
+	} );
+} )( window.jQuery );

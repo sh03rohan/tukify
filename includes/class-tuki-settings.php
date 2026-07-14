@@ -97,6 +97,8 @@ class Tuki_Settings {
 			'price_chat_output'          => 2.50,
 			'price_embedding'            => 0.15,
 			'accent_color'               => '#7C6FF0',
+			'bubble_bg_color'            => '#7C6FF0',
+			'logo_bag_color'             => '#3B82F6',
 			'color_scheme'               => 'dark',
 			'floating_widget'            => 0,
 			'analytics_enabled'          => 1,
@@ -332,17 +334,69 @@ class Tuki_Settings {
 			$out[ $price_field ] = isset( $input[ $price_field ] ) ? max( 0, (float) $input[ $price_field ] ) : $out[ $price_field ];
 		}
 		$out['accent_color']      = sanitize_hex_color( $input['accent_color'] ?? '' );
+		$out['bubble_bg_color']   = sanitize_hex_color( $input['bubble_bg_color'] ?? '' );
+		$out['logo_bag_color']    = sanitize_hex_color( $input['logo_bag_color'] ?? '' );
 		$out['color_scheme']      = in_array( ( $input['color_scheme'] ?? '' ), array( 'dark', 'light' ), true ) ? $input['color_scheme'] : 'dark';
 		$out['floating_widget']   = empty( $input['floating_widget'] ) ? 0 : 1;
 		$out['analytics_enabled'] = empty( $input['analytics_enabled'] ) ? 0 : 1;
 
 		$out['preserve_data_on_uninstall'] = empty( $input['preserve_data_on_uninstall'] ) ? 0 : 1;
 
+		// Fall back to the defaults when a colour was cleared or invalid.
 		if ( empty( $out['accent_color'] ) ) {
 			$out['accent_color'] = '#7C6FF0';
 		}
+		if ( empty( $out['bubble_bg_color'] ) ) {
+			$out['bubble_bg_color'] = '#7C6FF0';
+		}
+		if ( empty( $out['logo_bag_color'] ) ) {
+			$out['logo_bag_color'] = '#3B82F6';
+		}
 
 		return $out;
+	}
+
+	/**
+	 * The Tukify brand mark as an inline SVG: a shopping bag (handle) with a face.
+	 *
+	 * The background is transparent and the eyes/smile are punched out with an
+	 * even-odd fill rule, so whatever sits behind the mark (the chat bubble, the
+	 * admin chip) shows through them. The bag itself uses currentColor, so callers
+	 * recolour it by setting the `color` CSS property (or the --tuki-bag variable).
+	 *
+	 * @return string SVG markup.
+	 */
+	public static function brand_logo_svg() {
+		return '<svg class="tuki-logo" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">'
+			. '<path fill="currentColor" fill-rule="evenodd" d="M5.5 7.5H18.5L17.7 19.3A2 2 0 0 1 15.7 21.1H8.3A2 2 0 0 1 6.3 19.3ZM8.6 12.6a1.1 1.1 0 1 0 2.2 0 1.1 1.1 0 1 0-2.2 0ZM13.2 12.6a1.1 1.1 0 1 0 2.2 0 1.1 1.1 0 1 0-2.2 0ZM9.2 15Q12 18.6 14.8 15 12 17.2 9.2 15Z"/>'
+			. '<path d="M9 7.5V6.2A3 3 0 0 1 15 6.2V7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'
+			. '</svg>';
+	}
+
+	/**
+	 * Allowed tags/attributes for escaping brand_logo_svg() output via wp_kses().
+	 *
+	 * @return array
+	 */
+	public static function brand_logo_kses() {
+		return array(
+			'svg'  => array(
+				'class'       => true,
+				'viewbox'     => true,
+				'fill'        => true,
+				'aria-hidden' => true,
+				'focusable'   => true,
+			),
+			'path' => array(
+				'd'               => true,
+				'fill'            => true,
+				'fill-rule'       => true,
+				'stroke'          => true,
+				'stroke-width'    => true,
+				'stroke-linecap'  => true,
+				'stroke-linejoin' => true,
+			),
+		);
 	}
 
 	/**

@@ -85,14 +85,12 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	overflow: hidden;
 }
 
-.tuki-app .tuki-brand-chip img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	display: block;
+.tuki-app .tuki-brand-chip .tuki-logo {
+	width: 22px;
+	height: 22px;
+	color: var(--tuki-accent);
 }
 
 .tuki-app .tuki-brand-text {

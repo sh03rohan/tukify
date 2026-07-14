@@ -39,7 +39,7 @@ $tuki_tabs = array(
 
 		<header class="tkfy-header">
 			<div class="tkfy-brand">
-				<span class="tkfy-brand-chip"><img src="<?php echo esc_url( TUKI_PLUGIN_URL . 'images/logo-128.png' ); ?>" width="38" height="38" alt="Tukify" /></span>
+				<span class="tkfy-brand-chip"><?php echo wp_kses( Tuki_Settings::brand_logo_svg(), Tuki_Settings::brand_logo_kses() ); ?></span>
 				<span class="tkfy-brand-text">
 					<span class="tkfy-brand-title">Tukify</span>
 					<span class="tkfy-brand-sub"><?php esc_html_e( 'Settings', 'tukify' ); ?></span>
@@ -255,6 +255,30 @@ $tuki_tabs = array(
 								</select>
 							</div>
 							<p class="tkfy-note tkfy-field--wide"><?php esc_html_e( 'Welcome message, input placeholder and widget position are not configurable yet — they use built-in defaults.', 'tukify' ); ?></p>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Chat bubble & logo', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Colours for the floating chat button and the Tukify logo mark. Use the live preview to check contrast.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_bubble_bg_color"><?php esc_html_e( 'Bubble background color', 'tukify' ); ?></label>
+								<input type="text" class="tuki-wp-color" id="tuki_bubble_bg_color" name="<?php echo esc_attr( $tuki_option ); ?>[bubble_bg_color]" value="<?php echo esc_attr( $tuki_settings['bubble_bg_color'] ); ?>" data-default-color="#7C6FF0" data-tuki-preview="bubble" />
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_logo_bag_color"><?php esc_html_e( 'Logo / bag color', 'tukify' ); ?></label>
+								<input type="text" class="tuki-wp-color" id="tuki_logo_bag_color" name="<?php echo esc_attr( $tuki_option ); ?>[logo_bag_color]" value="<?php echo esc_attr( $tuki_settings['logo_bag_color'] ); ?>" data-default-color="#3B82F6" data-tuki-preview="bag" />
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<span class="tkfy-label"><?php esc_html_e( 'Live preview', 'tukify' ); ?></span>
+								<div class="tkfy-bubble-preview">
+									<span class="tkfy-bubble-mock" id="tuki_bubble_preview" style="background: <?php echo esc_attr( $tuki_settings['bubble_bg_color'] ); ?>; color: <?php echo esc_attr( $tuki_settings['logo_bag_color'] ); ?>;"><?php echo wp_kses( Tuki_Settings::brand_logo_svg(), Tuki_Settings::brand_logo_kses() ); ?></span>
+									<span class="tkfy-bubble-note" id="tuki_bubble_contrast" role="status" aria-live="polite"></span>
+								</div>
+							</div>
 						</div>
 					</div>
 				</section>

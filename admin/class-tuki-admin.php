@@ -255,10 +255,13 @@ class Tuki_Admin {
 				true
 			);
 
+			// WordPress colour picker (Iris) for the Appearance tab bubble/logo colours.
+			wp_enqueue_style( 'wp-color-picker' );
+
 			wp_enqueue_script(
 				'tuki-admin-controls',
 				TUKI_PLUGIN_URL . 'admin/admin-controls.js',
-				array(),
+				array( 'jquery', 'wp-color-picker' ),
 				TUKI_VERSION,
 				true
 			);
@@ -293,6 +296,7 @@ class Tuki_Admin {
 				'cacheClearing'    => __( 'Clearing…', 'tukify' ),
 				'cacheCleared'     => __( 'Cache cleared', 'tukify' ),
 				'cacheClearError'  => __( 'Couldn\'t clear the cache — please try again', 'tukify' ),
+				'lowContrast'      => __( 'These colours are very similar — the logo may be hard to see.', 'tukify' ),
 			)
 		);
 	}

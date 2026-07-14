@@ -122,14 +122,45 @@
 	border-radius: 10px;
 	color: var(--on-primary);
 	background: linear-gradient(135deg, var(--primary), #7aa8f5);
-	overflow: hidden;
 }
 
-.tkfy-brand-chip img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	display: block;
+.tkfy-brand-chip .tuki-logo {
+	width: 24px;
+	height: 24px;
+	color: var(--on-primary);
+}
+
+/* Live bubble/logo colour preview in the Appearance tab. */
+.tkfy-bubble-preview {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+
+.tkfy-bubble-mock {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+	flex-shrink: 0;
+}
+
+.tkfy-bubble-mock .tuki-logo {
+	width: 30px;
+	height: 30px;
+}
+
+.tkfy-bubble-note {
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.tkfy-bubble-note.is-warn {
+	color: #f6c944;
 }
 
 .tkfy-brand-text {

@@ -23,6 +23,11 @@
 		search: '<svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
 	};
 
+	// Brand mark: a shopping bag with a face. Transparent background with the
+	// eyes/smile punched out (even-odd), so the bubble's own colour shows through.
+	// The bag uses currentColor (driven by the --tuki-bag variable in CSS).
+	var LOGO = '<svg class="tuki-logo" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M5.5 7.5H18.5L17.7 19.3A2 2 0 0 1 15.7 21.1H8.3A2 2 0 0 1 6.3 19.3ZM8.6 12.6a1.1 1.1 0 1 0 2.2 0 1.1 1.1 0 1 0-2.2 0ZM13.2 12.6a1.1 1.1 0 1 0 2.2 0 1.1 1.1 0 1 0-2.2 0ZM9.2 15Q12 18.6 14.8 15 12 17.2 9.2 15Z"/><path d="M9 7.5V6.2A3 3 0 0 1 15 6.2V7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 	/* ---------------------------------------------------------------------
 	 * Shared helpers
 	 * ------------------------------------------------------------------- */
@@ -365,6 +370,12 @@
 		if ( opts.accent ) {
 			host.style.setProperty( '--tuki-accent', opts.accent );
 		}
+		if ( opts.bubbleBg ) {
+			host.style.setProperty( '--tuki-bubble-bg', opts.bubbleBg );
+		}
+		if ( opts.bagColor ) {
+			host.style.setProperty( '--tuki-bag', opts.bagColor );
+		}
 		if ( opts.bg ) {
 			host.style.setProperty( '--tuki-bg', opts.bg );
 		}
@@ -420,7 +431,7 @@
 		// Header.
 		var head = el( 'div', 'tuki-head' );
 		var avatar = el( 'div', 'tuki-head-avatar' );
-		avatar.innerHTML = cfg.logo ? '<img src="' + cfg.logo + '" alt="" draggable="false" />' : '';
+		avatar.innerHTML = LOGO;
 		var meta = el( 'div', 'tuki-head-meta' );
 		var title = el( 'div', 'tuki-head-title' );
 		title.textContent = opts.heading || S.title || 'Tukify';
@@ -490,7 +501,7 @@
 			var launcher = el( 'button', 'tuki-launcher' );
 			launcher.type = 'button';
 			launcher.setAttribute( 'aria-label', S.open || 'Open' );
-			launcher.innerHTML = cfg.logo ? '<img src="' + cfg.logo + '" alt="" draggable="false" />' : '';
+			launcher.innerHTML = LOGO;
 			launcher.addEventListener( 'click', function () {
 				var open = panel.classList.toggle( 'is-open' );
 				if ( open ) {
@@ -1967,6 +1978,14 @@
 			opts = {};
 		}
 
+		// Brand colours default to the global settings unless a widget overrides them.
+		if ( undefined === opts.bubbleBg ) {
+			opts.bubbleBg = cfg.bubbleBg;
+		}
+		if ( undefined === opts.bagColor ) {
+			opts.bagColor = cfg.bagColor;
+		}
+
 		if ( 'chat' === opts.w ) {
 			createChat( mount, opts, 'launcher' === opts.mode ? 'launcher' : 'inline' );
 		} else if ( 'search' === opts.w ) {
@@ -1985,7 +2004,7 @@
 		if ( cfg.floating ) {
 			var host = el( 'div' );
 			host.id = 'tukify-widget-root';
-			createChat( host, { accent: cfg.accent, scheme: cfg.scheme }, 'floating' );
+			createChat( host, { accent: cfg.accent, scheme: cfg.scheme, bubbleBg: cfg.bubbleBg, bagColor: cfg.bagColor }, 'floating' );
 			document.body.appendChild( host );
 		}
 
