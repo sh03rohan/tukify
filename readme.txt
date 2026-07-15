@@ -1,18 +1,18 @@
 === Tukify — AI Shopping Assistant for WooCommerce ===
 Contributors: shrohan03
-Tags: woocommerce, ai, chatbot, semantic search, recommendations
+Tags: woocommerce, ai chatbot, ai, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.4
+Stable tag: 1.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI shopping assistant for WooCommerce: semantic product search and grounded, conversational recommendations, all on your own server.
+AI chatbot for WooCommerce — find products by chat or photo, get recommendations, and check out with your Gemini, ChatGPT, Claude, or Grok key.
 
 == Description ==
 
-Tukify adds an AI shopping assistant to your WooCommerce store. A shopper types in plain language ("a gift for my dad, he likes wine and hiking") and Tukify understands the intent, finds matching products with semantic search, and replies conversationally with product cards — image, price, stock, and add-to-cart — right inside a chat interface, without the shopper leaving the page.
+Tukify is an AI chatbot and shopping assistant for your WooCommerce store. A shopper types in plain language ("a gift for my dad, he likes wine and hiking") — or uploads a photo of something they like — and Tukify understands the intent, finds matching products with semantic search, and replies conversationally with product cards — image, price, stock, and add-to-cart — right inside a chat interface, without the shopper leaving the page.
 
 Tukify is **bring-your-own-key**: you connect your own AI provider — Google Gemini, OpenAI (ChatGPT), Anthropic (Claude), or xAI (Grok) — and Tukify never pays for inference. All AI requests are made server-side in PHP — your API keys are never exposed to the browser. Your product embeddings are stored in your own site database, so your catalog data stays on your server.
 
@@ -33,7 +33,7 @@ Tukify is **bring-your-own-key**: you connect your own AI provider — Google Ge
 
 = Privacy and data =
 
-All AI calls are made server-side; your API key is never sent to the browser. Product embeddings are stored in your own site's database. Tukify only contacts an external service (Google Gemini) when you have configured an API key and a shopper or the store uses a feature that needs it. See the **External services** section below for exactly what is sent and when.
+All AI calls are made server-side; your API keys are never sent to the browser. Product embeddings are stored in your own site's database. Tukify only contacts an external service (the AI provider you configure — Google Gemini, OpenAI, Anthropic, or xAI) when you have entered an API key and a shopper or the store uses a feature that needs it. See the **External services** section below for exactly what is sent and when.
 
 = Requirements =
 
@@ -76,8 +76,8 @@ Note: some providers may use free-tier inputs to improve their models. If you ha
 
 1. Upload the plugin to `/wp-content/plugins/tukify` or install it from the Plugins screen.
 2. Activate the plugin. WooCommerce must be installed and active.
-3. Get a Google Gemini API key from Google AI Studio (aistudio.google.com).
-4. Go to **Tukify → Settings**, paste your key, and click **Test connection**.
+3. Get an API key from a supported provider — Google Gemini (recommended; free tier at aistudio.google.com), OpenAI, Anthropic (Claude), or xAI (Grok).
+4. Go to **Tukify → Settings**, choose your provider, paste your key, and click **Test connection**.
 5. On the **Tukify** dashboard, click **Reindex all products** to embed your catalog (runs in the background).
 6. Enable the floating widget in Settings, and/or drop the Tukify Elementor widgets onto a page.
 
@@ -85,15 +85,15 @@ Note: some providers may use free-tier inputs to improve their models. If you ha
 
 = Does Tukify need a paid AI subscription? =
 
-No. You bring your own Google Gemini API key. Google's free tier covers development and most small stores. Tukify never pays for inference on your behalf.
+No. You bring your own API key from any supported provider — Google Gemini, OpenAI (ChatGPT), Anthropic (Claude), or xAI (Grok). Gemini is the recommended default because its free tier covers development and most small stores. Tukify never pays for inference on your behalf.
 
 = Is my API key safe? =
 
-Yes. The key is stored in your site's options, shown masked in the admin, and used only server-side. It is never sent to the browser or embedded in any front-end code.
+Yes. Each provider's key is stored in your site's options, shown masked in the admin, and used only server-side. Keys are never sent to the browser or embedded in any front-end code.
 
 = Where is my catalog data stored? =
 
-Product embeddings are stored in a custom table in your own WordPress database. Tukify only sends product text to Google to generate those embeddings (see External services).
+Product embeddings are stored in a custom table in your own WordPress database. Tukify only sends product text to your configured embedding provider (Google Gemini or OpenAI) to generate those embeddings (see External services).
 
 = Does it work without Elementor? =
 
@@ -118,6 +118,9 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 7. Analytics — top searches, product index, and unmet demand insights.
 
 == Changelog ==
+
+= 1.4.5 =
+* Improved readme and plugin listing (search keywords, clearer descriptions, multi-provider wording).
 
 = 1.4.4 =
 * New Tukify logo (transparent SVG) shown in the chat launcher, avatar, and admin header — it renders cleanly inside the round chat bubble, with no square corners.
