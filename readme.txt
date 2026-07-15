@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, ai, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.5
+Stable tag: 1.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,10 +119,12 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 
 == Changelog ==
 
-= 1.4.5 =
+= 1.4.6 =
 * Checkout button now always appears at the bottom of the chat whenever the cart has items, in both new and existing chats (was inconsistent before).
 * Added a subtle, dismissible review request on the plugin's own screens.
-* Improved the readme and plugin listing (search keywords, clearer wording, fixed em-dash rendering).
+
+= 1.4.5 =
+* Improved the readme and plugin listing (search keywords, clearer descriptions, multi-provider wording).
 
 = 1.4.4 =
 * New Tukify logo (transparent SVG) shown in the chat launcher, avatar, and admin header — it renders cleanly inside the round chat bubble, with no square corners.
