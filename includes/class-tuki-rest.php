@@ -143,6 +143,16 @@ class Tuki_Rest {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/cart',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_cart_state' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/recommendations',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -618,6 +628,22 @@ class Tuki_Rest {
 	}
 
 	/**
+	 * POST /cart — live cart state (count + total) for the persistent checkout
+	 * bar. Reads the current WooCommerce session cart, so it is correct for both
+	 * guests and logged-in users regardless of chat history.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_cart_state() {
+		return rest_ensure_response(
+			array(
+				'count' => Tuki_Cart::cart_count(),
+				'total' => Tuki_Cart::cart_total_text(),
+			)
+		);
+	}
+
+	/**
 	 * POST /add-to-cart — add a product with a real-time stock check.
 	 *
 	 * @param WP_REST_Request $request Request.
@@ -666,7 +692,7 @@ class Tuki_Rest {
 				'success'    => true,
 				'product_id' => $product_id,
 				'cart_count' => WC()->cart->get_cart_contents_count(),
-				'cart_total' => wp_strip_all_tags( WC()->cart->get_cart_total() ),
+				'cart_total' => Tuki_Cart::price_text( WC()->cart->get_cart_total() ),
 			)
 		);
 	}

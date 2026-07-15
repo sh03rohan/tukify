@@ -120,7 +120,9 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 == Changelog ==
 
 = 1.4.5 =
-* Improved readme and plugin listing (search keywords, clearer descriptions, multi-provider wording).
+* Checkout button now always appears at the bottom of the chat whenever the cart has items, in both new and existing chats (was inconsistent before).
+* Added a subtle, dismissible review request on the plugin's own screens.
+* Improved the readme and plugin listing (search keywords, clearer wording, fixed em-dash rendering).
 
 = 1.4.4 =
 * New Tukify logo (transparent SVG) shown in the chat launcher, avatar, and admin header — it renders cleanly inside the round chat bubble, with no square corners.

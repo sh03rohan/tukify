@@ -21,6 +21,32 @@ class Tuki_Admin {
 	const CONNECTION_OPTION = 'tuki_connection_ok';
 
 	/**
+	 * Option flag: the review request has been dismissed for good ('1').
+	 */
+	const REVIEW_DONE_OPTION = 'tuki_review_done';
+
+	/**
+	 * Option holding a "remind me later" timestamp; the notice stays hidden until
+	 * the current time passes it.
+	 */
+	const REVIEW_SNOOZE_OPTION = 'tuki_review_snooze';
+
+	/**
+	 * Option holding the first-activation timestamp (also set on activation).
+	 */
+	const ACTIVATED_OPTION = 'tuki_activated_at';
+
+	/**
+	 * Minimum days after first activation before the review request may appear.
+	 */
+	const REVIEW_MIN_DAYS = 10;
+
+	/**
+	 * Minimum number of chat/search interactions before the review request may appear.
+	 */
+	const REVIEW_MIN_CHATS = 10;
+
+	/**
 	 * Dashboard screen hook suffix.
 	 *
 	 * @var string
@@ -44,6 +70,12 @@ class Tuki_Admin {
 		// Tag <body> on Tukify's own screens so the shell stylesheet can paint the
 		// WordPress content chrome dark (scoped to this class only).
 		add_filter( 'admin_body_class', array( $this, 'add_body_class' ) );
+
+		// One-time, low-pressure review request. The callback bails on every screen
+		// except Tukify's own, so it is never shown globally across wp-admin.
+		add_action( 'admin_notices', array( $this, 'maybe_review_notice' ) );
+		add_action( 'wp_ajax_tuki_review_action', array( $this, 'ajax_review_action' ) );
+
 		add_action( 'wp_ajax_tuki_test_connection', array( $this, 'ajax_test_connection' ) );
 		add_action( 'wp_ajax_tuki_start_reindex', array( $this, 'ajax_start_reindex' ) );
 		add_action( 'wp_ajax_tuki_reindex_status', array( $this, 'ajax_reindex_status' ) );
@@ -175,6 +207,110 @@ class Tuki_Admin {
 		}
 
 		return in_array( $screen->id, array( $this->hook_dashboard, $this->hook_settings ), true );
+	}
+
+	/**
+	 * Whether the one-time review request may be shown now.
+	 *
+	 * Deliberately conservative and Guideline-11 friendly: never right after
+	 * activation, only once the store has genuinely used Tukify (catalog indexed
+	 * AND a number of chats), and never again once dismissed or snoozed.
+	 *
+	 * @return bool
+	 */
+	private function is_review_eligible() {
+		// Only for admins who can act on it.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		// Dismissed for good — never show again.
+		if ( get_option( self::REVIEW_DONE_OPTION ) ) {
+			return false;
+		}
+
+		// "Remind me later" still in effect.
+		$snooze = (int) get_option( self::REVIEW_SNOOZE_OPTION, 0 );
+		if ( $snooze > time() ) {
+			return false;
+		}
+
+		// First-activation clock. Existing installs (updated in, never re-activated)
+		// have no timestamp yet, so seed one now and start their clock from today.
+		$activated = (int) get_option( self::ACTIVATED_OPTION, 0 );
+		if ( ! $activated ) {
+			$activated = time();
+			add_option( self::ACTIVATED_OPTION, $activated, '', false );
+		}
+		if ( ( time() - $activated ) < ( self::REVIEW_MIN_DAYS * DAY_IN_SECONDS ) ) {
+			return false;
+		}
+
+		// Catalog must actually be indexed at least once (signature is stamped when
+		// a reindex completes) — a cheap option read, no query.
+		if ( '' === (string) get_option( Tuki_Indexer::SIGNATURE_OPTION, '' ) ) {
+			return false;
+		}
+
+		// And the store must have chatted enough to have an opinion.
+		if ( Tuki_Analytics::chat_count() < self::REVIEW_MIN_CHATS ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Renders the review request — but ONLY on Tukify's own admin screens, and
+	 * only when eligible. Bails immediately everywhere else, so it never touches
+	 * the rest of wp-admin.
+	 *
+	 * @return void
+	 */
+	public function maybe_review_notice() {
+		if ( ! $this->is_plugin_screen() || ! $this->is_review_eligible() ) {
+			return;
+		}
+
+		$review_url = 'https://wordpress.org/support/plugin/tukify/reviews/#new-post';
+		$nonce      = wp_create_nonce( 'tuki_admin' );
+		?>
+		<div class="notice notice-info is-dismissible tuki-review-notice" data-nonce="<?php echo esc_attr( $nonce ); ?>">
+			<p>
+				<strong><?php esc_html_e( 'Enjoying Tukify?', 'tukify' ); ?></strong>
+				<?php esc_html_e( 'A quick review really helps a solo developer.', 'tukify' ); ?>
+			</p>
+			<p>
+				<a href="<?php echo esc_url( $review_url ); ?>" class="button button-primary tuki-review-go" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Leave a review', 'tukify' ); ?>
+				</a>
+				<button type="button" class="button-link tuki-review-later"><?php esc_html_e( 'Maybe later', 'tukify' ); ?></button>
+				<button type="button" class="button-link tuki-review-done"><?php esc_html_e( 'Don\'t show again', 'tukify' ); ?></button>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * AJAX: records the review-request choice. 'later' snoozes for ~30 days;
+	 * anything else dismisses it for good.
+	 *
+	 * @return void
+	 */
+	public function ajax_review_action() {
+		$this->verify_admin_request();
+
+		// Nonce + capability verified in verify_admin_request() above.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$choice = isset( $_POST['choice'] ) ? sanitize_key( wp_unslash( $_POST['choice'] ) ) : 'done';
+
+		if ( 'later' === $choice ) {
+			update_option( self::REVIEW_SNOOZE_OPTION, time() + ( 30 * DAY_IN_SECONDS ), false );
+		} else {
+			update_option( self::REVIEW_DONE_OPTION, '1', false );
+		}
+
+		wp_send_json_success();
 	}
 
 	/**

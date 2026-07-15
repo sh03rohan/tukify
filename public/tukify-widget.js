@@ -417,7 +417,6 @@
 		var engaged = false;
 		var exitFired = false;
 		var reengageFired = false;
-		var checkoutOffered = false;
 		var msgsEl;
 		var inputEl;
 		var sendBtn;
@@ -490,10 +489,59 @@
 		row.appendChild( inputEl );
 		row.appendChild( sendBtn );
 
+		// Persistent checkout bar: a footer pinned just above the input, shown ONLY
+		// when the live cart has items. It is never a chat message, so its position
+		// and visibility never depend on history or scroll.
+		var checkoutBar = el( 'button', 'tuki-checkout-bar' );
+		checkoutBar.type = 'button';
+		checkoutBar.hidden = true;
+		var coBarCount = el( 'span', 'tuki-checkout-bar-count' );
+		var coBarLabel = el( 'span', 'tuki-checkout-bar-label' );
+		coBarLabel.textContent = S.checkoutStart || 'Check out';
+		var coBarTotal = el( 'span', 'tuki-checkout-bar-total' );
+		checkoutBar.appendChild( coBarCount );
+		checkoutBar.appendChild( coBarLabel );
+		checkoutBar.appendChild( coBarTotal );
+		checkoutBar.addEventListener( 'click', function () {
+			startCheckout();
+		} );
+
 		panel.appendChild( head );
 		panel.appendChild( msgsEl );
+		panel.appendChild( checkoutBar );
 		panel.appendChild( row );
 		root.appendChild( panel );
+
+		// Drive the bar purely from live cart state (count + total).
+		function updateCheckoutBar( count, total ) {
+			if ( ! cfg.checkout || ! cfg.checkout.enabled ) {
+				checkoutBar.hidden = true;
+				return;
+			}
+			count = parseInt( count, 10 ) || 0;
+			if ( count < 1 ) {
+				checkoutBar.hidden = true;
+				return;
+			}
+			coBarCount.textContent = String( count );
+			coBarTotal.textContent = total || '';
+			checkoutBar.hidden = false;
+		}
+
+		// Ask the server for the authoritative cart state, then refresh the bar.
+		function refreshCheckoutBar() {
+			if ( ! cfg.checkout || ! cfg.checkout.enabled ) {
+				return;
+			}
+			api( 'cart', {} )
+				.then( function ( data ) {
+					updateCheckoutBar( data && data.count, data && data.total );
+				} )
+				.catch( function () {} );
+		}
+
+		// First paint from the server-rendered snapshot — no round trip, no history.
+		updateCheckoutBar( cfg.checkout && cfg.checkout.count, cfg.checkout && cfg.checkout.total );
 
 		if ( pop ) {
 			var launcher = el( 'button', 'tuki-launcher' );
@@ -505,6 +553,8 @@
 				if ( open ) {
 					engaged = true;
 					greet();
+					// Re-check the live cart every time the chat opens.
+					refreshCheckoutBar();
 					setTimeout( function () {
 						inputEl.focus();
 					}, 50 );
@@ -513,6 +563,8 @@
 			root.appendChild( launcher );
 		} else {
 			greet();
+			// Inline widgets are always open: confirm cart state on load.
+			refreshCheckoutBar();
 		}
 
 		if ( 'floating' === kind && cfg.exitIntent && cfg.exitIntent.enabled ) {
@@ -528,28 +580,7 @@
 				greeted = true;
 				addBubble( 'bot', S.greeting || '' );
 				setTimeout( maybeUpsell, 700 );
-				setTimeout( maybeOfferCheckout, 900 );
 			}
-		}
-
-		// When in-chat checkout is enabled and the cart has items, offer a one-tap
-		// way into the flow. Hidden entirely when the flag is off.
-		function maybeOfferCheckout() {
-			if ( checkoutOffered || ! cfg.checkout || ! cfg.checkout.enabled || readCartCount() < 1 ) {
-				return;
-			}
-			checkoutOffered = true;
-			var wrap = el( 'div', 'tuki-chips' );
-			var chip = el( 'button', 'tuki-chip tuki-chip--cta' );
-			chip.type = 'button';
-			chip.textContent = S.checkoutStart || 'Check out here';
-			chip.addEventListener( 'click', function () {
-				wrap.remove();
-				startCheckout();
-			} );
-			wrap.appendChild( chip );
-			msgsEl.appendChild( wrap );
-			scrollDown();
 		}
 
 		function maybeUpsell() {
@@ -569,8 +600,12 @@
 				.catch( function () {} );
 		}
 
-		// Re-offer once after the shopper adds something to the cart.
-		document.addEventListener( 'tuki:added', function () {
+		// Cart changed from a chat add-to-cart: update the bar from the fresh
+		// count/total in the event, then consider an upsell.
+		document.addEventListener( 'tuki:added', function ( e ) {
+			if ( e && e.detail ) {
+				updateCheckoutBar( e.detail.count, e.detail.total );
+			}
 			setTimeout( maybeUpsell, 800 );
 		} );
 
@@ -1217,6 +1252,9 @@
 			Object.keys( co.fields ).forEach( function ( k ) {
 				co.fields[ k ].input.disabled = true;
 			} );
+			// The order emptied the cart — hide the bar and reconcile with the server.
+			updateCheckoutBar( 0, '' );
+			refreshCheckoutBar();
 		}
 
 		function addOrderPlaced( order, url ) {

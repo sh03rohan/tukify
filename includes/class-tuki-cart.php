@@ -33,6 +33,34 @@ class Tuki_Cart {
 	}
 
 	/**
+	 * Live number of items in the cart (WooCommerce session — works for guests
+	 * and logged-in users). Used to drive the persistent checkout bar.
+	 *
+	 * @return int
+	 */
+	public static function cart_count() {
+		if ( ! self::ensure_cart_loaded() || ! WC()->cart ) {
+			return 0;
+		}
+
+		return (int) WC()->cart->get_cart_contents_count();
+	}
+
+	/**
+	 * Live cart total as plain text (currency symbol decoded, no markup), for the
+	 * checkout bar label.
+	 *
+	 * @return string
+	 */
+	public static function cart_total_text() {
+		if ( ! self::ensure_cart_loaded() || ! WC()->cart ) {
+			return '';
+		}
+
+		return self::price_text( WC()->cart->get_cart_total() );
+	}
+
+	/**
 	 * Builds a product-card payload for a WooCommerce product.
 	 *
 	 * @param WC_Product $product Product object.

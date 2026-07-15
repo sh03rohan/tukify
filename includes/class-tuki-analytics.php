@@ -447,6 +447,16 @@ class Tuki_Analytics {
 	 * @param string $type Event type.
 	 * @return int
 	 */
+	/**
+	 * Total number of chat/search interactions logged (used to gauge whether the
+	 * store has actively used the plugin, e.g. for the review request).
+	 *
+	 * @return int
+	 */
+	public static function chat_count() {
+		return self::count_events( 'query' );
+	}
+
 	private static function count_events( $type ) {
 		global $wpdb;
 

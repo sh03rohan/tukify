@@ -41,6 +41,11 @@ define( 'TUKI_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 function tuki_activate() {
 	require_once TUKI_PLUGIN_DIR . 'includes/class-tuki-db.php';
 	Tuki_DB::create_tables();
+
+	// Record the first activation so the review request can wait until the store
+	// has genuinely used the plugin for a while. add_option() never overwrites an
+	// existing value, so re-activating does not reset the clock.
+	add_option( 'tuki_activated_at', time(), '', false );
 }
 register_activation_hook( __FILE__, 'tuki_activate' );
 

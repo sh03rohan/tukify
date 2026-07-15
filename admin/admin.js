@@ -19,7 +19,41 @@
 		initKnowledgeBase();
 		initSizeCharts();
 		initClearCache();
+		initReviewNotice();
 	} );
+
+	/**
+	 * Review request notice: records the shopper's choice so it never nags again.
+	 * "Leave a review" and "Don't show again" dismiss for good; "Maybe later" and
+	 * the native × snooze it. Fire-and-forget — the notice hides either way.
+	 */
+	function initReviewNotice() {
+		var $notice = $( '.tuki-review-notice' );
+		if ( ! $notice.length ) {
+			return;
+		}
+
+		function record( choice ) {
+			$.post( tukiAdmin.ajaxUrl, {
+				action: 'tuki_review_action',
+				nonce: $notice.data( 'nonce' ) || tukiAdmin.nonce,
+				choice: choice
+			} );
+		}
+
+		// Permanent dismiss: leaving a review (link still opens in a new tab) or
+		// explicitly opting out.
+		$notice.on( 'click', '.tuki-review-go, .tuki-review-done', function () {
+			record( 'done' );
+			$notice.slideUp( 150 );
+		} );
+
+		// Snooze: "Maybe later" or the core dismiss (×).
+		$notice.on( 'click', '.tuki-review-later, .notice-dismiss', function () {
+			record( 'later' );
+			$notice.slideUp( 150 );
+		} );
+	}
 
 	/**
 	 * "Clear cache" button on the Analytics tab.

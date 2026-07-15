@@ -153,6 +153,8 @@ class Tuki_Frontend {
 			)
 		);
 
+		$checkout_enabled = class_exists( 'Tuki_Checkout' ) && Tuki_Checkout::is_enabled();
+
 		return array(
 			'restUrl'         => esc_url_raw( rest_url( 'tukify/v1/' ) ),
 			'nonce'           => wp_create_nonce( 'wp_rest' ),
@@ -169,10 +171,14 @@ class Tuki_Frontend {
 			'checkout'        => array(
 				// Only advertise in-chat checkout when the flag is on AND WooCommerce
 				// is present; the widget hides the affordance otherwise.
-				'enabled' => class_exists( 'Tuki_Checkout' ) && Tuki_Checkout::is_enabled(),
+				'enabled' => $checkout_enabled,
 				// Dedicated nonce for the order-placing endpoint (belt-and-braces on
 				// top of the REST cookie nonce).
 				'nonce'   => wp_create_nonce( 'tuki_checkout' ),
+				// Live cart state so the checkout bar renders correctly on first
+				// paint (no dependency on chat history or a round trip).
+				'count'   => $checkout_enabled ? Tuki_Cart::cart_count() : 0,
+				'total'   => $checkout_enabled ? Tuki_Cart::cart_total_text() : '',
 			),
 			'stockNotify'     => array(
 				'enabled' => class_exists( 'Tuki_Stock_Notify' ) && Tuki_Stock_Notify::is_enabled(),
