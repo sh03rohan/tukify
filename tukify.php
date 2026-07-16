@@ -32,6 +32,21 @@ define( 'TUKI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'TUKI_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 /**
+ * Feature flag: the WhatsApp channel.
+ *
+ * The channel is fully built but ships locked ("Coming soon"). While this is
+ * false the settings UI shows a teaser and the feature is inert: the webhook
+ * route is not registered, its table is not created, no scheduled tasks run,
+ * and the settings cannot be enabled or saved — server-side, not just visually.
+ *
+ * Define it as true in wp-config.php to try it before launch; flipping the
+ * default here is the single switch that ships it.
+ */
+if ( ! defined( 'TUKI_WHATSAPP_ENABLED' ) ) {
+	define( 'TUKI_WHATSAPP_ENABLED', false );
+}
+
+/**
  * Runs on plugin activation.
  *
  * Creates the custom database tables required by Tukify.

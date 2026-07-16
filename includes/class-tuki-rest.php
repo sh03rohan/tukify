@@ -156,36 +156,41 @@ class Tuki_Rest {
 		//  - GET  is the one-time verification handshake (hub.verify_token).
 		//  - POST is authenticated by the X-Hub-Signature-256 HMAC, checked in the
 		//    permission callback so an unsigned body is rejected before parsing.
-		register_rest_route(
-			self::NAMESPACE,
-			'/whatsapp',
-			array(
+		//
+		// Not registered at all while the channel is locked: the route simply does
+		// not exist (404), rather than existing and refusing.
+		if ( Tuki_WhatsApp::feature_enabled() ) {
+			register_rest_route(
+				self::NAMESPACE,
+				'/whatsapp',
 				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( 'Tuki_WhatsApp', 'handle_verify' ),
-					'permission_callback' => '__return_true',
-					'args'                => array(
-						'hub_mode'         => array(
-							'required' => false,
-							'type'     => 'string',
-						),
-						'hub_verify_token' => array(
-							'required' => false,
-							'type'     => 'string',
-						),
-						'hub_challenge'    => array(
-							'required' => false,
-							'type'     => 'string',
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( 'Tuki_WhatsApp', 'handle_verify' ),
+						'permission_callback' => '__return_true',
+						'args'                => array(
+							'hub_mode'         => array(
+								'required' => false,
+								'type'     => 'string',
+							),
+							'hub_verify_token' => array(
+								'required' => false,
+								'type'     => 'string',
+							),
+							'hub_challenge'    => array(
+								'required' => false,
+								'type'     => 'string',
+							),
 						),
 					),
-				),
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( 'Tuki_WhatsApp', 'handle_webhook' ),
-					'permission_callback' => array( 'Tuki_WhatsApp', 'verify_signature' ),
-				),
-			)
-		);
+					array(
+						'methods'             => WP_REST_Server::CREATABLE,
+						'callback'            => array( 'Tuki_WhatsApp', 'handle_webhook' ),
+						'permission_callback' => array( 'Tuki_WhatsApp', 'verify_signature' ),
+					),
+				)
+			);
+		}
 
 		register_rest_route(
 			self::NAMESPACE,

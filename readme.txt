@@ -120,11 +120,8 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 == Changelog ==
 
 = 1.5.0 =
-* New WhatsApp channel: the same assistant that powers the web chat now answers shoppers on WhatsApp via Meta's WhatsApp Business Cloud API. Text and photo (visual search) messages are both supported.
-* Product replies on WhatsApp arrive as an image with name, price and stock, plus links to the product page and a secure add-to-cart link; several matches arrive as a tappable list.
-* Added a Channels settings tab with a step-by-step setup guide, a copyable webhook URL and verify token, and a "Send test" button. The channel is off by default.
-* Added a human handoff: if a shopper asks for a person (or the assistant can't answer confidently) Tukify replies that the team will follow up and emails the store a transcript.
-* Privacy: WhatsApp phone numbers are never stored — conversations are keyed by a salted hash, kept to the last few turns, and purged on a configurable schedule.
+* Internal: the assistant now runs behind a single channel-agnostic entry point, so the web chat and future channels share one pipeline. The web chat behaves exactly as before.
+* Added a Channels tab in Settings previewing the upcoming WhatsApp channel. It is inactive in this release — nothing is sent or received, and no data is stored.
 
 = 1.4.6 =
 * Checkout button now always appears at the bottom of the chat whenever the cart has items, in both new and existing chats (was inconsistent before).

@@ -6,6 +6,43 @@ Meta requires a **public HTTPS** webhook, so a Local/localhost site needs a tunn
 
 ---
 
+## ⚠️ The channel ships LOCKED
+
+`TUKI_WHATSAPP_ENABLED` defaults to **false** in `tukify.php`. While it is false:
+
+- Settings → Channels shows the blurred "Coming soon" teaser; all fields are
+  `disabled` (not focusable, not submitted).
+- `/wp-json/tukify/v1/whatsapp` is **not registered** (404).
+- `{prefix}tuki_wa_sessions` is **not created**.
+- No WhatsApp cron/Action Scheduler jobs are registered (a previously scheduled
+  purge is cleared).
+- `Tuki_Settings::sanitize()` ignores every submitted `wa_*` value and forces
+  `wa_enabled = 0` — a hand-crafted POST cannot enable it.
+
+**To test everything below, unlock it first** in `wp-config.php`:
+
+```php
+define( 'TUKI_WHATSAPP_ENABLED', true );
+```
+
+Then visit any admin page once so `maybe_upgrade()` creates the table.
+
+### Locked-state checks (do these with the flag OFF)
+
+- [ ] Channels tab renders the teaser; fields are blurred and cannot be clicked
+      **or reached with Tab**.
+- [ ] `curl -i https://<host>/wp-json/tukify/v1/whatsapp` → **404** (route absent).
+- [ ] `SHOW TABLES LIKE '%tuki_wa_sessions%'` → **no rows**.
+- [ ] `wp cron event list | grep tuki_purge_wa_sessions` → **nothing**.
+- [ ] Hand-crafted enable attempt is refused — POST `tuki_settings[wa_enabled]=1`
+      to `options.php` (with a valid nonce), then check:
+      `wp option pluck tuki_settings wa_enabled` → still **0**.
+- [ ] Saving the Settings page does **not** wipe unrelated settings (models,
+      colours, KB, upsell all survive).
+- [ ] Web chat, visual search, and the checkout bar all still work.
+
+---
+
 ## 0. Prerequisites
 
 - [ ] WooCommerce active, catalog indexed (Tukify → Dashboard → Reindex), web chat working.

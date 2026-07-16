@@ -492,10 +492,32 @@ $tuki_tabs = array(
 				<!-- ============================ CHANNELS ============================ -->
 				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-channels" data-tab="channels" aria-labelledby="tkfy-tab-channels" tabindex="0" hidden>
 					<?php
+					// While the channel is locked the whole panel is rendered as an
+					// inert teaser: fields are disabled (so they can't be focused,
+					// tabbed to, or submitted) and an overlay explains why. The real
+					// gate is server-side — see Tuki_Settings::sanitize().
+					$tuki_wa_locked  = ! Tuki_WhatsApp::feature_enabled();
+					$tuki_wa_dis     = $tuki_wa_locked ? ' disabled' : '';
 					$tuki_wa_webhook = Tuki_WhatsApp::webhook_url();
 					$tuki_wa_token   = (string) $tuki_settings['wa_verify_token'];
 					$tuki_wa_convos  = Tuki_WA_Sessions::recent( 10 );
 					?>
+					<?php if ( $tuki_wa_locked ) : ?>
+					<div class="tkfy-lock">
+						<div class="tkfy-lock-overlay" role="note">
+							<div class="tkfy-lock-card">
+								<span class="tkfy-lock-icon" aria-hidden="true">
+									<svg viewBox="0 0 24 24" fill="none" focusable="false">
+										<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="#25D366"/>
+										<path d="M8.5 7.3c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.700.3-.3.3-.9.9-.9 2.1 0 1.2.9 2.4 1 2.6.1.2 1.7 2.7 4.2 3.7 2.1.8 2.5.7 3 .6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3l-1.7-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5 0-.2 0-.3-.1-.4l-.7-1.8Z" fill="#fff"/>
+									</svg>
+								</span>
+								<h3 class="tkfy-lock-title"><?php esc_html_e( 'WhatsApp channel — Coming soon', 'tukify' ); ?></h3>
+								<p class="tkfy-lock-text"><?php esc_html_e( 'Chat with your shoppers on WhatsApp using the same AI assistant. This feature is being polished and will unlock in an upcoming update.', 'tukify' ); ?></p>
+							</div>
+						</div>
+						<div class="tkfy-lock-content" aria-hidden="true">
+					<?php endif; ?>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'WhatsApp', 'tukify' ); ?></h2>
@@ -504,7 +526,7 @@ $tuki_tabs = array(
 						<div class="tkfy-card-body">
 							<div class="tkfy-field tkfy-field--wide">
 								<label class="tuki-switch">
-									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[wa_enabled]" value="1" <?php checked( $tuki_settings['wa_enabled'], 1 ); ?> />
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[wa_enabled]" value="1" <?php checked( $tuki_settings['wa_enabled'], 1 ); ?><?php echo esc_attr( $tuki_wa_dis ); ?><?php echo esc_attr( $tuki_wa_dis ); ?> />
 									<span class="tuki-switch-slider"></span>
 									<span class="tuki-switch-text"><?php esc_html_e( 'Enable the WhatsApp channel', 'tukify' ); ?></span>
 								</label>
@@ -514,7 +536,7 @@ $tuki_tabs = array(
 								<label class="tkfy-label" for="tuki_wa_access_token"><?php esc_html_e( 'Access token', 'tukify' ); ?></label>
 								<input type="password" class="tuki-input" id="tuki_wa_access_token" autocomplete="off" value=""
 									name="<?php echo esc_attr( $tuki_option ); ?>[wa_access_token]"
-									placeholder="<?php echo esc_attr( '' === (string) $tuki_settings['wa_access_token'] ? '' : Tuki_Settings::mask_key( $tuki_settings['wa_access_token'] ) ); ?>" />
+									placeholder="<?php echo esc_attr( '' === (string) $tuki_settings['wa_access_token'] ? '' : Tuki_Settings::mask_key( $tuki_settings['wa_access_token'] ) ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
 								<p class="tkfy-hint"><?php esc_html_e( 'Leave blank to keep the saved token. Stored server-side and never sent to the browser.', 'tukify' ); ?></p>
 							</div>
 
@@ -522,7 +544,7 @@ $tuki_tabs = array(
 								<label class="tkfy-label" for="tuki_wa_phone_number_id"><?php esc_html_e( 'Phone number ID', 'tukify' ); ?></label>
 								<input type="text" class="tuki-input" id="tuki_wa_phone_number_id" inputmode="numeric"
 									name="<?php echo esc_attr( $tuki_option ); ?>[wa_phone_number_id]"
-									value="<?php echo esc_attr( $tuki_settings['wa_phone_number_id'] ); ?>" />
+									value="<?php echo esc_attr( $tuki_settings['wa_phone_number_id'] ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
 								<p class="tkfy-hint"><?php esc_html_e( 'From WhatsApp → API Setup. This is an ID, not the phone number itself.', 'tukify' ); ?></p>
 							</div>
 
@@ -530,7 +552,7 @@ $tuki_tabs = array(
 								<label class="tkfy-label" for="tuki_wa_app_secret"><?php esc_html_e( 'App secret', 'tukify' ); ?></label>
 								<input type="password" class="tuki-input" id="tuki_wa_app_secret" autocomplete="off" value=""
 									name="<?php echo esc_attr( $tuki_option ); ?>[wa_app_secret]"
-									placeholder="<?php echo esc_attr( '' === (string) $tuki_settings['wa_app_secret'] ? '' : Tuki_Settings::mask_key( $tuki_settings['wa_app_secret'] ) ); ?>" />
+									placeholder="<?php echo esc_attr( '' === (string) $tuki_settings['wa_app_secret'] ? '' : Tuki_Settings::mask_key( $tuki_settings['wa_app_secret'] ) ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
 								<p class="tkfy-hint"><?php esc_html_e( 'Used to verify that every incoming webhook really came from Meta. Required.', 'tukify' ); ?></p>
 							</div>
 
@@ -538,7 +560,7 @@ $tuki_tabs = array(
 								<label class="tkfy-label" for="tuki_wa_business_account_id"><?php esc_html_e( 'Business account ID', 'tukify' ); ?></label>
 								<input type="text" class="tuki-input" id="tuki_wa_business_account_id" inputmode="numeric"
 									name="<?php echo esc_attr( $tuki_option ); ?>[wa_business_account_id]"
-									value="<?php echo esc_attr( $tuki_settings['wa_business_account_id'] ); ?>" />
+									value="<?php echo esc_attr( $tuki_settings['wa_business_account_id'] ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
 								<p class="tkfy-hint"><?php esc_html_e( 'Optional — for your reference (WABA ID).', 'tukify' ); ?></p>
 							</div>
 
@@ -547,9 +569,9 @@ $tuki_tabs = array(
 								<div class="tkfy-inline">
 									<input type="text" class="tuki-input" id="tuki_wa_verify_token" readonly
 										name="<?php echo esc_attr( $tuki_option ); ?>[wa_verify_token]"
-										value="<?php echo esc_attr( $tuki_wa_token ); ?>" />
-									<button type="button" class="tuki-btn tuki-btn--ghost tuki-copy" data-copy="tuki_wa_verify_token"><?php esc_html_e( 'Copy', 'tukify' ); ?></button>
-									<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki_wa_regen"><?php esc_html_e( 'Regenerate', 'tukify' ); ?></button>
+										value="<?php echo esc_attr( $tuki_wa_token ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
+									<button type="button"<?php echo esc_attr( $tuki_wa_dis ); ?> class="tuki-btn tuki-btn--ghost tuki-copy" data-copy="tuki_wa_verify_token"><?php esc_html_e( 'Copy', 'tukify' ); ?></button>
+									<button type="button"<?php echo esc_attr( $tuki_wa_dis ); ?> class="tuki-btn tuki-btn--ghost" id="tuki_wa_regen"><?php esc_html_e( 'Regenerate', 'tukify' ); ?></button>
 								</div>
 								<p class="tkfy-hint"><?php esc_html_e( 'Paste this into Meta when you add the webhook. Generated for you — only change it if you also change it in Meta.', 'tukify' ); ?></p>
 							</div>
@@ -557,8 +579,8 @@ $tuki_tabs = array(
 							<div class="tkfy-field tkfy-field--wide">
 								<label class="tkfy-label" for="tuki_wa_webhook_url"><?php esc_html_e( 'Webhook URL (paste into Meta)', 'tukify' ); ?></label>
 								<div class="tkfy-inline">
-									<input type="text" class="tuki-input" id="tuki_wa_webhook_url" readonly value="<?php echo esc_attr( $tuki_wa_webhook ); ?>" />
-									<button type="button" class="tuki-btn tuki-btn--ghost tuki-copy" data-copy="tuki_wa_webhook_url"><?php esc_html_e( 'Copy', 'tukify' ); ?></button>
+									<input type="text" class="tuki-input" id="tuki_wa_webhook_url" readonly value="<?php echo esc_attr( $tuki_wa_webhook ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
+									<button type="button"<?php echo esc_attr( $tuki_wa_dis ); ?> class="tuki-btn tuki-btn--ghost tuki-copy" data-copy="tuki_wa_webhook_url"><?php esc_html_e( 'Copy', 'tukify' ); ?></button>
 								</div>
 								<?php if ( ! is_ssl() ) : ?>
 									<p class="tkfy-hint tkfy-hint--warn"><?php esc_html_e( 'Meta requires a public HTTPS URL. On a local site, expose it with a tunnel (e.g. ngrok) and use the tunnel URL instead.', 'tukify' ); ?></p>
@@ -570,7 +592,7 @@ $tuki_tabs = array(
 								<input type="email" class="tuki-input" id="tuki_wa_notify_email"
 									name="<?php echo esc_attr( $tuki_option ); ?>[wa_notify_email]"
 									value="<?php echo esc_attr( $tuki_settings['wa_notify_email'] ); ?>"
-									placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>" />
+									placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
 								<p class="tkfy-hint"><?php esc_html_e( 'Emailed when a shopper asks for a human, or the assistant can\'t answer. Defaults to the site admin email.', 'tukify' ); ?></p>
 							</div>
 
@@ -578,15 +600,15 @@ $tuki_tabs = array(
 								<label class="tkfy-label" for="tuki_wa_session_days"><?php esc_html_e( 'Keep conversations for (days)', 'tukify' ); ?></label>
 								<input type="number" class="tuki-input tuki-input--sm" id="tuki_wa_session_days" min="1" max="365"
 									name="<?php echo esc_attr( $tuki_option ); ?>[wa_session_days]"
-									value="<?php echo esc_attr( $tuki_settings['wa_session_days'] ); ?>" />
+									value="<?php echo esc_attr( $tuki_settings['wa_session_days'] ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
 								<p class="tkfy-hint"><?php esc_html_e( 'Stale conversations are purged daily. Phone numbers are never stored — only a salted hash.', 'tukify' ); ?></p>
 							</div>
 
 							<div class="tkfy-field tkfy-field--wide">
 								<label class="tkfy-label" for="tuki_wa_test_number"><?php esc_html_e( 'Send a test message', 'tukify' ); ?></label>
 								<div class="tkfy-inline">
-									<input type="text" class="tuki-input" id="tuki_wa_test_number" inputmode="tel" placeholder="<?php esc_attr_e( 'e.g. 8801XXXXXXXXX (country code, no +)', 'tukify' ); ?>" />
-									<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki_wa_test"><?php esc_html_e( 'Send test', 'tukify' ); ?></button>
+									<input type="text" class="tuki-input" id="tuki_wa_test_number" inputmode="tel" placeholder="<?php esc_attr_e( 'e.g. 8801XXXXXXXXX (country code, no +)', 'tukify' ); ?>"<?php echo esc_attr( $tuki_wa_dis ); ?> />
+									<button type="button"<?php echo esc_attr( $tuki_wa_dis ); ?> class="tuki-btn tuki-btn--ghost" id="tuki_wa_test"><?php esc_html_e( 'Send test', 'tukify' ); ?></button>
 								</div>
 								<span class="tuki-status" id="tuki_wa_test_result" role="status" aria-live="polite"></span>
 								<p class="tkfy-hint"><?php esc_html_e( 'Save your settings first. Your number must have messaged the bot in the last 24 hours, or be added as a test recipient in Meta.', 'tukify' ); ?></p>
@@ -652,6 +674,10 @@ $tuki_tabs = array(
 							<?php endif; ?>
 						</div>
 					</div>
+					<?php if ( $tuki_wa_locked ) : ?>
+						</div>
+					</div>
+					<?php endif; ?>
 				</section>
 
 				<!-- ============================ KNOWLEDGE BASE ============================ -->

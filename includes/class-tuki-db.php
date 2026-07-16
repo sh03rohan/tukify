@@ -257,7 +257,14 @@ class Tuki_DB {
 		dbDelta( $sql_demand );
 		dbDelta( $sql_stock_notify );
 		dbDelta( $sql_usage );
-		dbDelta( $sql_wa_sessions );
+
+		// The WhatsApp table is only created once the channel is unlocked, so a
+		// locked install carries no unused table. dbDelta() creates it on the next
+		// upgrade check after the flag is flipped. The constant is read directly
+		// (not via Tuki_WhatsApp) because activation loads only this file.
+		if ( defined( 'TUKI_WHATSAPP_ENABLED' ) && TUKI_WHATSAPP_ENABLED ) {
+			dbDelta( $sql_wa_sessions );
+		}
 
 		update_option( 'tuki_db_version', TUKI_VERSION );
 	}

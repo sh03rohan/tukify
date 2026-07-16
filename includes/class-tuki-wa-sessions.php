@@ -29,9 +29,20 @@ class Tuki_WA_Sessions {
 	const PURGE_HOOK = 'tuki_purge_wa_sessions';
 
 	/**
-	 * Registers the purge schedule.
+	 * Registers the purge schedule — only while the channel is unlocked.
+	 *
+	 * If the feature is locked (or gets locked again) any previously scheduled
+	 * purge is cleared, so a locked install runs no WhatsApp cron at all.
 	 */
 	public function __construct() {
+		if ( ! Tuki_WhatsApp::feature_enabled() ) {
+			if ( wp_next_scheduled( self::PURGE_HOOK ) ) {
+				wp_clear_scheduled_hook( self::PURGE_HOOK );
+			}
+
+			return;
+		}
+
 		add_action( self::PURGE_HOOK, array( __CLASS__, 'purge' ) );
 
 		if ( ! wp_next_scheduled( self::PURGE_HOOK ) ) {
@@ -186,6 +197,11 @@ class Tuki_WA_Sessions {
 	 */
 	public static function recent( $limit = 20 ) {
 		global $wpdb;
+
+		// While locked the table does not exist — never query it.
+		if ( ! Tuki_WhatsApp::feature_enabled() ) {
+			return array();
+		}
 
 		$table = Tuki_DB::wa_sessions_table();
 		$limit = max( 1, min( 100, (int) $limit ) );

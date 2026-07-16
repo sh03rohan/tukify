@@ -61,8 +61,15 @@ class Tuki_WhatsApp {
 
 	/**
 	 * Registers the async processor and the tokenized add-to-cart link handler.
+	 *
+	 * Nothing is hooked while the feature is locked, so no WhatsApp code path can
+	 * run at all — not the async processor, not the link handler.
 	 */
 	public function __construct() {
+		if ( ! self::feature_enabled() ) {
+			return;
+		}
+
 		add_action( self::HOOK_PROCESS, array( __CLASS__, 'process' ), 10, 1 );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_add_to_cart_link' ) );
 	}
@@ -72,11 +79,26 @@ class Tuki_WhatsApp {
 	 */
 
 	/**
+	 * The build-time feature flag. While false the whole channel is inert and the
+	 * settings UI shows a "Coming soon" teaser.
+	 *
+	 * @return bool
+	 */
+	public static function feature_enabled() {
+		return defined( 'TUKI_WHATSAPP_ENABLED' ) && TUKI_WHATSAPP_ENABLED;
+	}
+
+	/**
 	 * Whether the WhatsApp channel is switched on and fully configured.
 	 *
 	 * @return bool
 	 */
 	public static function is_enabled() {
+		// The feature flag wins over any stored setting.
+		if ( ! self::feature_enabled() ) {
+			return false;
+		}
+
 		if ( ! Tuki_Settings::get( 'wa_enabled' ) ) {
 			return false;
 		}
