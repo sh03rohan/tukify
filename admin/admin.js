@@ -20,7 +20,93 @@
 		initSizeCharts();
 		initClearCache();
 		initReviewNotice();
+		initChannels();
 	} );
+
+	/**
+	 * Channels tab: copy-to-clipboard buttons, verify-token regeneration, and the
+	 * WhatsApp test message.
+	 */
+	function initChannels() {
+		$( '.tuki-copy' ).on( 'click', function () {
+			var $btn = $( this );
+			var field = document.getElementById( $btn.data( 'copy' ) );
+
+			if ( ! field ) {
+				return;
+			}
+
+			var done = function () {
+				var original = $btn.text();
+				$btn.text( tukiAdmin.copied || 'Copied' );
+				setTimeout( function () {
+					$btn.text( original );
+				}, 1200 );
+			};
+
+			if ( navigator.clipboard && navigator.clipboard.writeText ) {
+				navigator.clipboard.writeText( field.value ).then( done );
+				return;
+			}
+
+			// Fallback for non-secure contexts (plain-HTTP local sites).
+			field.select();
+			try {
+				document.execCommand( 'copy' );
+				done();
+			} catch ( e ) {}
+		} );
+
+		// New verify token — the admin must also update it in Meta, so warn first.
+		$( '#tuki_wa_regen' ).on( 'click', function () {
+			if ( ! window.confirm( tukiAdmin.waRegenConfirm ) ) {
+				return;
+			}
+
+			var token = '';
+			var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+			var bytes = new Uint8Array( 32 );
+			window.crypto.getRandomValues( bytes );
+
+			for ( var i = 0; i < bytes.length; i++ ) {
+				token += chars.charAt( bytes[ i ] % chars.length );
+			}
+
+			$( '#tuki_wa_verify_token' ).val( token );
+		} );
+
+		$( '#tuki_wa_test' ).on( 'click', function () {
+			var $btn = $( this );
+			var $result = $( '#tuki_wa_test_result' );
+			var number = ( $( '#tuki_wa_test_number' ).val() || '' ).replace( /[^0-9]/g, '' );
+
+			if ( ! number ) {
+				$result.removeClass( 'is-success' ).addClass( 'is-error' ).text( tukiAdmin.waTestNeedNumber );
+				return;
+			}
+
+			$btn.prop( 'disabled', true );
+			$result.removeClass( 'is-success is-error' ).text( tukiAdmin.waTestSending );
+
+			$.post( tukiAdmin.ajaxUrl, {
+				action: 'tuki_wa_test',
+				nonce: tukiAdmin.nonce,
+				number: number
+			} ).done( function ( response ) {
+				if ( response && response.success ) {
+					$result.addClass( 'is-success' ).text( response.data.message );
+				} else {
+					$result.addClass( 'is-error' ).text(
+						response && response.data && response.data.message ? response.data.message : tukiAdmin.error
+					);
+				}
+			} ).fail( function () {
+				$result.addClass( 'is-error' ).text( tukiAdmin.error );
+			} ).always( function () {
+				$btn.prop( 'disabled', false );
+			} );
+		} );
+	}
 
 	/**
 	 * Review request notice: records the shopper's choice so it never nags again.

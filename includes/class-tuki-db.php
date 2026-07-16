@@ -110,6 +110,17 @@ class Tuki_DB {
 	}
 
 	/**
+	 * Returns the fully-qualified WhatsApp sessions table name (with prefix).
+	 *
+	 * @return string
+	 */
+	public static function wa_sessions_table() {
+		global $wpdb;
+
+		return $wpdb->prefix . 'tuki_wa_sessions';
+	}
+
+	/**
 	 * Creates (or updates) all custom tables via dbDelta.
 	 *
 	 * Safe to call repeatedly: dbDelta only applies the necessary changes.
@@ -223,12 +234,30 @@ class Tuki_DB {
 			KEY day (day)
 		) {$charset_collate};";
 
+		// WhatsApp conversations: one row per shopper, keyed by a salted hash of the
+		// number. The raw phone number is NEVER stored — replies always use the
+		// wa_id supplied by the inbound webhook, so we never need to look it up.
+		// conversation_context holds a bounded JSON blob (last N turns only).
+		$wa_sessions     = self::wa_sessions_table();
+		$sql_wa_sessions = "CREATE TABLE {$wa_sessions} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			phone_hash CHAR(64) NOT NULL DEFAULT '',
+			display_name VARCHAR(191) NOT NULL DEFAULT '',
+			conversation_context LONGTEXT NULL,
+			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+			updated_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+			PRIMARY KEY  (id),
+			UNIQUE KEY phone_hash (phone_hash),
+			KEY updated_at (updated_at)
+		) {$charset_collate};";
+
 		dbDelta( $sql_embeddings );
 		dbDelta( $sql_events );
 		dbDelta( $sql_kb );
 		dbDelta( $sql_demand );
 		dbDelta( $sql_stock_notify );
 		dbDelta( $sql_usage );
+		dbDelta( $sql_wa_sessions );
 
 		update_option( 'tuki_db_version', TUKI_VERSION );
 	}
@@ -266,12 +295,14 @@ class Tuki_DB {
 		$demand       = self::demand_table();
 		$stock_notify = self::stock_notify_table();
 		$usage        = self::usage_table();
+		$wa_sessions  = self::wa_sessions_table();
 		$wpdb->query( "DROP TABLE IF EXISTS {$embeddings}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$events}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$kb}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$demand}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$stock_notify}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$usage}" );
+		$wpdb->query( "DROP TABLE IF EXISTS {$wa_sessions}" );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 	}
 

@@ -29,6 +29,7 @@ $tuki_tabs = array(
 	'general'    => __( 'General', 'tukify' ),
 	'appearance' => __( 'Appearance', 'tukify' ),
 	'products'   => __( 'Products & Cart', 'tukify' ),
+	'channels'   => __( 'Channels', 'tukify' ),
 	'kb'         => __( 'Knowledge Base', 'tukify' ),
 	'analytics'  => __( 'Logs / Analytics', 'tukify' ),
 	'advanced'   => __( 'Advanced', 'tukify' ),
@@ -484,6 +485,171 @@ $tuki_tabs = array(
 								</div>
 								<p class="tkfy-hint"><?php esc_html_e( 'Add one row per size band. The advisor scores the shopper\'s height and weight against these ranges (in the unit above) to suggest a size. Leave a range blank to ignore it.', 'tukify' ); ?></p>
 							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- ============================ CHANNELS ============================ -->
+				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-channels" data-tab="channels" aria-labelledby="tkfy-tab-channels" tabindex="0" hidden>
+					<?php
+					$tuki_wa_webhook = Tuki_WhatsApp::webhook_url();
+					$tuki_wa_token   = (string) $tuki_settings['wa_verify_token'];
+					$tuki_wa_convos  = Tuki_WA_Sessions::recent( 10 );
+					?>
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'WhatsApp', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Answer shoppers on WhatsApp with the same assistant that powers the web chat, via Meta\'s WhatsApp Business Cloud API. Tukify only ever replies to incoming messages — it never sends marketing.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[wa_enabled]" value="1" <?php checked( $tuki_settings['wa_enabled'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Enable the WhatsApp channel', 'tukify' ); ?></span>
+								</label>
+							</div>
+
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_wa_access_token"><?php esc_html_e( 'Access token', 'tukify' ); ?></label>
+								<input type="password" class="tuki-input" id="tuki_wa_access_token" autocomplete="off" value=""
+									name="<?php echo esc_attr( $tuki_option ); ?>[wa_access_token]"
+									placeholder="<?php echo esc_attr( '' === (string) $tuki_settings['wa_access_token'] ? '' : Tuki_Settings::mask_key( $tuki_settings['wa_access_token'] ) ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Leave blank to keep the saved token. Stored server-side and never sent to the browser.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_wa_phone_number_id"><?php esc_html_e( 'Phone number ID', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_wa_phone_number_id" inputmode="numeric"
+									name="<?php echo esc_attr( $tuki_option ); ?>[wa_phone_number_id]"
+									value="<?php echo esc_attr( $tuki_settings['wa_phone_number_id'] ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'From WhatsApp → API Setup. This is an ID, not the phone number itself.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_wa_app_secret"><?php esc_html_e( 'App secret', 'tukify' ); ?></label>
+								<input type="password" class="tuki-input" id="tuki_wa_app_secret" autocomplete="off" value=""
+									name="<?php echo esc_attr( $tuki_option ); ?>[wa_app_secret]"
+									placeholder="<?php echo esc_attr( '' === (string) $tuki_settings['wa_app_secret'] ? '' : Tuki_Settings::mask_key( $tuki_settings['wa_app_secret'] ) ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Used to verify that every incoming webhook really came from Meta. Required.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_wa_business_account_id"><?php esc_html_e( 'Business account ID', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_wa_business_account_id" inputmode="numeric"
+									name="<?php echo esc_attr( $tuki_option ); ?>[wa_business_account_id]"
+									value="<?php echo esc_attr( $tuki_settings['wa_business_account_id'] ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Optional — for your reference (WABA ID).', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_wa_verify_token"><?php esc_html_e( 'Verify token', 'tukify' ); ?></label>
+								<div class="tkfy-inline">
+									<input type="text" class="tuki-input" id="tuki_wa_verify_token" readonly
+										name="<?php echo esc_attr( $tuki_option ); ?>[wa_verify_token]"
+										value="<?php echo esc_attr( $tuki_wa_token ); ?>" />
+									<button type="button" class="tuki-btn tuki-btn--ghost tuki-copy" data-copy="tuki_wa_verify_token"><?php esc_html_e( 'Copy', 'tukify' ); ?></button>
+									<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki_wa_regen"><?php esc_html_e( 'Regenerate', 'tukify' ); ?></button>
+								</div>
+								<p class="tkfy-hint"><?php esc_html_e( 'Paste this into Meta when you add the webhook. Generated for you — only change it if you also change it in Meta.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_wa_webhook_url"><?php esc_html_e( 'Webhook URL (paste into Meta)', 'tukify' ); ?></label>
+								<div class="tkfy-inline">
+									<input type="text" class="tuki-input" id="tuki_wa_webhook_url" readonly value="<?php echo esc_attr( $tuki_wa_webhook ); ?>" />
+									<button type="button" class="tuki-btn tuki-btn--ghost tuki-copy" data-copy="tuki_wa_webhook_url"><?php esc_html_e( 'Copy', 'tukify' ); ?></button>
+								</div>
+								<?php if ( ! is_ssl() ) : ?>
+									<p class="tkfy-hint tkfy-hint--warn"><?php esc_html_e( 'Meta requires a public HTTPS URL. On a local site, expose it with a tunnel (e.g. ngrok) and use the tunnel URL instead.', 'tukify' ); ?></p>
+								<?php endif; ?>
+							</div>
+
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_wa_notify_email"><?php esc_html_e( 'Handoff notification email', 'tukify' ); ?></label>
+								<input type="email" class="tuki-input" id="tuki_wa_notify_email"
+									name="<?php echo esc_attr( $tuki_option ); ?>[wa_notify_email]"
+									value="<?php echo esc_attr( $tuki_settings['wa_notify_email'] ); ?>"
+									placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Emailed when a shopper asks for a human, or the assistant can\'t answer. Defaults to the site admin email.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_wa_session_days"><?php esc_html_e( 'Keep conversations for (days)', 'tukify' ); ?></label>
+								<input type="number" class="tuki-input tuki-input--sm" id="tuki_wa_session_days" min="1" max="365"
+									name="<?php echo esc_attr( $tuki_option ); ?>[wa_session_days]"
+									value="<?php echo esc_attr( $tuki_settings['wa_session_days'] ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Stale conversations are purged daily. Phone numbers are never stored — only a salted hash.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_wa_test_number"><?php esc_html_e( 'Send a test message', 'tukify' ); ?></label>
+								<div class="tkfy-inline">
+									<input type="text" class="tuki-input" id="tuki_wa_test_number" inputmode="tel" placeholder="<?php esc_attr_e( 'e.g. 8801XXXXXXXXX (country code, no +)', 'tukify' ); ?>" />
+									<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki_wa_test"><?php esc_html_e( 'Send test', 'tukify' ); ?></button>
+								</div>
+								<span class="tuki-status" id="tuki_wa_test_result" role="status" aria-live="polite"></span>
+								<p class="tkfy-hint"><?php esc_html_e( 'Save your settings first. Your number must have messaged the bot in the last 24 hours, or be added as a test recipient in Meta.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Setup guide', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'One-time setup in Meta. Takes about 10 minutes.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<p class="tkfy-note tkfy-note--warn">
+									<strong><?php esc_html_e( 'Important — use a separate phone number.', 'tukify' ); ?></strong>
+									<?php esc_html_e( 'Once a number is registered to the WhatsApp Cloud API it can no longer be used in the normal WhatsApp or WhatsApp Business app, and moving it back is disruptive. Use a new/spare number for the bot — never your personal or main business number.', 'tukify' ); ?>
+								</p>
+								<ol class="tkfy-steps">
+									<li><?php esc_html_e( 'Create a Meta Business account at business.facebook.com (skip if you have one).', 'tukify' ); ?></li>
+									<li><?php esc_html_e( 'At developers.facebook.com → My Apps → Create App, choose the "Business" type.', 'tukify' ); ?></li>
+									<li><?php esc_html_e( 'In the app, add the "WhatsApp" product and link it to your Business account.', 'tukify' ); ?></li>
+									<li><?php esc_html_e( 'Under WhatsApp → API Setup, register the spare phone number for the bot and verify it.', 'tukify' ); ?></li>
+									<li><?php esc_html_e( 'Copy the access token and the Phone number ID into the fields above. Copy the App secret from App settings → Basic.', 'tukify' ); ?></li>
+									<li><?php esc_html_e( 'Save this page, then in Meta go to WhatsApp → Configuration → Webhook → Edit, and paste the Webhook URL and Verify token from above. Click Verify and save.', 'tukify' ); ?></li>
+									<li><?php esc_html_e( 'Still in Configuration, subscribe the webhook to the "messages" field.', 'tukify' ); ?></li>
+									<li><?php esc_html_e( 'Turn on "Enable the WhatsApp channel" above, then use "Send test" — or message the bot number from your phone.', 'tukify' ); ?></li>
+								</ol>
+								<p class="tkfy-hint"><?php esc_html_e( 'A permanent token (System User) is recommended — the temporary token in API Setup expires after 24 hours.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Recent WhatsApp conversations', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'The most recent turns of each conversation. Phone numbers are never stored — each shopper is shown as a short reference.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<?php if ( empty( $tuki_wa_convos ) ) : ?>
+								<p class="tkfy-note tkfy-field--wide"><?php esc_html_e( 'No WhatsApp conversations yet.', 'tukify' ); ?></p>
+							<?php else : ?>
+								<div class="tkfy-field--wide">
+									<?php foreach ( $tuki_wa_convos as $tuki_convo ) : ?>
+										<details class="tkfy-convo">
+											<summary>
+												<strong><?php echo esc_html( '' !== $tuki_convo['display_name'] ? $tuki_convo['display_name'] : __( 'Shopper', 'tukify' ) ); ?></strong>
+												<span class="tkfy-hint"><?php echo esc_html( '#' . $tuki_convo['ref'] . ' · ' . $tuki_convo['updated_at'] ); ?></span>
+											</summary>
+											<?php if ( empty( $tuki_convo['history'] ) ) : ?>
+												<p class="tkfy-hint"><?php esc_html_e( 'No messages recorded.', 'tukify' ); ?></p>
+											<?php else : ?>
+												<?php foreach ( $tuki_convo['history'] as $tuki_turn ) : ?>
+													<p class="tkfy-convo-line">
+														<strong><?php echo esc_html( 'assistant' === ( $tuki_turn['role'] ?? '' ) ? __( 'Assistant', 'tukify' ) : __( 'Shopper', 'tukify' ) ); ?>:</strong>
+														<?php echo esc_html( (string) ( $tuki_turn['content'] ?? '' ) ); ?>
+													</p>
+												<?php endforeach; ?>
+											<?php endif; ?>
+										</details>
+									<?php endforeach; ?>
+								</div>
+							<?php endif; ?>
 						</div>
 					</div>
 				</section>

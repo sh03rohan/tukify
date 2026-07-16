@@ -127,6 +127,14 @@ final class Tuki_Plugin {
 		// Knowledge base: page-change re-embed + async reindex handler.
 		new Tuki_KB();
 
+		// WhatsApp channel: the async webhook processor and the tokenized
+		// add-to-cart link handler must be registered on every request (the
+		// processor runs during Action Scheduler/cron, with no admin context).
+		new Tuki_WhatsApp();
+
+		// Purges stale WhatsApp conversations on a daily schedule.
+		new Tuki_WA_Sessions();
+
 		// Frontend asset controller is always loaded so its static enqueue helpers
 		// are available to Elementor even in the (admin-ajax) editor context; it is
 		// only instantiated on the storefront, where it hooks wp_enqueue_scripts.

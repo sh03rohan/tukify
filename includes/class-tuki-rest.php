@@ -151,6 +151,42 @@ class Tuki_Rest {
 			)
 		);
 
+		// WhatsApp webhook. Meta calls this from its own servers, so it cannot use
+		// the cookie-nonce model the widget routes use:
+		//  - GET  is the one-time verification handshake (hub.verify_token).
+		//  - POST is authenticated by the X-Hub-Signature-256 HMAC, checked in the
+		//    permission callback so an unsigned body is rejected before parsing.
+		register_rest_route(
+			self::NAMESPACE,
+			'/whatsapp',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( 'Tuki_WhatsApp', 'handle_verify' ),
+					'permission_callback' => '__return_true',
+					'args'                => array(
+						'hub_mode'         => array(
+							'required' => false,
+							'type'     => 'string',
+						),
+						'hub_verify_token' => array(
+							'required' => false,
+							'type'     => 'string',
+						),
+						'hub_challenge'    => array(
+							'required' => false,
+							'type'     => 'string',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( 'Tuki_WhatsApp', 'handle_webhook' ),
+					'permission_callback' => array( 'Tuki_WhatsApp', 'verify_signature' ),
+				),
+			)
+		);
+
 		register_rest_route(
 			self::NAMESPACE,
 			'/recommendations',
@@ -365,8 +401,16 @@ class Tuki_Rest {
 		$context_ids   = is_array( $context_ids ) ? array_map( 'absint', $context_ids ) : array();
 
 		try {
-			$chat   = new Tuki_Chat();
-			$result = $chat->respond( $message, $history, $clarify_count, $context_ids );
+			// The web widget is one door onto the shared brain; WhatsApp is another.
+			// Both go through Tuki_Channel so the pipeline is never duplicated.
+			$result = Tuki_Channel::handle_message(
+				array(
+					'history'       => $history,
+					'clarify_count' => $clarify_count,
+					'context_ids'   => $context_ids,
+				),
+				$message
+			);
 		} catch ( Exception $e ) {
 			return new WP_Error( 'tuki_chat_failed', $e->getMessage(), array( 'status' => 502 ) );
 		}
@@ -471,8 +515,18 @@ class Tuki_Rest {
 		}
 
 		try {
-			$chat   = new Tuki_Chat();
-			$result = $chat->visual_search( $base64, $mime );
+			// Same shared door: an image attachment routes to visual search.
+			$result = Tuki_Channel::handle_message(
+				array(),
+				'',
+				array(
+					array(
+						'type' => 'image',
+						'data' => $base64,
+						'mime' => $mime,
+					),
+				)
+			);
 		} catch ( Exception $e ) {
 			return new WP_Error( 'tuki_visual_failed', $e->getMessage(), array( 'status' => 502 ) );
 		}

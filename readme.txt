@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, ai, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.6
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,13 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 7. Analytics — top searches, product index, and unmet demand insights.
 
 == Changelog ==
+
+= 1.5.0 =
+* New WhatsApp channel: the same assistant that powers the web chat now answers shoppers on WhatsApp via Meta's WhatsApp Business Cloud API. Text and photo (visual search) messages are both supported.
+* Product replies on WhatsApp arrive as an image with name, price and stock, plus links to the product page and a secure add-to-cart link; several matches arrive as a tappable list.
+* Added a Channels settings tab with a step-by-step setup guide, a copyable webhook URL and verify token, and a "Send test" button. The channel is off by default.
+* Added a human handoff: if a shopper asks for a person (or the assistant can't answer confidently) Tukify replies that the team will follow up and emails the store a transcript.
+* Privacy: WhatsApp phone numbers are never stored — conversations are keyed by a salted hash, kept to the last few turns, and purged on a configurable schedule.
 
 = 1.4.6 =
 * Checkout button now always appears at the bottom of the chat whenever the cart has items, in both new and existing chats (was inconsistent before).

@@ -83,6 +83,7 @@ class Tuki_Admin {
 		add_action( 'wp_ajax_tuki_test_search', array( $this, 'ajax_test_search' ) );
 		add_action( 'wp_ajax_tuki_kb_reindex', array( $this, 'ajax_kb_reindex' ) );
 		add_action( 'wp_ajax_tuki_clear_cache', array( $this, 'ajax_clear_cache' ) );
+		add_action( 'wp_ajax_tuki_wa_test', array( $this, 'ajax_wa_test' ) );
 	}
 
 	/**
@@ -433,8 +434,51 @@ class Tuki_Admin {
 				'cacheCleared'     => __( 'Cache cleared', 'tukify' ),
 				'cacheClearError'  => __( 'Couldn\'t clear the cache — please try again', 'tukify' ),
 				'lowContrast'      => __( 'These colours are very similar — the logo may be hard to see.', 'tukify' ),
+				'error'            => __( 'Something went wrong — please try again', 'tukify' ),
+				'copied'           => __( 'Copied', 'tukify' ),
+				'waRegenConfirm'   => __( 'Generate a new verify token? You must paste the new token into Meta as well, or the webhook will stop verifying.', 'tukify' ),
+				'waTestNeedNumber' => __( 'Enter a number with its country code, digits only.', 'tukify' ),
+				'waTestSending'    => __( 'Sending…', 'tukify' ),
 			)
 		);
+	}
+
+	/**
+	 * AJAX: sends a WhatsApp test message to a number the admin types in.
+	 *
+	 * Only ever a reply-style text to a number the admin controls — this is not an
+	 * outbound campaign path.
+	 */
+	public function ajax_wa_test() {
+		$this->verify_admin_request();
+
+		// Nonce + capability verified in verify_admin_request() above.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$number = isset( $_POST['number'] ) ? preg_replace( '/[^0-9]/', '', wp_unslash( $_POST['number'] ) ) : '';
+
+		if ( '' === $number ) {
+			wp_send_json_error( array( 'message' => __( 'Enter a number with its country code, digits only.', 'tukify' ) ) );
+		}
+
+		if ( ! Tuki_WhatsApp::is_enabled() ) {
+			wp_send_json_error( array( 'message' => __( 'Enable the channel and save your access token and phone number ID first.', 'tukify' ) ) );
+		}
+
+		$sent = Tuki_WhatsApp::send_text(
+			$number,
+			/* translators: %s: site name. */
+			sprintf( __( 'Test message from %s — your Tukify WhatsApp channel is connected.', 'tukify' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) )
+		);
+
+		if ( ! $sent ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Meta rejected the message. Check the token and phone number ID, and that this number messaged the bot in the last 24 hours (or is a test recipient).', 'tukify' ),
+				)
+			);
+		}
+
+		wp_send_json_success( array( 'message' => __( 'Sent — check WhatsApp on that number.', 'tukify' ) ) );
 	}
 
 	/**

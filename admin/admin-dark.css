@@ -128,6 +128,46 @@
 	display: block;
 }
 
+/* ---- Channels tab ---- */
+.tkfy-note--warn {
+	border-left: 3px solid #f6c944;
+	padding-left: 12px;
+}
+
+.tkfy-hint--warn {
+	color: #f6c944;
+}
+
+.tkfy-steps {
+	margin: 12px 0 0;
+	padding-left: 20px;
+	line-height: 1.9;
+}
+
+.tkfy-steps li {
+	margin: 0 0 2px;
+}
+
+.tkfy-convo {
+	border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+	border-radius: 8px;
+	padding: 10px 12px;
+	margin: 0 0 8px;
+}
+
+.tkfy-convo summary {
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	align-items: baseline;
+	flex-wrap: wrap;
+}
+
+.tkfy-convo-line {
+	margin: 6px 0 0;
+	line-height: 1.5;
+}
+
 /* Live bubble/logo colour preview in the Appearance tab. */
 .tkfy-bubble-preview {
 	display: flex;

@@ -49,6 +49,15 @@ class Tuki_Settings {
 			'openai_api_key'             => '',
 			'anthropic_api_key'          => '',
 			'xai_api_key'                => '',
+			// WhatsApp channel (Meta Cloud API). Off until explicitly enabled.
+			'wa_enabled'                 => 0,
+			'wa_access_token'            => '',
+			'wa_phone_number_id'         => '',
+			'wa_app_secret'              => '',
+			'wa_verify_token'            => '',
+			'wa_business_account_id'     => '',
+			'wa_notify_email'            => '',
+			'wa_session_days'            => 30,
 			'chat_model_gemini'          => 'gemini-2.5-flash',
 			'chat_model_openai'          => 'gpt-4o-mini',
 			'chat_model_anthropic'       => 'claude-3-5-haiku-latest',
@@ -189,6 +198,32 @@ class Tuki_Settings {
 			$value             = isset( $input[ $key_field ] ) ? trim( sanitize_text_field( $input[ $key_field ] ) ) : '';
 			$out[ $key_field ] = ( '' === $value ) ? $existing[ $key_field ] : $value;
 		}
+
+		// WhatsApp channel. Secrets use the same rule as the AI keys: a blank field
+		// keeps the saved value, so the masked display never wipes a real secret.
+		foreach ( array( 'wa_access_token', 'wa_app_secret' ) as $secret_field ) {
+			$value                = isset( $input[ $secret_field ] ) ? trim( sanitize_text_field( $input[ $secret_field ] ) ) : '';
+			$out[ $secret_field ] = ( '' === $value ) ? $existing[ $secret_field ] : $value;
+		}
+
+		$out['wa_enabled']             = empty( $input['wa_enabled'] ) ? 0 : 1;
+		$out['wa_phone_number_id']     = isset( $input['wa_phone_number_id'] ) ? preg_replace( '/[^0-9]/', '', (string) $input['wa_phone_number_id'] ) : '';
+		$out['wa_business_account_id'] = isset( $input['wa_business_account_id'] ) ? preg_replace( '/[^0-9]/', '', (string) $input['wa_business_account_id'] ) : '';
+
+		// Verify token: shopper-invisible shared secret typed into Meta's dashboard.
+		// Generated for the store if they never set one, so the wizard can show it.
+		$verify_token = isset( $input['wa_verify_token'] ) ? trim( sanitize_text_field( $input['wa_verify_token'] ) ) : '';
+
+		if ( '' === $verify_token ) {
+			$verify_token = ( '' !== $existing['wa_verify_token'] ) ? $existing['wa_verify_token'] : wp_generate_password( 32, false );
+		}
+
+		$out['wa_verify_token'] = $verify_token;
+
+		$notify_email           = isset( $input['wa_notify_email'] ) ? sanitize_email( $input['wa_notify_email'] ) : '';
+		$out['wa_notify_email'] = is_email( $notify_email ) ? $notify_email : '';
+
+		$out['wa_session_days'] = isset( $input['wa_session_days'] ) ? max( 1, min( 365, absint( $input['wa_session_days'] ) ) ) : 30;
 
 		// Per-provider chat models — whitelisted against the registry.
 		foreach ( $registry as $provider => $meta ) {
