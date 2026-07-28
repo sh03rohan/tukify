@@ -121,6 +121,13 @@
 		overlay.appendChild( sheet );
 		panel.appendChild( overlay );
 
+		// Keep the chat header (Tukify logo + status) visible: start the popup just
+		// below it rather than covering the whole panel.
+		var head = panel.querySelector( '.tuki-head' );
+		if ( head ) {
+			overlay.style.top = head.offsetHeight + 'px';
+		}
+
 		var closed = false;
 
 		function close() {
@@ -612,14 +619,22 @@
 
 		var body = el( 'div', 'tuki-pcard-body' );
 
+		// Title stays a real link (so it keeps its href for cmd/middle-click to open
+		// the product page in a new tab), but a normal click opens the in-chat
+		// detail popup instead of navigating.
 		var title = document.createElement( 'a' );
 		title.className = 'tuki-pcard-title';
 		title.href = p.url || '#';
 		title.target = '_blank';
 		title.rel = 'noopener';
 		title.textContent = p.title || '';
-		title.addEventListener( 'click', function () {
-			logClick( p.id );
+		title.addEventListener( 'click', function ( e ) {
+			if ( e.metaKey || e.ctrlKey || e.shiftKey || 1 === e.button ) {
+				logClick( p.id );
+				return;
+			}
+			e.preventDefault();
+			openProduct( p, title );
 		} );
 
 		var meta = el( 'div', 'tuki-pcard-meta' );
@@ -630,15 +645,6 @@
 		badge.appendChild( document.createTextNode( p.stock ? ( S.inStock || '' ) : ( S.outOfStock || '' ) ) );
 		meta.appendChild( price );
 		meta.appendChild( badge );
-
-		// Explicit "View details" affordance (in addition to the clickable image),
-		// opening the in-chat detail popup.
-		var details = el( 'button', 'tuki-pcard-details' );
-		details.type = 'button';
-		details.textContent = S.viewDetails || 'View details';
-		details.addEventListener( 'click', function () {
-			openProduct( p, details );
-		} );
 
 		var actions = el( 'div', 'tuki-pcard-actions' );
 		if ( p.add_to_cart ) {
@@ -727,7 +733,6 @@
 
 		body.appendChild( title );
 		body.appendChild( meta );
-		body.appendChild( details );
 		body.appendChild( actions );
 		if ( notify ) {
 			body.appendChild( notify );

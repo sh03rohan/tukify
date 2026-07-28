@@ -231,15 +231,16 @@
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+	/* Scrollable, but no visible scrollbar (Firefox + IE). */
+	scrollbar-width: none;
+	-ms-overflow-style: none;
 }
 
+/* Hide the scrollbar in the chat message list (WebKit/Blink). */
 .tuki-msgs::-webkit-scrollbar {
-	width: 8px;
-}
-
-.tuki-msgs::-webkit-scrollbar-thumb {
-	background: var(--tuki-surface);
-	border-radius: 8px;
+	width: 0;
+	height: 0;
+	display: none;
 }
 
 .tuki-msg {
@@ -1582,6 +1583,21 @@
 .tuki-modal-content {
 	overflow-y: auto;
 	padding: 16px;
+	/* Scrollable without a visible scrollbar. */
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.tuki-modal-content::-webkit-scrollbar,
+.tuki-modal-thumbs::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+	display: none;
+}
+
+.tuki-modal-thumbs {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
 }
 
 .tuki-modal-loading {

@@ -120,7 +120,7 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 == Changelog ==
 
 = 1.6.0 =
-* Added an in-chat product detail popup: tap a product card (or "View details") to see a larger image with gallery thumbnails, price, stock, description, attributes, a quantity stepper and add-to-cart — all inside the chat, without leaving the page.
+* Added an in-chat product detail popup: tap a product's image or title to see a larger image with gallery thumbnails, price, stock, description, attributes, a quantity stepper and add-to-cart — all inside the chat, without leaving the page.
 * Variable products are supported: choosing a variation updates the price, stock and image, and adds the right variation to the cart.
 * The popup is keyboard accessible (focus trap, Escape to close) and works as a full-height sheet on mobile.
 
