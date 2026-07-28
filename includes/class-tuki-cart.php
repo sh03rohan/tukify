@@ -120,6 +120,207 @@ class Tuki_Cart {
 	}
 
 	/**
+	 * Builds the fuller payload for the in-chat product detail popup.
+	 *
+	 * Extends the card payload with a larger image + gallery, a short description,
+	 * display attributes, and — for variable products — the variation selectors and
+	 * per-variation price/stock/image so the popup can update as options change.
+	 * All prices go through price_text() so the currency renders correctly.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return array|null Detail payload, or null if the product is missing/unpublished.
+	 */
+	public static function product_detail( $product_id ) {
+		if ( ! function_exists( 'wc_get_product' ) ) {
+			return null;
+		}
+
+		$product = wc_get_product( absint( $product_id ) );
+
+		if ( ! $product || 'publish' !== $product->get_status() ) {
+			return null;
+		}
+
+		$detail = self::product_card( $product );
+
+		if ( ! is_array( $detail ) ) {
+			return null;
+		}
+
+		// Gallery: main image first, then the gallery images, at a larger size.
+		$gallery   = array();
+		$image_ids = array_merge( array( $product->get_image_id() ), $product->get_gallery_image_ids() );
+
+		foreach ( array_unique( array_filter( array_map( 'absint', $image_ids ) ) ) as $img_id ) {
+			$large = wp_get_attachment_image_url( $img_id, 'large' );
+			$thumb = wp_get_attachment_image_url( $img_id, 'woocommerce_thumbnail' );
+
+			if ( $large ) {
+				$gallery[] = array(
+					'full'  => $large,
+					'thumb' => $thumb ? $thumb : $large,
+				);
+			}
+		}
+
+		if ( empty( $gallery ) && '' !== (string) $detail['image'] ) {
+			$gallery[] = array(
+				'full'  => $detail['image'],
+				'thumb' => $detail['image'],
+			);
+		}
+
+		$detail['gallery']     = $gallery;
+		$detail['description'] = self::short_description( $product );
+		$detail['type']        = $product->get_type();
+
+		// Display attributes: everything not used to build variations (variation
+		// attributes become the selectors below instead).
+		$detail['attributes']           = self::display_attributes( $product );
+		$detail['variation_attributes'] = array();
+		$detail['variations']           = array();
+
+		if ( $product->is_type( 'variable' ) ) {
+			$detail['variation_attributes'] = self::variation_selectors( $product );
+			$detail['variations']           = self::variations( $product );
+		}
+
+		return $detail;
+	}
+
+	/**
+	 * Plain-text short description (falls back to a trimmed full description).
+	 *
+	 * @param WC_Product $product Product.
+	 * @return string
+	 */
+	private static function short_description( $product ) {
+		$text = (string) $product->get_short_description();
+
+		if ( '' === trim( $text ) ) {
+			$text = (string) $product->get_description();
+		}
+
+		$text = wp_strip_all_tags( $text );
+
+		if ( function_exists( 'mb_substr' ) && mb_strlen( $text ) > 600 ) {
+			$text = rtrim( mb_substr( $text, 0, 599 ) ) . '…';
+		}
+
+		return trim( $text );
+	}
+
+	/**
+	 * Informational (non-variation) attributes for display.
+	 *
+	 * @param WC_Product $product Product.
+	 * @return array List of [ 'label' => string, 'value' => string ].
+	 */
+	private static function display_attributes( $product ) {
+		$out = array();
+
+		foreach ( $product->get_attributes() as $attribute ) {
+			if ( ! is_a( $attribute, 'WC_Product_Attribute' ) || $attribute->get_variation() ) {
+				continue;
+			}
+
+			if ( $attribute->is_taxonomy() ) {
+				$values = wc_get_product_terms( $product->get_id(), $attribute->get_name(), array( 'fields' => 'names' ) );
+			} else {
+				$values = $attribute->get_options();
+			}
+
+			$values = array_filter( array_map( 'trim', (array) $values ) );
+
+			if ( empty( $values ) ) {
+				continue;
+			}
+
+			$out[] = array(
+				'label' => wc_attribute_label( $attribute->get_name(), $product ),
+				'value' => implode( ', ', $values ),
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Variation selectors: one entry per variation attribute with its options.
+	 *
+	 * @param WC_Product_Variable $product Product.
+	 * @return array List of [ 'key' => 'attribute_...', 'label' => string, 'options' => [ [value,label] ] ].
+	 */
+	private static function variation_selectors( $product ) {
+		$out = array();
+
+		foreach ( $product->get_variation_attributes() as $name => $options ) {
+			$rows = array();
+
+			foreach ( (array) $options as $option ) {
+				$label = $option;
+
+				if ( taxonomy_exists( $name ) ) {
+					$term = get_term_by( 'slug', $option, $name );
+
+					if ( $term ) {
+						$label = $term->name;
+					}
+				}
+
+				$rows[] = array(
+					'value' => (string) $option,
+					'label' => (string) $label,
+				);
+			}
+
+			$out[] = array(
+				'key'     => 'attribute_' . sanitize_title( $name ),
+				'label'   => wc_attribute_label( $name, $product ),
+				'options' => $rows,
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Available variations, compacted for the popup.
+	 *
+	 * @param WC_Product_Variable $product Product.
+	 * @return array
+	 */
+	private static function variations( $product ) {
+		$out = array();
+
+		foreach ( $product->get_available_variations() as $variation ) {
+			$vid = isset( $variation['variation_id'] ) ? absint( $variation['variation_id'] ) : 0;
+
+			if ( ! $vid ) {
+				continue;
+			}
+
+			$vp        = wc_get_product( $vid );
+			$max       = ( isset( $variation['max_qty'] ) && '' !== $variation['max_qty'] ) ? (int) $variation['max_qty'] : 0;
+			$in_stock  = ! empty( $variation['is_in_stock'] );
+
+			$out[] = array(
+				'variation_id' => $vid,
+				// Map of attribute_key => selected value (lowercased slug, '' = any).
+				'attributes'   => isset( $variation['attributes'] ) ? array_map( 'strval', (array) $variation['attributes'] ) : array(),
+				'price'        => $vp ? self::price_text( $vp->get_price_html() ) : '',
+				'price_raw'    => $vp ? (float) $vp->get_price() : 0,
+				'stock'        => $in_stock,
+				'add_to_cart'  => ! empty( $variation['is_purchasable'] ) && $in_stock,
+				'max_qty'      => $max,
+				'image'        => isset( $variation['image']['src'] ) ? (string) $variation['image']['src'] : '',
+			);
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Maps ranked search results to product cards, skipping missing/unpublished items.
 	 *
 	 * @param array $results List of [ 'product_id' => int, 'score' => float ].

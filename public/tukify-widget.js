@@ -78,11 +78,450 @@
 		api( 'event', { type: 'product_click', product_id: id } ).catch( function () {} );
 	}
 
-	function openProduct( p ) {
+	// -----------------------------------------------------------------------
+	// In-chat product detail popup. Mounts an overlay inside the Shadow DOM of
+	// the widget the clicked card belongs to (so multiple widgets on a page each
+	// get their own), fetches fuller details, and traps focus while open.
+	// -----------------------------------------------------------------------
+	function openProduct( p, anchorEl ) {
 		logClick( p.id );
-		if ( p.url ) {
-			window.open( p.url, '_blank', 'noopener' );
+
+		// Find the panel/shadow root that owns the card that was clicked.
+		var panel = anchorEl && anchorEl.closest ? anchorEl.closest( '.tuki-panel' ) : null;
+
+		if ( ! panel ) {
+			// No panel context (shouldn't happen) — fall back to the product page.
+			if ( p.url ) {
+				window.open( p.url, '_blank', 'noopener' );
+			}
+			return;
 		}
+
+		var previousFocus = ( anchorEl && anchorEl.getRootNode ) ? anchorEl.getRootNode().activeElement : null;
+
+		var overlay = el( 'div', 'tuki-modal' );
+		overlay.setAttribute( 'role', 'dialog' );
+		overlay.setAttribute( 'aria-modal', 'true' );
+		overlay.setAttribute( 'aria-label', p.title || ( S.productDetails || 'Product details' ) );
+
+		var backdrop = el( 'div', 'tuki-modal-backdrop' );
+		var sheet = el( 'div', 'tuki-modal-sheet' );
+
+		var closeBtn = el( 'button', 'tuki-modal-close' );
+		closeBtn.type = 'button';
+		closeBtn.setAttribute( 'aria-label', S.close || 'Close' );
+		closeBtn.innerHTML = ICON.close;
+
+		var content = el( 'div', 'tuki-modal-content' );
+		content.appendChild( buildModalLoading() );
+
+		sheet.appendChild( closeBtn );
+		sheet.appendChild( content );
+		overlay.appendChild( backdrop );
+		overlay.appendChild( sheet );
+		panel.appendChild( overlay );
+
+		var closed = false;
+
+		function close() {
+			if ( closed ) {
+				return;
+			}
+			closed = true;
+			panel.removeChild( overlay );
+			document.removeEventListener( 'keydown', onKey, true );
+			// Return focus to the card that opened the popup (i.e. back to the chat).
+			if ( previousFocus && previousFocus.focus ) {
+				try {
+					previousFocus.focus();
+				} catch ( e ) {}
+			}
+		}
+
+		function onKey( e ) {
+			if ( 'Escape' === e.key || 27 === e.keyCode ) {
+				e.preventDefault();
+				close();
+				return;
+			}
+			if ( 'Tab' === e.key || 9 === e.keyCode ) {
+				trapTab( sheet, e );
+			}
+		}
+
+		closeBtn.addEventListener( 'click', close );
+		backdrop.addEventListener( 'click', close );
+		document.addEventListener( 'keydown', onKey, true );
+
+		// Move focus into the dialog.
+		closeBtn.focus();
+
+		// Fetch the fuller details and render, or show a graceful message.
+		api( 'product', { product_id: p.id } )
+			.then( function ( data ) {
+				if ( closed ) {
+					return;
+				}
+				content.textContent = '';
+				content.appendChild( buildModalBody( data ) );
+			} )
+			.catch( function () {
+				if ( closed ) {
+					return;
+				}
+				content.textContent = '';
+				var msg = el( 'div', 'tuki-modal-msg' );
+				msg.textContent = S.productUnavailable || 'Sorry, this product is unavailable right now.';
+				content.appendChild( msg );
+				if ( p.url ) {
+					content.appendChild( buildModalLink( p.url ) );
+				}
+			} );
+	}
+
+	function buildModalLoading() {
+		var wrap = el( 'div', 'tuki-modal-loading' );
+		wrap.setAttribute( 'role', 'status' );
+		wrap.appendChild( el( 'span', 'tuki-modal-spinner' ) );
+		var t = el( 'span', 'tuki-modal-loading-text' );
+		t.textContent = S.loading || 'Loading…';
+		wrap.appendChild( t );
+		return wrap;
+	}
+
+	function buildModalLink( url ) {
+		var link = el( 'a', 'tuki-modal-full' );
+		link.href = url || '#';
+		link.target = '_blank';
+		link.rel = 'noopener';
+		link.textContent = S.viewFullProduct || 'View full product page';
+		return link;
+	}
+
+	// Keeps Tab focus inside the dialog.
+	function trapTab( container, e ) {
+		var focusables = container.querySelectorAll(
+			'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+		);
+		if ( ! focusables.length ) {
+			return;
+		}
+		var first = focusables[0];
+		var last = focusables[ focusables.length - 1 ];
+		var active = container.getRootNode().activeElement;
+
+		if ( e.shiftKey && active === first ) {
+			e.preventDefault();
+			last.focus();
+		} else if ( ! e.shiftKey && active === last ) {
+			e.preventDefault();
+			first.focus();
+		}
+	}
+
+	function buildModalBody( d ) {
+		var body = el( 'div', 'tuki-modal-body' );
+
+		// -------- Gallery (main image + thumbnails) --------
+		var gallery = ( d.gallery && d.gallery.length ) ? d.gallery : ( d.image ? [ { full: d.image, thumb: d.image } ] : [] );
+		var main = document.createElement( 'img' );
+		main.className = 'tuki-modal-image';
+		main.alt = d.title || '';
+		main.src = gallery.length ? gallery[0].full : '';
+		body.appendChild( main );
+
+		if ( gallery.length > 1 ) {
+			var thumbs = el( 'div', 'tuki-modal-thumbs' );
+			gallery.forEach( function ( g, i ) {
+				var t = document.createElement( 'img' );
+				t.className = 'tuki-modal-thumb' + ( 0 === i ? ' is-active' : '' );
+				t.src = g.thumb || g.full;
+				t.alt = '';
+				t.addEventListener( 'click', function () {
+					main.src = g.full;
+					thumbs.querySelectorAll( '.tuki-modal-thumb' ).forEach( function ( x ) {
+						x.classList.remove( 'is-active' );
+					} );
+					t.classList.add( 'is-active' );
+				} );
+				thumbs.appendChild( t );
+			} );
+			body.appendChild( thumbs );
+		}
+
+		// -------- Title, price, stock --------
+		var title = el( 'h3', 'tuki-modal-title' );
+		title.textContent = d.title || '';
+		body.appendChild( title );
+
+		var meta = el( 'div', 'tuki-modal-meta' );
+		var price = el( 'span', 'tuki-modal-price' );
+		price.textContent = formatPrice( d );
+		var badge = el( 'span', 'tuki-badge' + ( d.stock ? '' : ' out' ) );
+		badge.appendChild( el( 'span', 'tuki-badge-dot' ) );
+		badge.appendChild( document.createTextNode( d.stock ? ( S.inStock || '' ) : ( S.outOfStock || '' ) ) );
+		meta.appendChild( price );
+		meta.appendChild( badge );
+		body.appendChild( meta );
+
+		// -------- Short description --------
+		if ( d.description ) {
+			var desc = el( 'p', 'tuki-modal-desc' );
+			desc.textContent = d.description;
+			body.appendChild( desc );
+		}
+
+		// -------- Display attributes --------
+		if ( d.attributes && d.attributes.length ) {
+			var attrs = el( 'dl', 'tuki-modal-attrs' );
+			d.attributes.forEach( function ( a ) {
+				var dt = el( 'dt' );
+				dt.textContent = a.label || '';
+				var dd = el( 'dd' );
+				dd.textContent = a.value || '';
+				attrs.appendChild( dt );
+				attrs.appendChild( dd );
+			} );
+			body.appendChild( attrs );
+		}
+
+		// -------- Purchase area (handles simple + variable) --------
+		body.appendChild( buildModalPurchase( d, main, price, badge ) );
+
+		// -------- Full product link --------
+		if ( d.url ) {
+			var link = buildModalLink( d.url );
+			link.addEventListener( 'click', function () {
+				logClick( d.id );
+			} );
+			body.appendChild( link );
+		}
+
+		return body;
+	}
+
+	// Builds the variation selectors (if any) + quantity stepper + add button.
+	// `mainImg`, `priceEl`, `badgeEl` are updated live as a variation is chosen.
+	function buildModalPurchase( d, mainImg, priceEl, badgeEl ) {
+		var wrap = el( 'div', 'tuki-modal-buy' );
+		var isVariable = 'variable' === d.type && d.variation_attributes && d.variation_attributes.length;
+
+		// The product object we actually add: for a variable product this is filled
+		// in once a full, in-stock variation is resolved.
+		var buyable = {
+			id: d.id,
+			variation_id: 0,
+			add_to_cart: !! d.add_to_cart,
+			max_qty: d.max_qty
+		};
+
+		var selected = {}; // attribute_key -> chosen value
+
+		var errEl = el( 'div', 'tuki-card-error' );
+
+		var stepperWrap = el( 'div', 'tuki-modal-actions' );
+		var addBtn = el( 'button', 'tuki-add' );
+		addBtn.type = 'button';
+		addBtn.textContent = S.addToCart || '';
+
+		var qtyInput = null;
+
+		function refreshAddState() {
+			if ( isVariable ) {
+				var match = resolveVariation( d, selected );
+				if ( match ) {
+					buyable.variation_id = match.variation_id;
+					buyable.add_to_cart = !! match.add_to_cart;
+					buyable.max_qty = match.max_qty;
+					if ( match.price ) {
+						priceEl.textContent = match.price;
+					}
+					if ( match.image ) {
+						mainImg.src = match.image;
+					}
+					setBadge( badgeEl, match.stock );
+					addBtn.disabled = ! match.add_to_cart;
+					addBtn.textContent = match.add_to_cart ? ( S.addToCart || '' ) : ( S.outOfStock || '' );
+				} else {
+					buyable.variation_id = 0;
+					// No complete selection yet, or the combo is unavailable.
+					var complete = d.variation_attributes.every( function ( a ) {
+						return selected[ a.key ];
+					} );
+					addBtn.disabled = true;
+					addBtn.textContent = complete ? ( S.variationUnavailable || 'Unavailable' ) : ( S.selectOptions || 'Select options' );
+				}
+			} else {
+				addBtn.disabled = ! d.add_to_cart;
+			}
+		}
+
+		// Variation selectors.
+		if ( isVariable ) {
+			var opts = el( 'div', 'tuki-modal-options' );
+			d.variation_attributes.forEach( function ( attr ) {
+				var field = el( 'label', 'tuki-modal-option' );
+				var name = el( 'span', 'tuki-modal-option-label' );
+				name.textContent = attr.label || '';
+				var sel = document.createElement( 'select' );
+				sel.className = 'tuki-input';
+				var ph = document.createElement( 'option' );
+				ph.value = '';
+				ph.textContent = S.choose || 'Choose…';
+				sel.appendChild( ph );
+				attr.options.forEach( function ( o ) {
+					var op = document.createElement( 'option' );
+					op.value = o.value;
+					op.textContent = o.label;
+					sel.appendChild( op );
+				} );
+				sel.addEventListener( 'change', function () {
+					if ( sel.value ) {
+						selected[ attr.key ] = sel.value;
+					} else {
+						delete selected[ attr.key ];
+					}
+					refreshAddState();
+				} );
+				field.appendChild( name );
+				field.appendChild( sel );
+				opts.appendChild( field );
+			} );
+			wrap.appendChild( opts );
+		}
+
+		// Quantity stepper — only meaningful when something is addable.
+		if ( d.add_to_cart || isVariable ) {
+			var stepper = buildQtyStepper( d.max_qty || 0 );
+			qtyInput = stepper.input;
+			stepperWrap.appendChild( stepper.el );
+
+			addBtn.addEventListener( 'click', function () {
+				showCardError( wrap, '' );
+				if ( isVariable && ! buyable.variation_id ) {
+					return;
+				}
+				// max_qty may have changed with the variation — re-cap the stepper.
+				stepper.setMax( buyable.max_qty || 0 );
+				addToCart( buyable, addBtn, qtyInput, wrap );
+			} );
+			stepperWrap.appendChild( addBtn );
+			wrap.appendChild( stepperWrap );
+		} else {
+			var oos = el( 'span', 'tuki-oos' );
+			oos.textContent = S.outOfStock || '';
+			wrap.appendChild( oos );
+		}
+
+		wrap.appendChild( errEl );
+		refreshAddState();
+		return wrap;
+	}
+
+	// Finds the variation whose attribute map matches the current selection.
+	// A variation attribute value of '' means "any", so it matches anything.
+	function resolveVariation( d, selected ) {
+		if ( ! d.variations || ! d.variations.length ) {
+			return null;
+		}
+		// Every selector must have a choice before we can resolve.
+		var complete = d.variation_attributes.every( function ( a ) {
+			return selected[ a.key ];
+		} );
+		if ( ! complete ) {
+			return null;
+		}
+		for ( var i = 0; i < d.variations.length; i++ ) {
+			var v = d.variations[ i ];
+			var ok = true;
+			for ( var k = 0; k < d.variation_attributes.length; k++ ) {
+				var key = d.variation_attributes[ k ].key;
+				var want = ( v.attributes[ key ] || '' ).toLowerCase();
+				var got = ( selected[ key ] || '' ).toLowerCase();
+				if ( want && want !== got ) {
+					ok = false;
+					break;
+				}
+			}
+			if ( ok ) {
+				return v;
+			}
+		}
+		return null;
+	}
+
+	function setBadge( badgeEl, inStock ) {
+		badgeEl.className = 'tuki-badge' + ( inStock ? '' : ' out' );
+		badgeEl.textContent = '';
+		badgeEl.appendChild( el( 'span', 'tuki-badge-dot' ) );
+		badgeEl.appendChild( document.createTextNode( inStock ? ( S.inStock || '' ) : ( S.outOfStock || '' ) ) );
+	}
+
+	// A reusable quantity stepper (mirrors the card stepper), with a settable cap.
+	function buildQtyStepper( initialMax ) {
+		var max = ( 'number' === typeof initialMax && initialMax > 0 ) ? initialMax : 0;
+		var stepper = el( 'div', 'tuki-qty' );
+		var minus = el( 'button', 'tuki-qty-btn' );
+		minus.type = 'button';
+		minus.setAttribute( 'aria-label', S.decrease || 'Decrease quantity' );
+		minus.textContent = '−';
+		var qty = el( 'input', 'tuki-qty-input' );
+		qty.type = 'number';
+		qty.min = '1';
+		qty.step = '1';
+		qty.value = '1';
+		qty.inputMode = 'numeric';
+		qty.setAttribute( 'aria-label', S.quantity || 'Quantity' );
+		var plus = el( 'button', 'tuki-qty-btn' );
+		plus.type = 'button';
+		plus.setAttribute( 'aria-label', S.increase || 'Increase quantity' );
+		plus.textContent = '+';
+
+		function clamp() {
+			var v = parseInt( qty.value, 10 );
+			if ( isNaN( v ) || v < 1 ) {
+				v = 1;
+			}
+			if ( max && v > max ) {
+				v = max;
+			}
+			qty.value = String( v );
+			minus.disabled = v <= 1;
+			plus.disabled = !! max && v >= max;
+		}
+
+		minus.addEventListener( 'click', function () {
+			qty.value = String( ( parseInt( qty.value, 10 ) || 1 ) - 1 );
+			clamp();
+		} );
+		plus.addEventListener( 'click', function () {
+			qty.value = String( ( parseInt( qty.value, 10 ) || 1 ) + 1 );
+			clamp();
+		} );
+		qty.addEventListener( 'input', clamp );
+		qty.addEventListener( 'change', clamp );
+		if ( max ) {
+			qty.max = String( max );
+		}
+		clamp();
+
+		stepper.appendChild( minus );
+		stepper.appendChild( qty );
+		stepper.appendChild( plus );
+
+		return {
+			el: stepper,
+			input: qty,
+			setMax: function ( m ) {
+				max = ( 'number' === typeof m && m > 0 ) ? m : 0;
+				if ( max ) {
+					qty.max = String( max );
+				} else {
+					qty.removeAttribute( 'max' );
+				}
+				clamp();
+			}
+		};
 	}
 
 	function refreshCart() {
@@ -121,7 +560,11 @@
 		}
 		btn.disabled = true;
 		btn.textContent = S.adding || '';
-		api( 'add-to-cart', { product_id: p.id, quantity: qty } )
+		var atcPayload = { product_id: p.id, quantity: qty };
+		if ( p.variation_id ) {
+			atcPayload.variation_id = p.variation_id;
+		}
+		api( 'add-to-cart', atcPayload )
 			.then( function ( data ) {
 				btn.textContent = S.added || '';
 				btn.classList.add( 'added' );
@@ -154,8 +597,17 @@
 		img.src = p.image || '';
 		img.alt = p.title || '';
 		img.loading = 'lazy';
+		img.setAttribute( 'role', 'button' );
+		img.setAttribute( 'tabindex', '0' );
+		img.setAttribute( 'aria-label', ( S.viewDetails || 'View details' ) + ( p.title ? ( ': ' + p.title ) : '' ) );
 		img.addEventListener( 'click', function () {
-			openProduct( p );
+			openProduct( p, img );
+		} );
+		img.addEventListener( 'keydown', function ( e ) {
+			if ( 'Enter' === e.key || ' ' === e.key || 13 === e.keyCode || 32 === e.keyCode ) {
+				e.preventDefault();
+				openProduct( p, img );
+			}
 		} );
 
 		var body = el( 'div', 'tuki-pcard-body' );
@@ -178,6 +630,15 @@
 		badge.appendChild( document.createTextNode( p.stock ? ( S.inStock || '' ) : ( S.outOfStock || '' ) ) );
 		meta.appendChild( price );
 		meta.appendChild( badge );
+
+		// Explicit "View details" affordance (in addition to the clickable image),
+		// opening the in-chat detail popup.
+		var details = el( 'button', 'tuki-pcard-details' );
+		details.type = 'button';
+		details.textContent = S.viewDetails || 'View details';
+		details.addEventListener( 'click', function () {
+			openProduct( p, details );
+		} );
 
 		var actions = el( 'div', 'tuki-pcard-actions' );
 		if ( p.add_to_cart ) {
@@ -266,6 +727,7 @@
 
 		body.appendChild( title );
 		body.appendChild( meta );
+		body.appendChild( details );
 		body.appendChild( actions );
 		if ( notify ) {
 			body.appendChild( notify );
@@ -1340,8 +1802,17 @@
 				img.className = 'tuki-compare-img';
 				img.src = p.image || '';
 				img.alt = p.title || '';
+				img.setAttribute( 'role', 'button' );
+				img.setAttribute( 'tabindex', '0' );
+				img.setAttribute( 'aria-label', ( S.viewDetails || 'View details' ) + ( p.title ? ( ': ' + p.title ) : '' ) );
 				img.addEventListener( 'click', function () {
-					openProduct( p );
+					openProduct( p, img );
+				} );
+				img.addEventListener( 'keydown', function ( e ) {
+					if ( 'Enter' === e.key || ' ' === e.key || 13 === e.keyCode || 32 === e.keyCode ) {
+						e.preventDefault();
+						openProduct( p, img );
+					}
 				} );
 
 				var title = el( 'div', 'tuki-compare-title' );

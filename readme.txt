@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, ai, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 7. Analytics — top searches, product index, and unmet demand insights.
 
 == Changelog ==
+
+= 1.6.0 =
+* Added an in-chat product detail popup: tap a product card (or "View details") to see a larger image with gallery thumbnails, price, stock, description, attributes, a quantity stepper and add-to-cart — all inside the chat, without leaving the page.
+* Variable products are supported: choosing a variation updates the price, stock and image, and adds the right variation to the cart.
+* The popup is keyboard accessible (focus trap, Escape to close) and works as a full-height sheet on mobile.
 
 = 1.5.0 =
 * Internal: the assistant now runs behind a single channel-agnostic entry point, so the web chat and future channels share one pipeline. The web chat behaves exactly as before.

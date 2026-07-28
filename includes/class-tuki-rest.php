@@ -151,6 +151,22 @@ class Tuki_Rest {
 			)
 		);
 
+		register_rest_route(
+			self::NAMESPACE,
+			'/product',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_product' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'product_id' => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+				),
+			)
+		);
+
 		// WhatsApp webhook. Meta calls this from its own servers, so it cannot use
 		// the cookie-nonce model the widget routes use:
 		//  - GET  is the one-time verification handshake (hub.verify_token).
@@ -244,11 +260,15 @@ class Tuki_Rest {
 				'callback'            => array( $this, 'handle_add_to_cart' ),
 				'permission_callback' => array( $this, 'check_permission' ),
 				'args'                => array(
-					'product_id' => array(
+					'product_id'   => array(
 						'required' => true,
 						'type'     => 'integer',
 					),
-					'quantity'   => array(
+					'variation_id' => array(
+						'required' => false,
+						'type'     => 'integer',
+					),
+					'quantity'     => array(
 						'required' => false,
 						'type'     => 'integer',
 					),
@@ -703,14 +723,38 @@ class Tuki_Rest {
 	}
 
 	/**
-	 * POST /add-to-cart — add a product with a real-time stock check.
+	 * POST /product — fuller product details for the in-chat detail popup.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_product( WP_REST_Request $request ) {
+		$product_id = absint( $request->get_param( 'product_id' ) );
+
+		if ( ! $product_id ) {
+			return new WP_Error( 'tuki_bad_request', __( 'A product ID is required.', 'tukify' ), array( 'status' => 400 ) );
+		}
+
+		$detail = Tuki_Cart::product_detail( $product_id );
+
+		if ( null === $detail ) {
+			return new WP_Error( 'tuki_not_found', __( 'This product is no longer available.', 'tukify' ), array( 'status' => 404 ) );
+		}
+
+		return rest_ensure_response( $detail );
+	}
+
+	/**
+	 * POST /add-to-cart — add a product (or a chosen variation) with a real-time
+	 * stock check.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_add_to_cart( WP_REST_Request $request ) {
-		$product_id = absint( $request->get_param( 'product_id' ) );
-		$quantity   = max( 1, absint( $request->get_param( 'quantity' ) ) );
+		$product_id   = absint( $request->get_param( 'product_id' ) );
+		$variation_id = absint( $request->get_param( 'variation_id' ) );
+		$quantity     = max( 1, absint( $request->get_param( 'quantity' ) ) );
 
 		if ( ! $product_id ) {
 			return new WP_Error( 'tuki_bad_request', __( 'A product ID is required.', 'tukify' ), array( 'status' => 400 ) );
@@ -726,15 +770,32 @@ class Tuki_Rest {
 			return new WP_Error( 'tuki_not_found', __( 'That product could not be found.', 'tukify' ), array( 'status' => 404 ) );
 		}
 
-		if ( ! $product->is_purchasable() || ! $product->is_in_stock() ) {
+		// Variation: the "buyable" object is the variation, but it is added under
+		// its parent id with the variation's own attributes.
+		$variation_attributes = array();
+
+		if ( $variation_id ) {
+			$variation = wc_get_product( $variation_id );
+
+			if ( ! $variation || ! $variation->is_type( 'variation' ) || $variation->get_parent_id() !== $product_id ) {
+				return new WP_Error( 'tuki_not_found', __( 'That option is no longer available.', 'tukify' ), array( 'status' => 404 ) );
+			}
+
+			$variation_attributes = $variation->get_variation_attributes();
+			$buyable              = $variation;
+		} else {
+			$buyable = $product;
+		}
+
+		if ( ! $buyable->is_purchasable() || ! $buyable->is_in_stock() ) {
 			return new WP_Error( 'tuki_out_of_stock', __( 'Sorry, that product is out of stock.', 'tukify' ), array( 'status' => 409 ) );
 		}
 
-		if ( $product->managing_stock() && ! $product->has_enough_stock( $quantity ) ) {
+		if ( $buyable->managing_stock() && ! $buyable->has_enough_stock( $quantity ) ) {
 			return new WP_Error( 'tuki_insufficient_stock', __( 'Not enough stock for that quantity.', 'tukify' ), array( 'status' => 409 ) );
 		}
 
-		$added = WC()->cart->add_to_cart( $product_id, $quantity );
+		$added = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variation_attributes );
 
 		if ( ! $added ) {
 			return new WP_Error( 'tuki_add_failed', __( 'Could not add that product to the cart.', 'tukify' ), array( 'status' => 500 ) );
