@@ -201,13 +201,21 @@ class Tuki_Cart {
 			$text = (string) $product->get_description();
 		}
 
+		// Resolve the content the way the storefront does — WooCommerce's own
+		// filter runs do_shortcode()/wpautop(), so a short description built with a
+		// page builder or shortcodes becomes real text instead of stripping to
+		// nothing. Turn paragraph/line breaks into newlines before removing tags so
+		// the plain text keeps its structure (the popup renders it pre-wrap).
+		$text = (string) apply_filters( 'woocommerce_short_description', $text );
+		$text = str_replace( array( '</p>', '<br>', '<br/>', '<br />' ), "\n", $text );
 		$text = wp_strip_all_tags( $text );
+		$text = trim( preg_replace( "/[ \t]*\n{3,}/", "\n\n", $text ) );
 
 		if ( function_exists( 'mb_substr' ) && mb_strlen( $text ) > 600 ) {
 			$text = rtrim( mb_substr( $text, 0, 599 ) ) . '…';
 		}
 
-		return trim( $text );
+		return $text;
 	}
 
 	/**
