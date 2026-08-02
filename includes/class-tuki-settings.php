@@ -49,6 +49,7 @@ class Tuki_Settings {
 			'openai_api_key'             => '',
 			'anthropic_api_key'          => '',
 			'xai_api_key'                => '',
+			'groq_api_key'               => '',
 			// WhatsApp channel (Meta Cloud API). Off until explicitly enabled.
 			'wa_enabled'                 => 0,
 			'wa_access_token'            => '',
@@ -62,6 +63,7 @@ class Tuki_Settings {
 			'chat_model_openai'          => 'gpt-4o-mini',
 			'chat_model_anthropic'       => 'claude-3-5-haiku-latest',
 			'chat_model_grok'            => 'grok-2-latest',
+			'chat_model_groq'            => 'llama-3.3-70b-versatile',
 			'embedding_model_gemini'     => 'gemini-embedding-001',
 			'embedding_model_openai'     => 'text-embedding-3-small',
 			'retrieval_count'            => 5,
@@ -505,6 +507,23 @@ class Tuki_Settings {
 				),
 				'default_chat' => 'grok-2-latest',
 				'key_hint'     => 'console.x.ai',
+			),
+			'groq'      => array(
+				// groq.com — the fast-inference platform, not xAI's Grok. Chat only:
+				// no 'embeddings' cap (so it never appears in the embedding dropdown)
+				// and no 'vision' cap (vision falls back to a vision-capable provider).
+				'label'        => __( 'Groq (fast inference)', 'tukify' ),
+				'class'        => 'Tuki_Provider_Groq',
+				'key'          => 'groq_api_key',
+				'caps'         => array( 'chat' ),
+				'chat_models'  => array(
+					'llama-3.3-70b-versatile'       => 'llama-3.3-70b-versatile (default)',
+					'llama-3.1-8b-instant'          => 'llama-3.1-8b-instant (fastest)',
+					'openai/gpt-oss-120b'           => 'gpt-oss-120b',
+					'deepseek-r1-distill-llama-70b' => 'deepseek-r1-distill-70b',
+				),
+				'default_chat' => 'llama-3.3-70b-versatile',
+				'key_hint'     => 'console.groq.com',
 			),
 		);
 
