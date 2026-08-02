@@ -355,15 +355,6 @@
 			scroll.appendChild( attrs );
 		}
 
-		// -------- Full product page link --------
-		if ( d.url ) {
-			var link = buildModalLink( d.url );
-			link.addEventListener( 'click', function () {
-				logClick( d.id );
-			} );
-			scroll.appendChild( link );
-		}
-
 		mainWrap.appendChild( scroll );
 		mainWrap.appendChild( el( 'div', 'tuki-modal-fade' ) );
 

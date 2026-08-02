@@ -171,12 +171,13 @@ class Tuki_Cart {
 		}
 
 		$detail['gallery']     = $gallery;
-		$detail['description'] = self::short_description( $product );
+		$detail['description'] = self::product_description( $product );
 		$detail['type']        = $product->get_type();
 
-		// Display attributes: everything not used to build variations (variation
-		// attributes become the selectors below instead).
-		$detail['attributes']           = self::display_attributes( $product );
+		// Everything else worth showing so the popup is self-contained (no need to
+		// leave for the product page): category, SKU, then the product attributes.
+		// Variation attributes are excluded — they become the selectors instead.
+		$detail['attributes']           = self::info_rows( $product );
 		$detail['variation_attributes'] = array();
 		$detail['variations']           = array();
 
@@ -189,20 +190,23 @@ class Tuki_Cart {
 	}
 
 	/**
-	 * Plain-text short description (falls back to a trimmed full description).
+	 * Plain-text product description for the popup.
+	 *
+	 * Prefers the full (long) description so the popup shows everything, and falls
+	 * back to the short description when there is no long one.
 	 *
 	 * @param WC_Product $product Product.
 	 * @return string
 	 */
-	private static function short_description( $product ) {
-		$text = (string) $product->get_short_description();
+	private static function product_description( $product ) {
+		$text = (string) $product->get_description();
 
 		if ( '' === trim( $text ) ) {
-			$text = (string) $product->get_description();
+			$text = (string) $product->get_short_description();
 		}
 
 		// Resolve the content the way the storefront does — WooCommerce's own
-		// filter runs do_shortcode()/wpautop(), so a short description built with a
+		// filter runs do_shortcode()/wpautop(), so a description built with a
 		// page builder or shortcodes becomes real text instead of stripping to
 		// nothing. Turn paragraph/line breaks into newlines before removing tags so
 		// the plain text keeps its structure (the popup renders it pre-wrap).
@@ -211,11 +215,47 @@ class Tuki_Cart {
 		$text = wp_strip_all_tags( $text );
 		$text = trim( preg_replace( "/[ \t]*\n{3,}/", "\n\n", $text ) );
 
-		if ( function_exists( 'mb_substr' ) && mb_strlen( $text ) > 600 ) {
-			$text = rtrim( mb_substr( $text, 0, 599 ) ) . '…';
+		if ( function_exists( 'mb_substr' ) && mb_strlen( $text ) > 2000 ) {
+			$text = rtrim( mb_substr( $text, 0, 1999 ) ) . '…';
 		}
 
 		return $text;
+	}
+
+	/**
+	 * All the label/value info rows shown in the popup: category and SKU (so the
+	 * popup is self-contained), followed by the product's own attributes. Only
+	 * rows the product actually has are returned.
+	 *
+	 * @param WC_Product $product Product.
+	 * @return array List of [ 'label' => string, 'value' => string ].
+	 */
+	private static function info_rows( $product ) {
+		$rows = array();
+
+		$terms = get_the_terms( $product->get_id(), 'product_cat' );
+
+		if ( $terms && ! is_wp_error( $terms ) ) {
+			$names = array_filter( wp_list_pluck( $terms, 'name' ) );
+
+			if ( ! empty( $names ) ) {
+				$rows[] = array(
+					'label' => _n( 'Category', 'Categories', count( $names ), 'tukify' ),
+					'value' => implode( ', ', $names ),
+				);
+			}
+		}
+
+		$sku = (string) $product->get_sku();
+
+		if ( '' !== $sku ) {
+			$rows[] = array(
+				'label' => __( 'SKU', 'tukify' ),
+				'value' => $sku,
+			);
+		}
+
+		return array_merge( $rows, self::display_attributes( $product ) );
 	}
 
 	/**
