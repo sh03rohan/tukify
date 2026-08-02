@@ -201,6 +201,7 @@ class Tuki_Frontend {
 				'viewDetails'           => __( 'View details', 'tukify' ),
 				'productDetails'        => __( 'Product details', 'tukify' ),
 				'viewFullProduct'       => __( 'View full product page', 'tukify' ),
+				'descriptionLabel'      => __( 'Description', 'tukify' ),
 				'productUnavailable'    => __( 'Sorry, this product is unavailable right now.', 'tukify' ),
 				'choose'                => __( 'Choose…', 'tukify' ),
 				'selectOptions'         => __( 'Select options', 'tukify' ),

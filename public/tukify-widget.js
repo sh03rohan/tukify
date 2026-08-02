@@ -128,6 +128,11 @@
 			overlay.style.top = head.offsetHeight + 'px';
 		}
 
+		// Animate in (slide-up + fade) on the next frame so the transition runs.
+		requestAnimationFrame( function () {
+			overlay.classList.add( 'is-open' );
+		} );
+
 		var closed = false;
 
 		function close() {
@@ -135,8 +140,14 @@
 				return;
 			}
 			closed = true;
-			panel.removeChild( overlay );
 			document.removeEventListener( 'keydown', onKey, true );
+			// Slide/fade out, then remove after the transition.
+			overlay.classList.remove( 'is-open' );
+			setTimeout( function () {
+				if ( overlay.parentNode ) {
+					overlay.parentNode.removeChild( overlay );
+				}
+			}, 200 );
 			// Return focus to the card that opened the popup (i.e. back to the chat).
 			if ( previousFocus && previousFocus.focus ) {
 				try {
@@ -227,15 +238,20 @@
 	}
 
 	function buildModalBody( d ) {
-		var body = el( 'div', 'tuki-modal-body' );
+		var frag = document.createDocumentFragment();
 
-		// -------- Gallery (main image + thumbnails) --------
+		// Middle: the only scrollable region (image → thumbs → title → variations →
+		// description → attributes). The header and bottom bar stay fixed.
+		var mainWrap = el( 'div', 'tuki-modal-main' );
+		var scroll = el( 'div', 'tuki-modal-scroll' );
+
+		// -------- Gallery (main image + thumbnail chips) --------
 		var gallery = ( d.gallery && d.gallery.length ) ? d.gallery : ( d.image ? [ { full: d.image, thumb: d.image } ] : [] );
-		var main = document.createElement( 'img' );
-		main.className = 'tuki-modal-image';
-		main.alt = d.title || '';
-		main.src = gallery.length ? gallery[0].full : '';
-		body.appendChild( main );
+		var mainImg = document.createElement( 'img' );
+		mainImg.className = 'tuki-modal-image';
+		mainImg.alt = d.title || '';
+		mainImg.src = gallery.length ? gallery[0].full : '';
+		scroll.appendChild( mainImg );
 
 		if ( gallery.length > 1 ) {
 			var thumbs = el( 'div', 'tuki-modal-thumbs' );
@@ -245,7 +261,7 @@
 				t.src = g.thumb || g.full;
 				t.alt = '';
 				t.addEventListener( 'click', function () {
-					main.src = g.full;
+					mainImg.src = g.full;
 					thumbs.querySelectorAll( '.tuki-modal-thumb' ).forEach( function ( x ) {
 						x.classList.remove( 'is-active' );
 					} );
@@ -253,13 +269,13 @@
 				} );
 				thumbs.appendChild( t );
 			} );
-			body.appendChild( thumbs );
+			scroll.appendChild( thumbs );
 		}
 
-		// -------- Title, price, stock --------
+		// -------- Title + price/stock --------
 		var title = el( 'h3', 'tuki-modal-title' );
 		title.textContent = d.title || '';
-		body.appendChild( title );
+		scroll.appendChild( title );
 
 		var meta = el( 'div', 'tuki-modal-meta' );
 		var price = el( 'span', 'tuki-modal-price' );
@@ -269,68 +285,95 @@
 		badge.appendChild( document.createTextNode( d.stock ? ( S.inStock || '' ) : ( S.outOfStock || '' ) ) );
 		meta.appendChild( price );
 		meta.appendChild( badge );
-		body.appendChild( meta );
+		scroll.appendChild( meta );
 
-		// -------- Short description --------
+		// -------- Shared purchase state (chips in the scroll drive the fixed bar) --------
+		var isVariable = 'variable' === d.type && d.variation_attributes && d.variation_attributes.length;
+		var buyable = { id: d.id, variation_id: 0, add_to_cart: !! d.add_to_cart, max_qty: d.max_qty };
+		var selected = {};
+		var stepper = null;
+
+		// -------- Variation chips --------
+		if ( isVariable ) {
+			var opts = el( 'div', 'tuki-modal-options' );
+			d.variation_attributes.forEach( function ( attr ) {
+				var group = el( 'div', 'tuki-modal-optgroup' );
+				var name = el( 'span', 'tuki-modal-option-label' );
+				name.textContent = attr.label || '';
+				group.appendChild( name );
+				var chips = el( 'div', 'tuki-modal-chips' );
+				attr.options.forEach( function ( o ) {
+					var chip = el( 'button', 'tuki-modal-chip' );
+					chip.type = 'button';
+					chip.textContent = o.label;
+					chip.addEventListener( 'click', function () {
+						if ( selected[ attr.key ] === o.value ) {
+							delete selected[ attr.key ];
+							chip.classList.remove( 'is-active' );
+						} else {
+							selected[ attr.key ] = o.value;
+							chips.querySelectorAll( '.tuki-modal-chip' ).forEach( function ( x ) {
+								x.classList.remove( 'is-active' );
+							} );
+							chip.classList.add( 'is-active' );
+						}
+						refreshAddState();
+					} );
+					chips.appendChild( chip );
+				} );
+				group.appendChild( chips );
+				opts.appendChild( group );
+			} );
+			scroll.appendChild( opts );
+		}
+
+		// -------- Description --------
 		if ( d.description ) {
+			var section = el( 'div', 'tuki-modal-section' );
+			var sHead = el( 'h4', 'tuki-modal-section-title' );
+			sHead.textContent = S.descriptionLabel || 'Description';
 			var desc = el( 'p', 'tuki-modal-desc' );
 			desc.textContent = d.description;
-			body.appendChild( desc );
+			section.appendChild( sHead );
+			section.appendChild( desc );
+			scroll.appendChild( section );
 		}
 
-		// -------- Display attributes --------
+		// -------- Attributes (label/value rows, hairline dividers) --------
 		if ( d.attributes && d.attributes.length ) {
-			var attrs = el( 'dl', 'tuki-modal-attrs' );
+			var attrs = el( 'div', 'tuki-modal-attrs' );
 			d.attributes.forEach( function ( a ) {
-				var dt = el( 'dt' );
-				dt.textContent = a.label || '';
-				var dd = el( 'dd' );
-				dd.textContent = a.value || '';
-				attrs.appendChild( dt );
-				attrs.appendChild( dd );
+				var row = el( 'div', 'tuki-modal-attr' );
+				var lab = el( 'span', 'tuki-modal-attr-label' );
+				lab.textContent = a.label || '';
+				var val = el( 'span', 'tuki-modal-attr-value' );
+				val.textContent = a.value || '';
+				row.appendChild( lab );
+				row.appendChild( val );
+				attrs.appendChild( row );
 			} );
-			body.appendChild( attrs );
+			scroll.appendChild( attrs );
 		}
 
-		// -------- Purchase area (handles simple + variable) --------
-		body.appendChild( buildModalPurchase( d, main, price, badge ) );
-
-		// -------- Full product link --------
+		// -------- Full product page link --------
 		if ( d.url ) {
 			var link = buildModalLink( d.url );
 			link.addEventListener( 'click', function () {
 				logClick( d.id );
 			} );
-			body.appendChild( link );
+			scroll.appendChild( link );
 		}
 
-		return body;
-	}
+		mainWrap.appendChild( scroll );
+		mainWrap.appendChild( el( 'div', 'tuki-modal-fade' ) );
 
-	// Builds the variation selectors (if any) + quantity stepper + add button.
-	// `mainImg`, `priceEl`, `badgeEl` are updated live as a variation is chosen.
-	function buildModalPurchase( d, mainImg, priceEl, badgeEl ) {
-		var wrap = el( 'div', 'tuki-modal-buy' );
-		var isVariable = 'variable' === d.type && d.variation_attributes && d.variation_attributes.length;
-
-		// The product object we actually add: for a variable product this is filled
-		// in once a full, in-stock variation is resolved.
-		var buyable = {
-			id: d.id,
-			variation_id: 0,
-			add_to_cart: !! d.add_to_cart,
-			max_qty: d.max_qty
-		};
-
-		var selected = {}; // attribute_key -> chosen value
-
+		// -------- Fixed bottom bar: quantity stepper + full-width Add to cart --------
+		var bar = el( 'div', 'tuki-modal-bar' );
 		var errEl = el( 'div', 'tuki-card-error' );
-
-		var stepperWrap = el( 'div', 'tuki-modal-actions' );
-		var addBtn = el( 'button', 'tuki-add' );
+		var barRow = el( 'div', 'tuki-modal-bar-row' );
+		var addBtn = el( 'button', 'tuki-add tuki-modal-add' );
 		addBtn.type = 'button';
 		addBtn.textContent = S.addToCart || '';
-
 		var qtyInput = null;
 
 		function refreshAddState() {
@@ -341,17 +384,19 @@
 					buyable.add_to_cart = !! match.add_to_cart;
 					buyable.max_qty = match.max_qty;
 					if ( match.price ) {
-						priceEl.textContent = match.price;
+						price.textContent = match.price;
 					}
 					if ( match.image ) {
 						mainImg.src = match.image;
 					}
-					setBadge( badgeEl, match.stock );
+					setBadge( badge, match.stock );
+					if ( stepper ) {
+						stepper.setMax( match.max_qty || 0 );
+					}
 					addBtn.disabled = ! match.add_to_cart;
 					addBtn.textContent = match.add_to_cart ? ( S.addToCart || '' ) : ( S.outOfStock || '' );
 				} else {
 					buyable.variation_id = 0;
-					// No complete selection yet, or the combo is unavailable.
 					var complete = d.variation_attributes.every( function ( a ) {
 						return selected[ a.key ];
 					} );
@@ -360,69 +405,37 @@
 				}
 			} else {
 				addBtn.disabled = ! d.add_to_cart;
+				addBtn.textContent = d.add_to_cart ? ( S.addToCart || '' ) : ( S.outOfStock || '' );
 			}
 		}
 
-		// Variation selectors.
-		if ( isVariable ) {
-			var opts = el( 'div', 'tuki-modal-options' );
-			d.variation_attributes.forEach( function ( attr ) {
-				var field = el( 'label', 'tuki-modal-option' );
-				var name = el( 'span', 'tuki-modal-option-label' );
-				name.textContent = attr.label || '';
-				var sel = document.createElement( 'select' );
-				sel.className = 'tuki-input';
-				var ph = document.createElement( 'option' );
-				ph.value = '';
-				ph.textContent = S.choose || 'Choose…';
-				sel.appendChild( ph );
-				attr.options.forEach( function ( o ) {
-					var op = document.createElement( 'option' );
-					op.value = o.value;
-					op.textContent = o.label;
-					sel.appendChild( op );
-				} );
-				sel.addEventListener( 'change', function () {
-					if ( sel.value ) {
-						selected[ attr.key ] = sel.value;
-					} else {
-						delete selected[ attr.key ];
-					}
-					refreshAddState();
-				} );
-				field.appendChild( name );
-				field.appendChild( sel );
-				opts.appendChild( field );
-			} );
-			wrap.appendChild( opts );
-		}
-
-		// Quantity stepper — only meaningful when something is addable.
 		if ( d.add_to_cart || isVariable ) {
-			var stepper = buildQtyStepper( d.max_qty || 0 );
+			stepper = buildQtyStepper( d.max_qty || 0 );
 			qtyInput = stepper.input;
-			stepperWrap.appendChild( stepper.el );
-
 			addBtn.addEventListener( 'click', function () {
-				showCardError( wrap, '' );
+				showCardError( bar, '' );
 				if ( isVariable && ! buyable.variation_id ) {
 					return;
 				}
-				// max_qty may have changed with the variation — re-cap the stepper.
 				stepper.setMax( buyable.max_qty || 0 );
-				addToCart( buyable, addBtn, qtyInput, wrap );
+				addToCart( buyable, addBtn, qtyInput, bar );
 			} );
-			stepperWrap.appendChild( addBtn );
-			wrap.appendChild( stepperWrap );
+			barRow.appendChild( stepper.el );
+			barRow.appendChild( addBtn );
 		} else {
 			var oos = el( 'span', 'tuki-oos' );
 			oos.textContent = S.outOfStock || '';
-			wrap.appendChild( oos );
+			barRow.appendChild( oos );
 		}
 
-		wrap.appendChild( errEl );
+		bar.appendChild( errEl );
+		bar.appendChild( barRow );
+
 		refreshAddState();
-		return wrap;
+
+		frag.appendChild( mainWrap );
+		frag.appendChild( bar );
+		return frag;
 	}
 
 	// Finds the variation whose attribute map matches the current selection.

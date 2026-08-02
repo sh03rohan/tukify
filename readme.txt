@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, ai, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,9 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 7. Analytics — top searches, product index, and unmet demand insights.
 
 == Changelog ==
+
+= 1.6.2 =
+* Redesigned the in-chat product detail popup: a fixed quantity + Add to cart bar at the bottom, variation options as tappable chips, a scrollable middle with no visible scrollbar and a soft fade at the bottom edge, the price in your accent colour, and a smooth slide-up/fade animation. The chat header stays visible above it.
 
 = 1.6.1 =
 * Added Groq (groq.com, the fast-inference platform) as a chat provider — OpenAI-compatible, very fast. Chat only: it has no embeddings or vision, so embeddings keep using Gemini/OpenAI and visual search falls back to a vision-capable provider. Shown as "Groq (fast inference)" so it isn't confused with xAI's Grok.

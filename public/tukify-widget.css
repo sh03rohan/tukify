@@ -1534,13 +1534,18 @@
 	align-items: center;
 	justify-content: center;
 	padding: 14px;
+	opacity: 0;
+	transition: opacity 180ms ease;
+}
+
+.tuki-modal.is-open {
+	opacity: 1;
 }
 
 .tuki-modal-backdrop {
 	position: absolute;
 	inset: 0;
-	background: rgba(0, 0, 0, 0.5);
-	backdrop-filter: blur(1px);
+	background: rgba(0, 0, 0, 0.55);
 }
 
 .tuki-modal-sheet {
@@ -1552,16 +1557,22 @@
 	max-height: 100%;
 	background: var(--tuki-bg);
 	border: 0.5px solid var(--tuki-border);
-	border-radius: var(--tuki-radius-lg);
-	box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+	border-radius: 16px;
+	box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
 	overflow: hidden;
+	transform: translateY(14px);
+	transition: transform 180ms ease;
+}
+
+.tuki-modal.is-open .tuki-modal-sheet {
+	transform: translateY(0);
 }
 
 .tuki-modal-close {
 	position: absolute;
-	top: 8px;
-	right: 8px;
-	z-index: 2;
+	top: 10px;
+	right: 10px;
+	z-index: 3;
 	width: 32px;
 	height: 32px;
 	display: flex;
@@ -1569,9 +1580,9 @@
 	justify-content: center;
 	border: none;
 	border-radius: 50%;
-	background: var(--tuki-bg);
+	background: var(--tuki-surface);
 	color: var(--tuki-text);
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+	box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 	cursor: pointer;
 }
 
@@ -1580,32 +1591,26 @@
 	height: 18px;
 }
 
+/* content = flex column filling the sheet: scrollable middle + fixed bar. */
 .tuki-modal-content {
-	overflow-y: auto;
-	padding: 16px;
-	/* Scrollable without a visible scrollbar. */
-	scrollbar-width: none;
-	-ms-overflow-style: none;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	overflow: hidden;
 }
 
-.tuki-modal-content::-webkit-scrollbar,
-.tuki-modal-thumbs::-webkit-scrollbar {
-	width: 0;
-	height: 0;
-	display: none;
-}
-
-.tuki-modal-thumbs {
-	scrollbar-width: none;
-	-ms-overflow-style: none;
-}
-
-.tuki-modal-loading {
+/* Loading + error states are centered in the content. */
+.tuki-modal-loading,
+.tuki-modal-msg {
+	flex: 1;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: 10px;
-	min-height: 140px;
+	padding: 40px 16px;
+	text-align: center;
 	color: var(--tuki-text-muted);
 }
 
@@ -1624,18 +1629,46 @@
 	}
 }
 
-.tuki-modal-msg {
-	padding: 24px 8px;
-	text-align: center;
-	color: var(--tuki-text-muted);
+/* The ONLY scroll region. */
+.tuki-modal-main {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+
+.tuki-modal-scroll {
+	position: absolute;
+	inset: 0;
+	overflow-y: auto;
+	padding: 18px 16px 8px;
+	/* Scrollable, but no visible scrollbar. */
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.tuki-modal-scroll::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+	display: none;
+}
+
+/* Fade-out at the bottom edge of the scroll area, above the fixed bar. */
+.tuki-modal-fade {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 36px;
+	pointer-events: none;
+	background: linear-gradient( to top, var(--tuki-bg), rgba(0, 0, 0, 0) );
 }
 
 .tuki-modal-image {
 	width: 100%;
 	max-height: 260px;
 	object-fit: contain;
-	border-radius: var(--tuki-radius-md, 10px);
-	background: var(--tuki-surface, rgba(127, 127, 127, 0.08));
+	border-radius: 12px;
+	background: var(--tuki-surface);
 }
 
 .tuki-modal-thumbs {
@@ -1643,25 +1676,35 @@
 	gap: 8px;
 	margin-top: 10px;
 	overflow-x: auto;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.tuki-modal-thumbs::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+	display: none;
 }
 
 .tuki-modal-thumb {
 	width: 52px;
 	height: 52px;
 	object-fit: cover;
-	border-radius: 8px;
+	border-radius: 10px;
 	border: 2px solid transparent;
 	cursor: pointer;
 	flex-shrink: 0;
+	opacity: 0.7;
 }
 
 .tuki-modal-thumb.is-active {
 	border-color: var(--tuki-accent);
+	opacity: 1;
 }
 
 .tuki-modal-title {
-	margin: 14px 0 6px;
-	font-size: 16px;
+	margin: 16px 0 8px;
+	font-size: 17px;
 	font-weight: 600;
 	color: var(--tuki-text);
 	line-height: 1.35;
@@ -1670,79 +1713,158 @@
 .tuki-modal-meta {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
 	flex-wrap: wrap;
-	margin-bottom: 10px;
+	margin-bottom: 4px;
 }
 
 .tuki-modal-price {
-	font-size: 16px;
+	font-size: 17px;
 	font-weight: 700;
+	color: var(--tuki-accent);
+}
+
+/* Stock pill: green in stock, red out. */
+.tuki-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12.5px;
+	color: var(--tuki-success);
+}
+
+.tuki-badge.out {
+	color: var(--tuki-danger);
+}
+
+.tuki-badge-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+/* Variation chips. */
+.tuki-modal-options {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin: 14px 0 4px;
+}
+
+.tuki-modal-option-label {
+	display: block;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--tuki-text-muted);
+	margin-bottom: 7px;
+}
+
+.tuki-modal-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.tuki-modal-chip {
+	font-size: 13px;
+	line-height: 1;
+	padding: 8px 14px;
+	border-radius: 10px;
+	border: 1px solid var(--tuki-border);
+	background: var(--tuki-surface);
+	color: var(--tuki-text);
+	cursor: pointer;
+	transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.tuki-modal-chip:hover {
+	border-color: var(--tuki-accent);
+}
+
+.tuki-modal-chip.is-active {
+	background: var(--tuki-accent);
+	border-color: var(--tuki-accent);
+	color: var(--tuki-accent-ink);
+}
+
+/* Description section. */
+.tuki-modal-section {
+	margin: 18px 0 4px;
+}
+
+.tuki-modal-section-title {
+	margin: 0 0 6px;
+	font-size: 13px;
+	font-weight: 600;
 	color: var(--tuki-text);
 }
 
 .tuki-modal-desc {
-	margin: 0 0 12px;
+	margin: 0;
 	font-size: 13px;
 	line-height: 1.6;
 	color: var(--tuki-text-muted);
 	white-space: pre-wrap;
 }
 
+/* Attribute rows with hairline dividers. */
 .tuki-modal-attrs {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: 4px 12px;
-	margin: 0 0 14px;
-	font-size: 12.5px;
+	margin: 18px 0 6px;
 }
 
-.tuki-modal-attrs dt {
+.tuki-modal-attr {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 10px 0;
+	font-size: 13px;
+	border-top: 0.5px solid var(--tuki-border);
+}
+
+.tuki-modal-attr:last-child {
+	border-bottom: 0.5px solid var(--tuki-border);
+}
+
+.tuki-modal-attr-label {
 	color: var(--tuki-text-muted);
-	font-weight: 600;
 }
 
-.tuki-modal-attrs dd {
-	margin: 0;
+.tuki-modal-attr-value {
 	color: var(--tuki-text);
-}
-
-.tuki-modal-options {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-	margin-bottom: 12px;
-}
-
-.tuki-modal-option {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.tuki-modal-option-label {
-	font-size: 12px;
-	font-weight: 600;
-	color: var(--tuki-text-muted);
-}
-
-.tuki-modal-actions {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	flex-wrap: wrap;
-	margin-bottom: 10px;
+	text-align: right;
 }
 
 .tuki-modal-full {
 	display: inline-block;
-	margin-top: 4px;
+	margin-top: 14px;
 	font-size: 13px;
 	color: var(--tuki-accent);
 	text-decoration: underline;
 }
 
-/* Mobile: full-height bottom sheet. */
+/* Fixed bottom bar (does not scroll). */
+.tuki-modal-bar {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px 16px;
+	border-top: 0.5px solid var(--tuki-border);
+	background: var(--tuki-bg);
+}
+
+.tuki-modal-bar-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.tuki-modal-add {
+	flex: 1;
+}
+
+/* Mobile: full-height sheet, fixed header + bar, middle scrolls. */
 @media ( max-width: 480px ) {
 	.tuki-modal {
 		padding: 0;
