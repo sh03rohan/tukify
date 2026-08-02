@@ -1531,7 +1531,9 @@
 	inset: 0;
 	z-index: 40;
 	display: flex;
-	align-items: center;
+	/* Stretch the sheet to fill the height so the middle can flex + scroll.
+	   (Centering collapsed the flex:1 content, leaving only the bottom bar.) */
+	align-items: stretch;
 	justify-content: center;
 	padding: 14px;
 	opacity: 0;
@@ -1555,6 +1557,7 @@
 	flex-direction: column;
 	width: 100%;
 	max-height: 100%;
+	min-height: 0;
 	background: var(--tuki-bg);
 	border: 0.5px solid var(--tuki-border);
 	border-radius: 16px;
