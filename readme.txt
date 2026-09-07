@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, chatbot, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -141,6 +141,13 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 7. Analytics - top searches, product index, and unmet demand insights.
 
 == Changelog ==
+
+= 1.7.0 =
+* New conversion KPIs on the dashboard: cart recovery rate, resolution rate, chat-assisted AOV against the store-wide average, and attributed revenue.
+* New date-range filter (7 / 30 / 90 days, 1 year, all time) and a trend line of attributed orders per day.
+* Chat-to-sale is now range-aware and counts distinct sessions on both sides of the ratio; it previously compared every attributed order against chat sessions only, which could report over 100%.
+* Order totals are now recorded on the attribution event, so revenue metrics need no per-order lookups when the dashboard loads.
+* All KPIs are aggregate counts only - no customer, order contents, or personal data is stored or displayed.
 
 = 1.6.0 =
 * New: abandonment intervention - the chat now opens itself with a helpful nudge when a shopper stalls on the cart or checkout page, or looks about to leave.

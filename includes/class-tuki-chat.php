@@ -287,6 +287,12 @@ class Tuki_Chat {
 			}
 		}
 
+		// Nothing cleared the relevance threshold: the shopper got alternatives, not
+		// what they asked for. That is the other way a chat turn goes unresolved.
+		if ( $rescue ) {
+			Tuki_Analytics::record_unresolved();
+		}
+
 		return array(
 			'reply'    => $reply,
 			'products' => $products,
@@ -677,6 +683,13 @@ class Tuki_Chat {
 		// Owner can hide citations entirely; when off, carry none through to the UI.
 		if ( ! Tuki_Settings::get( 'show_citations' ) ) {
 			$sources = array();
+		}
+
+		// No snippet cleared the confidence bar, so the assistant answered from
+		// nothing. Recorded against the session (unlike the anonymous demand log)
+		// so the dashboard can report what share of conversations went unresolved.
+		if ( ! $answered ) {
+			Tuki_Analytics::record_unresolved();
 		}
 
 		return array(
