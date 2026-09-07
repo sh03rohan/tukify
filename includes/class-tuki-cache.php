@@ -187,4 +187,45 @@ class Tuki_Cache {
 
 		set_transient( self::key( 'ans', self::normalize( $message ) ), $result, self::ttl() );
 	}
+	/*
+	 * Image-intent cache
+	 */
+
+	/**
+	 * Returns a cached image classification, or null on miss / when disabled.
+	 *
+	 * Keyed by a hash of the image bytes plus the classifying model, so the same
+	 * photo re-uploaded (a shopper retrying, or sending it again later in the
+	 * conversation) is triaged without paying for a second vision call. Only the
+	 * hash is stored — never the image itself.
+	 *
+	 * @param string $signature Provider + model signature.
+	 * @param string $hash      Hash of the image bytes.
+	 * @return array|null Classification array, or null.
+	 */
+	public static function get_image_intent( $signature, $hash ) {
+		if ( ! self::is_enabled() ) {
+			return null;
+		}
+
+		$cached = get_transient( self::key( 'vis', $signature . '|' . $hash ) );
+
+		return is_array( $cached ) ? $cached : null;
+	}
+
+	/**
+	 * Stores an image classification.
+	 *
+	 * @param string $signature Provider + model signature.
+	 * @param string $hash      Hash of the image bytes.
+	 * @param array  $intent    Classification array.
+	 * @return void
+	 */
+	public static function set_image_intent( $signature, $hash, array $intent ) {
+		if ( ! self::is_enabled() ) {
+			return;
+		}
+
+		set_transient( self::key( 'vis', $signature . '|' . $hash ), $intent, self::ttl() );
+	}
 }

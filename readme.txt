@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, chatbot, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -141,6 +141,14 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 7. Analytics - top searches, product index, and unmet demand insights.
 
 == Changelog ==
+
+= 1.8.0 =
+* Uploaded images are now triaged before anything is searched: one quick classification decides whether the photo is a single product, a scene, a problem with an item, or unclear.
+* A photo of a damaged, faulty, or wrong item no longer returns products to buy. Tukify offers the secure order lookup and your own returns policy instead.
+* Scene photos - a room, an outfit, a flatlay - detect the dominant items and search for each one, now including furniture, lighting, decor, textiles, appliances, kitchenware and plants rather than clothing only.
+* An image Tukify cannot read now asks one short question instead of guessing.
+* Simple product photos take exactly the same path as before, and classification failures fall back to it, so image search keeps working even if triage is unavailable.
+* Repeat uploads of the same photo reuse the cached classification, so retrying costs nothing.
 
 = 1.7.0 =
 * New conversion KPIs on the dashboard: cart recovery rate, resolution rate, chat-assisted AOV against the store-wide average, and attributed revenue.

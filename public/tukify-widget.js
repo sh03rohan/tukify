@@ -2445,11 +2445,30 @@
 			api( 'visual-search', { image: dataUrl } )
 				.then( function ( data ) {
 					typing.remove();
-					addBubble( 'bot', data && data.reply ? data.reply : ( S.empty || '' ) );
+					var reply = ( data && data.reply ) ? data.reply : ( S.empty || '' );
+					addBubble( 'bot', reply );
+					// An image turn is a real conversational turn: record it so a
+					// follow-up ("how do returns work?") has something to build on.
+					history.push( { role: 'assistant', content: reply } );
+
 					if ( data && data.groups && data.groups.length ) {
 						addLookGroups( data.groups );
 					} else if ( data && data.products && data.products.length ) {
 						addChatCards( data.products, data.browse );
+					}
+
+					// An uploaded photo is now triaged before it is searched, so it can
+					// come back as a support hand-off or a clarifying question rather
+					// than products. Those replies carry the same payload keys the text
+					// pipeline already uses, so they render through the same helpers.
+					if ( data && data.sources && data.sources.length ) {
+						addSources( data.sources );
+					}
+					if ( data && data.order_form ) {
+						addOrderForm( data.order_form );
+					}
+					if ( data && data.quick_replies && data.quick_replies.length ) {
+						addQuickReplies( data.quick_replies );
 					}
 				} )
 				.catch( function ( err ) {
