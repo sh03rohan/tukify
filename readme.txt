@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, chatbot, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -141,6 +141,14 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 7. Analytics - top searches, product index, and unmet demand insights.
 
 == Changelog ==
+
+= 1.6.0 =
+* New: abandonment intervention - the chat now opens itself with a helpful nudge when a shopper stalls on the cart or checkout page, or looks about to leave.
+* Three triggers (checkout idle, cart idle, exit intent), each switchable, with editable idle thresholds and message templates.
+* The nudge offers quick-reply chips for the most common blockers - shipping cost, sizing, payment - answered from your live cart, shipping zones and payment gateways plus your knowledge base, with no AI call.
+* One frequency cap now covers every trigger, so a shopper is nudged at most once per session and at most once per N hours.
+* Never fires for logged-in administrators or shop managers, so it stays out of the way while you work on your own store.
+* Consolidates the previous separate "Exit intent" and "Proactive re-engagement" settings into a single Engagement tab; your existing settings are migrated automatically.
 
 = 1.5.0 =
 * New: in-chat product detail popup (gallery, variations, add to cart).

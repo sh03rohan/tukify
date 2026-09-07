@@ -334,7 +334,16 @@
 	color: var(--tuki-accent);
 }
 
-/* ---- Re-engagement coupon pill ---- */
+/* The abandonment nudge opens the chat unprompted and the chips are often the
+   first thing a shopper reaches for, so keyboard focus has to be unmistakable. */
+.tuki-chip:focus-visible {
+	outline: 2px solid var(--tuki-accent);
+	outline-offset: 2px;
+	border-color: var(--tuki-accent);
+	color: var(--tuki-accent);
+}
+
+/* ---- Intervention coupon pill ---- */
 
 .tuki-coupon {
 	align-self: flex-start;

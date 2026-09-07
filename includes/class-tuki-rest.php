@@ -361,6 +361,26 @@ class Tuki_Rest {
 			)
 		);
 
+		// Abandonment intervention: grounded answers for the blocker chips shown
+		// with the proactive nudge. Deterministic store data (cart, shipping zones,
+		// payment gateways) plus knowledge-base grounding — no AI call, so a chip
+		// tap is instant and costs the owner nothing.
+		register_rest_route(
+			self::NAMESPACE,
+			'/intervention',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_intervention' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'topic' => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			self::NAMESPACE,
 			'/stock-notify',
@@ -697,10 +717,10 @@ class Tuki_Rest {
 
 		if ( 'product_click' === $type && $product_id ) {
 			Tuki_Analytics::record_click( $product_id );
-		} elseif ( 'exit_intent_shown' === $type ) {
-			Tuki_Analytics::record_event( 'exit_intent_shown' );
-		} elseif ( 'reengage_shown' === $type ) {
-			Tuki_Analytics::record_event( 'reengage_shown' );
+		} elseif ( 'intervention_shown' === $type ) {
+			Tuki_Analytics::record_event( 'intervention_shown' );
+		} elseif ( 'intervention_chip' === $type ) {
+			Tuki_Analytics::record_event( 'intervention_chip' );
 		}
 
 		return rest_ensure_response( array( 'success' => true ) );
@@ -720,6 +740,30 @@ class Tuki_Rest {
 				'total' => Tuki_Cart::cart_total_text(),
 			)
 		);
+	}
+
+	/**
+	 * POST /intervention — a grounded answer for one abandonment-nudge chip.
+	 *
+	 * Refuses while the intervention is off or the current user is suppressed, so
+	 * the endpoint cannot be used to fish for store configuration when the
+	 * feature is disabled.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_intervention( WP_REST_Request $request ) {
+		if ( ! Tuki_Intervention::is_enabled() || Tuki_Intervention::is_suppressed() ) {
+			return new WP_Error( 'tuki_disabled', __( 'This feature is not available.', 'tukify' ), array( 'status' => 403 ) );
+		}
+
+		$topic = sanitize_key( (string) $request->get_param( 'topic' ) );
+
+		if ( ! in_array( $topic, Tuki_Intervention::TOPICS, true ) ) {
+			return new WP_Error( 'tuki_bad_request', __( 'Unknown topic.', 'tukify' ), array( 'status' => 400 ) );
+		}
+
+		return rest_ensure_response( Tuki_Intervention::answer( $topic ) );
 	}
 
 	/**
