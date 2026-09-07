@@ -111,47 +111,11 @@ class Tuki_Frontend {
 
 		$assistant = apply_filters( 'tuki_assistant_name', __( 'Tukify', 'tukify' ) );
 
-		/**
-		 * Exit-intent config. Filterable so an owner can attach a coupon offer, etc.
-		 *
-		 * @param array $exit Exit-intent settings passed to the widget.
-		 */
-		$exit_intent = apply_filters(
-			'tuki_exit_intent',
-			array(
-				'enabled'       => (bool) $settings['exit_intent_enabled'],
-				'mobile'        => (bool) $settings['exit_intent_mobile'],
-				'cooldownHours' => (int) $settings['exit_intent_cooldown'],
-				'msgBrowsing'   => '' !== $settings['exit_intent_msg_browsing']
-					? $settings['exit_intent_msg_browsing']
-					: __( 'Need help finding something? I can help you choose.', 'tukify' ),
-				'msgCart'       => '' !== $settings['exit_intent_msg_cart']
-					? $settings['exit_intent_msg_cart']
-					: __( 'Want me to help you finish up? I can answer any questions.', 'tukify' ),
-			)
-		);
-
-		/**
-		 * Proactive re-engagement config. Fires after the shopper goes idle on a
-		 * selected page (e.g. lingering on checkout, or with items in the cart).
-		 * The current page context is resolved server-side so the widget never has
-		 * to guess it. Filterable so an owner can vary the offer per context.
-		 *
-		 * @param array $reengage Re-engagement settings passed to the widget.
-		 */
-		$reengage = apply_filters(
-			'tuki_reengage',
-			array(
-				'enabled'     => (bool) $settings['reengage_enabled'],
-				'idleSeconds' => (int) $settings['reengage_idle_seconds'],
-				'pages'       => array_values( (array) $settings['reengage_pages'] ),
-				'context'     => self::page_context(),
-				'message'     => '' !== $settings['reengage_message']
-					? $settings['reengage_message']
-					: __( 'Still deciding? I can answer any questions or help you check out.', 'tukify' ),
-				'coupon'      => (string) $settings['reengage_coupon'],
-			)
-		);
+		// Abandonment intervention: one proactive nudge with three triggers
+		// (checkout idle, cart idle, exit intent). The page context and the
+		// rendered messages are resolved server-side, and store staff get an
+		// inert config so the chat never opens itself while they are working.
+		$intervention = Tuki_Intervention::config( self::page_context() );
 
 		$checkout_enabled = class_exists( 'Tuki_Checkout' ) && Tuki_Checkout::is_enabled();
 
@@ -166,8 +130,7 @@ class Tuki_Frontend {
 			'css'             => $css,
 			'maxImageBytes'   => 4194304,
 			'upsellProactive' => (bool) $settings['upsell_enabled'] && (bool) $settings['upsell_proactive'],
-			'exitIntent'      => $exit_intent,
-			'reengage'        => $reengage,
+			'intervention'    => $intervention,
 			'checkout'        => array(
 				// Only advertise in-chat checkout when the flag is on AND WooCommerce
 				// is present; the widget hides the affordance otherwise.

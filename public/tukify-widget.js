@@ -886,8 +886,12 @@
 		var shownIds = [];
 		var upsellShown = false;
 		var engaged = false;
-		var exitFired = false;
-		var reengageFired = false;
+		var interventionFired = false;
+		// Server-resolved intervention config. Must be initialised here, above the
+		// setupIntervention() call below: `var` hoists the declaration but not the
+		// assignment, so binding it further down would arm the triggers against an
+		// undefined config and silently disable the whole feature.
+		var iv = cfg.intervention || null;
 		var msgsEl;
 		var inputEl;
 		var sendBtn;
@@ -1038,12 +1042,11 @@
 			refreshCheckoutBar();
 		}
 
-		if ( 'floating' === kind && cfg.exitIntent && cfg.exitIntent.enabled ) {
-			setupExitIntent();
-		}
-
-		if ( 'floating' === kind && cfg.reengage && cfg.reengage.enabled ) {
-			setupReengage();
+		// Proactive nudges only make sense for the global floating widget: an
+		// Elementor chat embedded in a page is already visible, so opening it
+		// would be a no-op the shopper never asked for.
+		if ( 'floating' === kind ) {
+			setupIntervention();
 		}
 
 		function greet() {
@@ -1085,155 +1088,196 @@
 			return match ? parseInt( match[1], 10 ) : 0;
 		}
 
-		function exitCooldownOk() {
-			try {
-				var ts = parseInt( window.localStorage.getItem( 'tuki_exit_ts' ) || '0', 10 );
-				var cooldown = ( cfg.exitIntent.cooldownHours || 0 ) * 3600000;
-				return ( Date.now() - ts ) > cooldown;
-			} catch ( e ) {
-				return true;
-			}
-		}
-
-		function fireExit() {
-			if ( exitFired || engaged || panel.classList.contains( 'is-open' ) || ! exitCooldownOk() ) {
-				return;
-			}
-			exitFired = true;
-			greeted = true; // suppress the standard greeting on this open
-
-			try {
-				window.localStorage.setItem( 'tuki_exit_ts', String( Date.now() ) );
-			} catch ( e ) {}
-
-			panel.classList.add( 'is-open' );
-			var hasCart = readCartCount() > 0;
-			addBubble( 'bot', hasCart ? cfg.exitIntent.msgCart : cfg.exitIntent.msgBrowsing );
-			setTimeout( function () {
-				inputEl.focus();
-			}, 50 );
-
-			api( 'event', { type: 'exit_intent_shown' } ).catch( function () {} );
-			try {
-				document.dispatchEvent( new CustomEvent( 'tuki:exit_intent', { detail: { cart: hasCart } } ) );
-			} catch ( e ) {}
-		}
-
-		function setupExitIntent() {
-			if ( ! exitCooldownOk() ) {
-				return;
-			}
-
-			var mobile = ( 'ontouchstart' in window ) ||
-				( window.matchMedia && window.matchMedia( '(max-width: 768px)' ).matches );
-
-			if ( mobile ) {
-				if ( ! cfg.exitIntent.mobile ) {
-					return;
-				}
-				var lastY = window.pageYOffset || 0;
-				var lastT = Date.now();
-				window.addEventListener( 'scroll', function () {
-					var y = window.pageYOffset || 0;
-					var t = Date.now();
-					if ( ( y - lastY ) < -50 && ( t - lastT ) < 350 && y < 200 ) {
-						fireExit();
-					}
-					lastY = y;
-					lastT = t;
-				}, { passive: true } );
-			} else {
-				document.addEventListener( 'mouseout', function ( e ) {
-					if ( ! e.relatedTarget && e.clientY <= 0 ) {
-						fireExit();
-					}
-				} );
-			}
-		}
-
 		/* -----------------------------------------------------------------
-		 * Proactive re-engagement — nudge a stalling shopper.
+		 * Abandonment intervention — one proactive nudge, three triggers.
 		 *
-		 * Triggers on inactivity ("idle") while the shopper is on a page the
-		 * owner selected: lingering on checkout/cart, or idle anywhere with
-		 * items already in the cart. Fires at most once per session (sessionStorage),
-		 * never while the chat is already open or has been used, and is fully
-		 * dismissible (the standard close button). It only opens the panel and
-		 * drops a friendly message plus an optional coupon — nothing blocking.
+		 * Consolidates what used to be two independent features (exit intent and
+		 * "proactive re-engagement"). Both could open the chat, each with its own
+		 * cooldown, so a shopper could be nudged twice in one visit. Now the three
+		 * triggers — checkout idle, cart idle, exit intent — all funnel through
+		 * fireIntervention(), which fires at most ONCE per session and honours a
+		 * single frequency cap across visits.
+		 *
+		 * The nudge names the friction points that actually stall a checkout and
+		 * offers 2-3 chips for them; each chip is answered from real store data
+		 * (live cart, shipping zones, payment gateways) plus the knowledge base.
+		 *
+		 * Store staff never see it: the server sends an inert config (enabled
+		 * false) to anyone who can administer the shop.
 		 * ----------------------------------------------------------------- */
 
-		// Whether re-engagement is allowed to fire on THIS page right now.
-		function reengageEligible() {
-			var re = cfg.reengage;
-			if ( ! re || ! re.enabled ) {
-				return false;
-			}
-			var pages = re.pages || [];
-			// "any" means every context qualifies; otherwise the current page's
-			// server-resolved context must be in the owner's selected list.
-			if ( pages.indexOf( 'any' ) === -1 && pages.indexOf( re.context ) === -1 ) {
-				return false;
-			}
-			// On checkout/cart, simply being there (lingering) is the signal. Anywhere
-			// else, require items already in the cart so we only nudge real intent.
-			if ( 'checkout' === re.context || 'cart' === re.context ) {
-				return true;
-			}
-			return readCartCount() > 0;
-		}
-
-		// Frequency cap: once per browsing session, so it never nags.
-		function reengageSeen() {
+		// Once per browsing session — survives navigation between cart and
+		// checkout, so moving pages does not earn a second nudge.
+		function ivSeen() {
 			try {
-				return '1' === window.sessionStorage.getItem( 'tuki_reengage_seen' );
+				return '1' === window.sessionStorage.getItem( 'tuki_iv_seen' );
 			} catch ( e ) {
 				return false;
 			}
 		}
 
-		function markReengageSeen() {
+		function ivMarkSeen() {
 			try {
-				window.sessionStorage.setItem( 'tuki_reengage_seen', '1' );
+				window.sessionStorage.setItem( 'tuki_iv_seen', '1' );
 			} catch ( e ) {}
 		}
 
-		function fireReengage() {
-			// Never nag: bail if already shown this session, if the shopper has
-			// engaged the chat, if it is already open, or if we're no longer eligible
-			// (e.g. the cart was emptied while idle).
-			if ( reengageFired || reengageSeen() || engaged || exitFired || panel.classList.contains( 'is-open' ) ) {
-				return;
+		// Frequency cap across visits: at most once per N hours for this browser.
+		// A cap of 0 means the per-session guard above is the only limit.
+		function ivCapOk() {
+			var hours = iv && iv.frequencyHours ? iv.frequencyHours : 0;
+			if ( ! hours ) {
+				return true;
 			}
-			if ( ! reengageEligible() ) {
+			try {
+				var ts = parseInt( window.localStorage.getItem( 'tuki_iv_ts' ) || '0', 10 );
+				return ( Date.now() - ts ) > ( hours * 3600000 );
+			} catch ( e ) {
+				return true;
+			}
+		}
+
+		function ivStamp() {
+			try {
+				window.localStorage.setItem( 'tuki_iv_ts', String( Date.now() ) );
+			} catch ( e ) {}
+		}
+
+		// Every guard in one place, so no trigger can bypass one of them.
+		function ivCanFire() {
+			return !! iv &&
+				true === iv.enabled &&
+				! interventionFired &&
+				! ivSeen() &&
+				! engaged &&
+				! panel.classList.contains( 'is-open' ) &&
+				ivCapOk();
+		}
+
+		// Message for the trigger that fired. Exit intent splits on whether there
+		// is anything in the cart: leaving with a full cart is a different moment
+		// from leaving empty-handed.
+		function ivMessage( reason ) {
+			var m = ( iv && iv.messages ) || {};
+			if ( 'exit' === reason ) {
+				return ( readCartCount() > 0 ? m.exitCart : m.exit ) || m.exit || '';
+			}
+			return m[ reason ] || m.exit || '';
+		}
+
+		function fireIntervention( reason ) {
+			if ( ! ivCanFire() ) {
 				return;
 			}
 
-			reengageFired = true;
-			markReengageSeen();
+			interventionFired = true;
+			ivMarkSeen();
+			ivStamp();
 			greeted = true; // suppress the standard greeting on this open
 
+			var message = ivMessage( reason );
+
 			panel.classList.add( 'is-open' );
-			addBubble( 'bot', cfg.reengage.message );
-			if ( cfg.reengage.coupon ) {
-				addCoupon( cfg.reengage.coupon );
+			if ( message ) {
+				addBubble( 'bot', message );
 			}
+			addInterventionChips();
+			if ( iv.coupon ) {
+				addCoupon( iv.coupon );
+			}
+
+			// The shopper may have changed the cart on another tab; re-check before
+			// showing them a checkout bar with a stale total.
+			refreshCheckoutBar();
+
 			setTimeout( function () {
 				inputEl.focus();
 			}, 50 );
 
-			api( 'event', { type: 'reengage_shown' } ).catch( function () {} );
+			api( 'event', { type: 'intervention_shown' } ).catch( function () {} );
 			try {
-				document.dispatchEvent( new CustomEvent( 'tuki:reengage', { detail: { context: cfg.reengage.context } } ) );
+				document.dispatchEvent( new CustomEvent( 'tuki:intervention', {
+					detail: { reason: reason, context: iv.context }
+				} ) );
 			} catch ( e ) {}
 		}
 
-		function setupReengage() {
-			// Nothing to arm if it already fired this session or can't fire here.
-			if ( reengageSeen() || ! reengageEligible() ) {
+		// The blocker chips. Same visual treatment as the clarify quick replies,
+		// but each maps to a topic answered by /intervention rather than being
+		// re-sent as a chat message.
+		function addInterventionChips() {
+			var chips = ( iv && iv.chips ) || [];
+			if ( ! chips.length ) {
 				return;
 			}
 
-			var idleMs = Math.max( 5, cfg.reengage.idleSeconds || 45 ) * 1000;
+			var wrap = el( 'div', 'tuki-chips' );
+			wrap.setAttribute( 'role', 'group' );
+			wrap.setAttribute( 'aria-label', iv.chipsLabel || '' );
+
+			chips.forEach( function ( c ) {
+				if ( ! c || ! c.topic || ! c.label ) {
+					return;
+				}
+				var chip = el( 'button', 'tuki-chip' );
+				chip.type = 'button';
+				chip.textContent = c.label;
+				chip.addEventListener( 'click', function () {
+					wrap.remove();
+					askIntervention( c );
+				} );
+				wrap.appendChild( chip );
+			} );
+
+			msgsEl.appendChild( wrap );
+			scrollDown();
+		}
+
+		// Answers a chip from the grounded endpoint. Echoes the chip as a user
+		// message first so the transcript reads like a normal conversation, and
+		// pushes both turns into history so a follow-up question has context.
+		function askIntervention( c ) {
+			if ( busy ) {
+				return;
+			}
+
+			engaged = true;
+			addBubble( 'user', c.label );
+			history.push( { role: 'user', content: c.label } );
+			setBusy( true );
+			var typing = addTyping();
+
+			api( 'intervention', { topic: c.topic } )
+				.then( function ( data ) {
+					typing.remove();
+					var reply = ( data && data.reply ) ? data.reply : ( S.empty || '' );
+					addBubble( 'bot', reply );
+					history.push( { role: 'assistant', content: reply } );
+					if ( data && data.sources && data.sources.length ) {
+						addSources( data.sources );
+					}
+					// Sizing hands off to the existing guided size form.
+					if ( data && data.size_form ) {
+						addSizeForm( data.size_form );
+					}
+					api( 'event', { type: 'intervention_chip' } ).catch( function () {} );
+				} )
+				.catch( function ( err ) {
+					typing.remove();
+					var msg = ( err && err.data && err.data.message ) ? err.data.message : ( S.error || '' );
+					addBubble( 'bot', msg );
+				} )
+				.then( function () {
+					setBusy( false );
+					inputEl.focus();
+				} );
+		}
+
+		// Idle trigger: fires after the shopper stops interacting for the
+		// configured threshold. Any interaction resets the countdown, so it only
+		// lands on someone who has genuinely stalled.
+		function armIdleTrigger( seconds, reason ) {
+			var idleMs = Math.max( 5, seconds ) * 1000;
 			var timer = null;
 			var events = [ 'mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel' ];
 
@@ -1251,12 +1295,16 @@
 				if ( timer ) {
 					clearTimeout( timer );
 				}
-				timer = setTimeout( fireReengage, idleMs );
+				timer = setTimeout( function () {
+					fireIntervention( reason );
+					detach();
+				}, idleMs );
 			}
 
 			function onActivity() {
-				// Once it has fired (or the shopper opened the chat), stop watching.
-				if ( reengageFired || reengageSeen() || engaged ) {
+				// Stop watching once it has fired or the shopper opened the chat
+				// themselves — there is nothing left to wait for.
+				if ( interventionFired || ivSeen() || engaged ) {
 					detach();
 					return;
 				}
@@ -1267,7 +1315,59 @@
 				window.addEventListener( ev, onActivity, { passive: true, capture: true } );
 			} );
 
-			arm(); // start the idle countdown immediately on load
+			arm(); // start counting from page load
+		}
+
+		// Exit-intent trigger: the cursor leaving through the top of the viewport
+		// on desktop, or a fast upward flick near the top of the page on mobile.
+		function armExitTrigger() {
+			var mobile = ( 'ontouchstart' in window ) ||
+				( window.matchMedia && window.matchMedia( '(max-width: 768px)' ).matches );
+
+			if ( mobile ) {
+				if ( ! iv.exitMobile ) {
+					return;
+				}
+				var lastY = window.pageYOffset || 0;
+				var lastT = Date.now();
+				window.addEventListener( 'scroll', function () {
+					var y = window.pageYOffset || 0;
+					var t = Date.now();
+					if ( ( y - lastY ) < -50 && ( t - lastT ) < 350 && y < 200 ) {
+						fireIntervention( 'exit' );
+					}
+					lastY = y;
+					lastT = t;
+				}, { passive: true } );
+			} else {
+				document.addEventListener( 'mouseout', function ( e ) {
+					if ( ! e.relatedTarget && e.clientY <= 0 ) {
+						fireIntervention( 'exit' );
+					}
+				} );
+			}
+		}
+
+		function setupIntervention() {
+			// Nothing to arm if the feature is off, the visitor is suppressed
+			// (server sends enabled:false), or it already fired for them.
+			if ( ! iv || true !== iv.enabled || ivSeen() || ! ivCapOk() ) {
+				return;
+			}
+
+			// Idle triggers are page-scoped: checkout and cart each have their own
+			// threshold, because a shopper reading a checkout form is stalled much
+			// sooner than one still weighing up a cart.
+			if ( 'checkout' === iv.context && iv.checkout ) {
+				armIdleTrigger( iv.checkoutIdle, 'checkout' );
+			} else if ( 'cart' === iv.context && iv.cart ) {
+				armIdleTrigger( iv.cartIdle, 'cart' );
+			}
+
+			// Exit intent is armed everywhere the widget runs.
+			if ( iv.exit ) {
+				armExitTrigger();
+			}
 		}
 
 		// A small, dismissible coupon pill with a one-tap copy. We never auto-apply
@@ -2345,11 +2445,30 @@
 			api( 'visual-search', { image: dataUrl } )
 				.then( function ( data ) {
 					typing.remove();
-					addBubble( 'bot', data && data.reply ? data.reply : ( S.empty || '' ) );
+					var reply = ( data && data.reply ) ? data.reply : ( S.empty || '' );
+					addBubble( 'bot', reply );
+					// An image turn is a real conversational turn: record it so a
+					// follow-up ("how do returns work?") has something to build on.
+					history.push( { role: 'assistant', content: reply } );
+
 					if ( data && data.groups && data.groups.length ) {
 						addLookGroups( data.groups );
 					} else if ( data && data.products && data.products.length ) {
 						addChatCards( data.products, data.browse );
+					}
+
+					// An uploaded photo is now triaged before it is searched, so it can
+					// come back as a support hand-off or a clarifying question rather
+					// than products. Those replies carry the same payload keys the text
+					// pipeline already uses, so they render through the same helpers.
+					if ( data && data.sources && data.sources.length ) {
+						addSources( data.sources );
+					}
+					if ( data && data.order_form ) {
+						addOrderForm( data.order_form );
+					}
+					if ( data && data.quick_replies && data.quick_replies.length ) {
+						addQuickReplies( data.quick_replies );
 					}
 				} )
 				.catch( function ( err ) {

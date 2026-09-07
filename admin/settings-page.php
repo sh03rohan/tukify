@@ -28,6 +28,7 @@ $tuki_conn     = Tuki_Admin::connection_state();
 $tuki_tabs = array(
 	'general'    => __( 'General', 'tukify' ),
 	'appearance' => __( 'Appearance', 'tukify' ),
+	'engagement' => __( 'Engagement', 'tukify' ),
 	'products'   => __( 'Products & Cart', 'tukify' ),
 	'channels'   => __( 'Channels', 'tukify' ),
 	'kb'         => __( 'Knowledge Base', 'tukify' ),
@@ -281,6 +282,148 @@ $tuki_tabs = array(
 				</section>
 
 				<!-- ============================ PRODUCTS & CART ============================ -->
+				<!-- ============================ ENGAGEMENT ============================ -->
+				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-engagement" data-tab="engagement" aria-labelledby="tkfy-tab-engagement" tabindex="0" hidden>
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Abandonment intervention', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Open the chat with a helpful nudge when a shopper looks stuck — instead of losing the sale silently.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_enabled]" value="1" <?php checked( $tuki_settings['intervention_enabled'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Enable the abandonment intervention', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint"><?php esc_html_e( 'The master switch for all three triggers below. Fires at most once per session, never while the chat is open or after the shopper has used it, and never for logged-in administrators or shop managers. Needs the floating widget enabled.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_iv_frequency"><?php esc_html_e( 'Frequency cap (hours)', 'tukify' ); ?></label>
+								<input type="number" class="tuki-input tuki-input--sm" id="tuki_iv_frequency" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_frequency_hours]" value="<?php echo esc_attr( $tuki_settings['intervention_frequency_hours'] ); ?>" min="0" max="720" />
+								<p class="tkfy-hint"><?php esc_html_e( 'At most one nudge per visitor in this many hours, across visits. Default 24. Set to 0 to limit it to once per browsing session only.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Triggers', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'What counts as "stuck". Each can be switched off independently.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_checkout]" value="1" <?php checked( $tuki_settings['intervention_checkout'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Idle on the checkout page', 'tukify' ); ?></span>
+								</label>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_iv_checkout_idle"><?php esc_html_e( 'Checkout idle threshold (seconds)', 'tukify' ); ?></label>
+								<input type="number" class="tuki-input tuki-input--sm" id="tuki_iv_checkout_idle" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_checkout_idle]" value="<?php echo esc_attr( $tuki_settings['intervention_checkout_idle'] ); ?>" min="5" max="600" />
+								<p class="tkfy-hint"><?php esc_html_e( 'No scrolling, typing, or clicking for this long on checkout. Default 60.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_cart]" value="1" <?php checked( $tuki_settings['intervention_cart'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Idle on the cart page', 'tukify' ); ?></span>
+								</label>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_iv_cart_idle"><?php esc_html_e( 'Cart idle threshold (seconds)', 'tukify' ); ?></label>
+								<input type="number" class="tuki-input tuki-input--sm" id="tuki_iv_cart_idle" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_cart_idle]" value="<?php echo esc_attr( $tuki_settings['intervention_cart_idle'] ); ?>" min="5" max="600" />
+								<p class="tkfy-hint"><?php esc_html_e( 'A shopper weighing up a cart needs longer than one stuck in a checkout form. Default 90.', 'tukify' ); ?></p>
+							</div>
+
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_exit]" value="1" <?php checked( $tuki_settings['intervention_exit'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Exit intent (about to leave the page)', 'tukify' ); ?></span>
+								</label>
+								<p class="tkfy-hint"><?php esc_html_e( 'The cursor leaving through the top of the window on desktop. Armed on every page, not just cart and checkout.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tuki-switch">
+									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_exit_mobile]" value="1" <?php checked( $tuki_settings['intervention_exit_mobile'], 1 ); ?> />
+									<span class="tuki-switch-slider"></span>
+									<span class="tuki-switch-text"><?php esc_html_e( 'Also detect exit intent on mobile (fast upward scroll)', 'tukify' ); ?></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Messages', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Leave any field blank to use the built-in wording, which is translated with the rest of the plugin.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_iv_msg_checkout"><?php esc_html_e( 'Checkout idle', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_iv_msg_checkout" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_msg_checkout]" value="<?php echo esc_attr( $tuki_settings['intervention_msg_checkout'] ); ?>" placeholder="<?php esc_attr_e( 'Need a hand? I can help with shipping costs, sizing, or payment options — just ask!', 'tukify' ); ?>" />
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_iv_msg_cart"><?php esc_html_e( 'Cart idle', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_iv_msg_cart" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_msg_cart]" value="<?php echo esc_attr( $tuki_settings['intervention_msg_cart'] ); ?>" placeholder="<?php esc_attr_e( 'Still deciding on {product}? I can help with shipping costs, sizing, or payment options — just ask!', 'tukify' ); ?>" />
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_iv_msg_exit"><?php esc_html_e( 'Exit intent — empty cart', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_iv_msg_exit" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_msg_exit]" value="<?php echo esc_attr( $tuki_settings['intervention_msg_exit'] ); ?>" placeholder="<?php esc_attr_e( 'Need help finding something? I can help you choose — just ask!', 'tukify' ); ?>" />
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<label class="tkfy-label" for="tuki_iv_msg_exit_cart"><?php esc_html_e( 'Exit intent — items in cart', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input" id="tuki_iv_msg_exit_cart" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_msg_exit_cart]" value="<?php echo esc_attr( $tuki_settings['intervention_msg_exit_cart'] ); ?>" placeholder="<?php esc_attr_e( 'Before you go — I can help with shipping costs, sizing, or payment options for {product}. Just ask!', 'tukify' ); ?>" />
+							</div>
+							<div class="tkfy-field tkfy-field--wide">
+								<p class="tkfy-hint">
+									<?php esc_html_e( 'Tokens: {product} is the first item in the cart, {count} the number of items, {total} the cart total. If a message needs {product} but the cart is empty, the built-in wording without it is used instead.', 'tukify' ); ?>
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="tkfy-card">
+						<div class="tkfy-card-head">
+							<h2 class="tkfy-card-title"><?php esc_html_e( 'Quick-reply chips', 'tukify' ); ?></h2>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'The common blockers offered with the nudge. Each is answered from your live store data plus the knowledge base — no AI call, so a tap is instant and costs nothing.', 'tukify' ); ?></p>
+						</div>
+						<div class="tkfy-card-body">
+							<div class="tkfy-field tkfy-field--wide">
+								<span class="tkfy-label" id="tuki_iv_chips_label"><?php esc_html_e( 'Show these chips', 'tukify' ); ?></span>
+								<div class="tkfy-checklist" role="group" aria-labelledby="tuki_iv_chips_label">
+									<?php
+									$tuki_iv_chips     = array_map( 'sanitize_key', (array) $tuki_settings['intervention_chips'] );
+									$tuki_chip_choices = array(
+										'shipping' => __( 'Shipping cost — live cart shipping rate and your free-shipping threshold', 'tukify' ),
+										'sizing'   => __( 'Sizing help — opens the size advisor for a sizeable product in the cart', 'tukify' ),
+										'payment'  => __( 'Payment options — the payment methods your store currently accepts', 'tukify' ),
+									);
+									foreach ( $tuki_chip_choices as $tuki_chip_value => $tuki_chip_label ) {
+										printf(
+											'<label class="tkfy-check-row"><input type="checkbox" class="tkfy-check-input" name="%1$s[intervention_chips][]" value="%2$s" %3$s /><span class="tkfy-check-box" aria-hidden="true"></span><span class="tkfy-check-text">%4$s</span></label>',
+											esc_attr( $tuki_option ),
+											esc_attr( $tuki_chip_value ),
+											checked( in_array( $tuki_chip_value, $tuki_iv_chips, true ), true, false ),
+											esc_html( $tuki_chip_label )
+										);
+									}
+									?>
+								</div>
+								<p class="tkfy-hint"><?php esc_html_e( 'At most three are shown. Sizing is hidden automatically when the size & fit advisor is switched off.', 'tukify' ); ?></p>
+							</div>
+							<div class="tkfy-field">
+								<label class="tkfy-label" for="tuki_iv_coupon"><?php esc_html_e( 'Coupon code (optional)', 'tukify' ); ?></label>
+								<input type="text" class="tuki-input tuki-input--sm" id="tuki_iv_coupon" name="<?php echo esc_attr( $tuki_option ); ?>[intervention_coupon]" value="<?php echo esc_attr( $tuki_settings['intervention_coupon'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. SAVE10', 'tukify' ); ?>" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Shown as a copy-able code with the nudge, never auto-applied. Leave blank to just offer help. Create the coupon under WooCommerce → Coupons first.', 'tukify' ); ?></p>
+							</div>
+						</div>
+					</div>
+				</section>
+
 				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-products" data-tab="products" aria-labelledby="tkfy-tab-products" tabindex="0" hidden>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
@@ -1211,98 +1354,6 @@ $tuki_tabs = array(
 								<label class="tkfy-label" for="tuki_clarify_max"><?php esc_html_e( 'Max questions per conversation', 'tukify' ); ?></label>
 								<input type="number" class="tuki-input tuki-input--sm" id="tuki_clarify_max" name="<?php echo esc_attr( $tuki_option ); ?>[clarify_max]" value="<?php echo esc_attr( $tuki_settings['clarify_max'] ); ?>" min="1" max="3" />
 								<p class="tkfy-hint"><?php esc_html_e( 'The assistant never asks more than this many clarifying questions in one chat. Default 2.', 'tukify' ); ?></p>
-							</div>
-						</div>
-					</div>
-
-					<div class="tkfy-card">
-						<div class="tkfy-card-head">
-							<h2 class="tkfy-card-title"><?php esc_html_e( 'Exit intent', 'tukify' ); ?></h2>
-							<p class="tkfy-card-cap"><?php esc_html_e( 'Re-engage a shopper who is about to leave.', 'tukify' ); ?></p>
-						</div>
-						<div class="tkfy-card-body">
-							<div class="tkfy-field tkfy-field--wide">
-								<label class="tuki-switch">
-									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[exit_intent_enabled]" value="1" <?php checked( $tuki_settings['exit_intent_enabled'], 1 ); ?> />
-									<span class="tuki-switch-slider"></span>
-									<span class="tuki-switch-text"><?php esc_html_e( 'Open the chat when a shopper is about to leave (exit intent)', 'tukify' ); ?></span>
-								</label>
-								<p class="tkfy-hint"><?php esc_html_e( 'Fires once per visit, respects a cooldown, and never after the shopper has used the chat. Needs the floating widget enabled.', 'tukify' ); ?></p>
-							</div>
-							<div class="tkfy-field tkfy-field--wide">
-								<label class="tuki-switch">
-									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[exit_intent_mobile]" value="1" <?php checked( $tuki_settings['exit_intent_mobile'], 1 ); ?> />
-									<span class="tuki-switch-slider"></span>
-									<span class="tuki-switch-text"><?php esc_html_e( 'Also detect exit intent on mobile', 'tukify' ); ?></span>
-								</label>
-							</div>
-							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_exit_cooldown"><?php esc_html_e( 'Cooldown (hours)', 'tukify' ); ?></label>
-								<input type="number" class="tuki-input tuki-input--sm" id="tuki_exit_cooldown" name="<?php echo esc_attr( $tuki_option ); ?>[exit_intent_cooldown]" value="<?php echo esc_attr( $tuki_settings['exit_intent_cooldown'] ); ?>" min="0" max="720" />
-							</div>
-							<div class="tkfy-field tkfy-field--wide">
-								<label class="tkfy-label" for="tuki_exit_msg_browsing"><?php esc_html_e( 'Message (browsing)', 'tukify' ); ?></label>
-								<input type="text" class="tuki-input" id="tuki_exit_msg_browsing" name="<?php echo esc_attr( $tuki_option ); ?>[exit_intent_msg_browsing]" value="<?php echo esc_attr( $tuki_settings['exit_intent_msg_browsing'] ); ?>" placeholder="<?php esc_attr_e( 'Need help finding something? I can help you choose.', 'tukify' ); ?>" />
-							</div>
-							<div class="tkfy-field tkfy-field--wide">
-								<label class="tkfy-label" for="tuki_exit_msg_cart"><?php esc_html_e( 'Message (items in cart)', 'tukify' ); ?></label>
-								<input type="text" class="tuki-input" id="tuki_exit_msg_cart" name="<?php echo esc_attr( $tuki_option ); ?>[exit_intent_msg_cart]" value="<?php echo esc_attr( $tuki_settings['exit_intent_msg_cart'] ); ?>" placeholder="<?php esc_attr_e( 'Want me to help you finish up? I can answer any questions.', 'tukify' ); ?>" />
-							</div>
-						</div>
-					</div>
-
-					<div class="tkfy-card">
-						<div class="tkfy-card-head">
-							<h2 class="tkfy-card-title"><?php esc_html_e( 'Proactive re-engagement', 'tukify' ); ?></h2>
-							<p class="tkfy-card-cap"><?php esc_html_e( 'Nudge a shopper who has stalled — idle on checkout, or sitting with items in the cart.', 'tukify' ); ?></p>
-						</div>
-						<div class="tkfy-card-body">
-							<div class="tkfy-field tkfy-field--wide">
-								<label class="tuki-switch">
-									<input type="checkbox" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_enabled]" value="1" <?php checked( $tuki_settings['reengage_enabled'], 1 ); ?> />
-									<span class="tuki-switch-slider"></span>
-									<span class="tuki-switch-text"><?php esc_html_e( 'Open the chat when a shopper goes idle on a selected page', 'tukify' ); ?></span>
-								</label>
-								<p class="tkfy-hint"><?php esc_html_e( 'Fires at most once per session, never while the chat is open or after it has been used, and is always dismissible. Needs the floating widget enabled.', 'tukify' ); ?></p>
-							</div>
-							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_reengage_idle"><?php esc_html_e( 'Idle threshold (seconds)', 'tukify' ); ?></label>
-								<input type="number" class="tuki-input tuki-input--sm" id="tuki_reengage_idle" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_idle_seconds]" value="<?php echo esc_attr( $tuki_settings['reengage_idle_seconds'] ); ?>" min="5" max="600" />
-								<p class="tkfy-hint"><?php esc_html_e( 'How long without interaction before the nudge appears. Default 45.', 'tukify' ); ?></p>
-							</div>
-							<div class="tkfy-field">
-								<span class="tkfy-label" id="tuki_reengage_pages_label"><?php esc_html_e( 'Show on these pages', 'tukify' ); ?></span>
-								<div class="tkfy-checklist" role="group" aria-labelledby="tuki_reengage_pages_label">
-									<?php
-									$tuki_reengage_pages = array_map( 'sanitize_key', (array) $tuki_settings['reengage_pages'] );
-									$tuki_page_choices   = array(
-										'checkout' => __( 'Checkout page', 'tukify' ),
-										'cart'     => __( 'Cart page', 'tukify' ),
-										'product'  => __( 'Product pages', 'tukify' ),
-										'shop'     => __( 'Shop / category pages', 'tukify' ),
-										'any'      => __( 'Any page', 'tukify' ),
-									);
-									foreach ( $tuki_page_choices as $tuki_pc_value => $tuki_pc_label ) {
-										printf(
-											'<label class="tkfy-check-row"><input type="checkbox" class="tkfy-check-input" name="%1$s[reengage_pages][]" value="%2$s" %3$s /><span class="tkfy-check-box" aria-hidden="true"></span><span class="tkfy-check-text">%4$s</span></label>',
-											esc_attr( $tuki_option ),
-											esc_attr( $tuki_pc_value ),
-											checked( in_array( $tuki_pc_value, $tuki_reengage_pages, true ), true, false ),
-											esc_html( $tuki_pc_label )
-										);
-									}
-									?>
-								</div>
-								<p class="tkfy-hint"><?php esc_html_e( 'On checkout and cart, lingering itself is the signal. On product, shop, or any page, the nudge only fires when there are already items in the cart.', 'tukify' ); ?></p>
-							</div>
-							<div class="tkfy-field tkfy-field--wide">
-								<label class="tkfy-label" for="tuki_reengage_message"><?php esc_html_e( 'Message', 'tukify' ); ?></label>
-								<input type="text" class="tuki-input" id="tuki_reengage_message" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_message]" value="<?php echo esc_attr( $tuki_settings['reengage_message'] ); ?>" placeholder="<?php esc_attr_e( 'Still deciding? I can answer any questions or help you check out.', 'tukify' ); ?>" />
-							</div>
-							<div class="tkfy-field">
-								<label class="tkfy-label" for="tuki_reengage_coupon"><?php esc_html_e( 'Coupon code (optional)', 'tukify' ); ?></label>
-								<input type="text" class="tuki-input tuki-input--sm" id="tuki_reengage_coupon" name="<?php echo esc_attr( $tuki_option ); ?>[reengage_coupon]" value="<?php echo esc_attr( $tuki_settings['reengage_coupon'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. SAVE10', 'tukify' ); ?>" />
-								<p class="tkfy-hint"><?php esc_html_e( 'Shown as a copy-able code with the nudge. Leave blank to just offer help. Create the coupon under WooCommerce → Coupons first.', 'tukify' ); ?></p>
 							</div>
 						</div>
 					</div>

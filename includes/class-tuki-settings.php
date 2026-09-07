@@ -85,16 +85,21 @@ class Tuki_Settings {
 			'size_unit'                  => 'metric',
 			'size_attribute'             => 'size',
 			'size_charts'                => array(),
-			'exit_intent_enabled'        => 1,
-			'exit_intent_mobile'         => 1,
-			'exit_intent_cooldown'       => 24,
-			'exit_intent_msg_browsing'   => '',
-			'exit_intent_msg_cart'       => '',
-			'reengage_enabled'           => 0,
-			'reengage_idle_seconds'      => 45,
-			'reengage_pages'             => array( 'checkout', 'cart' ),
-			'reengage_message'           => '',
-			'reengage_coupon'            => '',
+			// Abandonment intervention: one proactive nudge, three triggers.
+			'intervention_enabled'       => 1,
+			'intervention_checkout'      => 1,
+			'intervention_checkout_idle' => 60,
+			'intervention_cart'          => 1,
+			'intervention_cart_idle'     => 90,
+			'intervention_exit'          => 1,
+			'intervention_exit_mobile'   => 1,
+			'intervention_frequency_hours' => 24,
+			'intervention_msg_checkout'  => '',
+			'intervention_msg_cart'      => '',
+			'intervention_msg_exit'      => '',
+			'intervention_msg_exit_cart' => '',
+			'intervention_chips'         => array( 'shipping', 'sizing', 'payment' ),
+			'intervention_coupon'        => '',
 			'checkout_in_chat'           => 0,
 			'stock_notify_enabled'       => 1,
 			'stock_notify_subject'       => '',
@@ -338,30 +343,39 @@ class Tuki_Settings {
 			}
 		}
 
-		$out['exit_intent_enabled']      = empty( $input['exit_intent_enabled'] ) ? 0 : 1;
-		$out['exit_intent_mobile']       = empty( $input['exit_intent_mobile'] ) ? 0 : 1;
-		$out['exit_intent_cooldown']     = min( 720, max( 0, absint( $input['exit_intent_cooldown'] ?? 24 ) ) );
-		$out['exit_intent_msg_browsing'] = isset( $input['exit_intent_msg_browsing'] ) ? sanitize_text_field( $input['exit_intent_msg_browsing'] ) : '';
-		$out['exit_intent_msg_cart']     = isset( $input['exit_intent_msg_cart'] ) ? sanitize_text_field( $input['exit_intent_msg_cart'] ) : '';
+		// Abandonment intervention. One nudge, three triggers (checkout idle, cart
+		// idle, exit intent), one frequency cap. Replaces the former separate
+		// exit-intent and proactive re-engagement settings.
+		$out['intervention_enabled']     = empty( $input['intervention_enabled'] ) ? 0 : 1;
+		$out['intervention_checkout']    = empty( $input['intervention_checkout'] ) ? 0 : 1;
+		$out['intervention_cart']        = empty( $input['intervention_cart'] ) ? 0 : 1;
+		$out['intervention_exit']        = empty( $input['intervention_exit'] ) ? 0 : 1;
+		$out['intervention_exit_mobile'] = empty( $input['intervention_exit_mobile'] ) ? 0 : 1;
 
-		// Proactive re-engagement (idle/dwell nudge). Distinct from exit intent:
-		// fires after inactivity on selected pages, once per session.
-		$out['reengage_enabled']      = empty( $input['reengage_enabled'] ) ? 0 : 1;
-		$out['reengage_idle_seconds'] = min( 600, max( 5, absint( $input['reengage_idle_seconds'] ?? 45 ) ) );
+		// Idle thresholds are clamped to a range that stays helpful: under 5s the
+		// nudge lands before the shopper has read anything, over 10 minutes they
+		// have already gone.
+		$out['intervention_checkout_idle'] = min( 600, max( 5, absint( $input['intervention_checkout_idle'] ?? 60 ) ) );
+		$out['intervention_cart_idle']     = min( 600, max( 5, absint( $input['intervention_cart_idle'] ?? 90 ) ) );
 
-		// Whitelist page contexts against the ones the widget understands.
-		$out['reengage_pages'] = array();
-		if ( isset( $input['reengage_pages'] ) && is_array( $input['reengage_pages'] ) ) {
-			$allowed_pages         = array( 'checkout', 'cart', 'product', 'shop', 'any' );
-			$out['reengage_pages'] = array_values(
-				array_intersect( $allowed_pages, array_map( 'sanitize_key', $input['reengage_pages'] ) )
+		// Frequency cap in hours, across visits. 0 means "once per session only",
+		// which the per-session guard already enforces on its own.
+		$out['intervention_frequency_hours'] = min( 720, max( 0, absint( $input['intervention_frequency_hours'] ?? 24 ) ) );
+
+		foreach ( array( 'intervention_msg_checkout', 'intervention_msg_cart', 'intervention_msg_exit', 'intervention_msg_exit_cart' ) as $msg_field ) {
+			$out[ $msg_field ] = isset( $input[ $msg_field ] ) ? sanitize_text_field( $input[ $msg_field ] ) : '';
+		}
+
+		// Blocker chips, whitelisted against the topics that have an answer handler.
+		$out['intervention_chips'] = array();
+		if ( isset( $input['intervention_chips'] ) && is_array( $input['intervention_chips'] ) ) {
+			$out['intervention_chips'] = array_values(
+				array_intersect( Tuki_Intervention::TOPICS, array_map( 'sanitize_key', $input['intervention_chips'] ) )
 			);
 		}
 
-		$out['reengage_message'] = isset( $input['reengage_message'] ) ? sanitize_text_field( $input['reengage_message'] ) : '';
-
-		$reengage_coupon        = isset( $input['reengage_coupon'] ) ? sanitize_text_field( $input['reengage_coupon'] ) : '';
-		$out['reengage_coupon'] = function_exists( 'wc_format_coupon_code' ) ? wc_format_coupon_code( $reengage_coupon ) : $reengage_coupon;
+		$intervention_coupon        = isset( $input['intervention_coupon'] ) ? sanitize_text_field( $input['intervention_coupon'] ) : '';
+		$out['intervention_coupon'] = function_exists( 'wc_format_coupon_code' ) ? wc_format_coupon_code( $intervention_coupon ) : $intervention_coupon;
 
 		// In-chat checkout is a sensitive flow (creates real orders), so it is an
 		// explicit opt-in and defaults off.

@@ -127,6 +127,10 @@ final class Tuki_Plugin {
 		// Knowledge base: page-change re-embed + async reindex handler.
 		new Tuki_KB();
 
+		// Abandonment intervention: runs the one-time migration that folds the
+		// legacy exit-intent / re-engagement settings into intervention_*.
+		new Tuki_Intervention();
+
 		// WhatsApp channel: the async webhook processor and the tokenized
 		// add-to-cart link handler must be registered on every request (the
 		// processor runs during Action Scheduler/cron, with no admin context).

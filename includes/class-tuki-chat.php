@@ -287,6 +287,12 @@ class Tuki_Chat {
 			}
 		}
 
+		// Nothing cleared the relevance threshold: the shopper got alternatives, not
+		// what they asked for. That is the other way a chat turn goes unresolved.
+		if ( $rescue ) {
+			Tuki_Analytics::record_unresolved();
+		}
+
 		return array(
 			'reply'    => $reply,
 			'products' => $products,
@@ -679,6 +685,13 @@ class Tuki_Chat {
 			$sources = array();
 		}
 
+		// No snippet cleared the confidence bar, so the assistant answered from
+		// nothing. Recorded against the session (unlike the anonymous demand log)
+		// so the dashboard can report what share of conversations went unresolved.
+		if ( ! $answered ) {
+			Tuki_Analytics::record_unresolved();
+		}
+
 		return array(
 			'reply'    => $reply,
 			'products' => array(),
@@ -883,7 +896,158 @@ class Tuki_Chat {
 			throw new Exception( esc_html__( 'Image search needs a vision-capable provider. Set your chat provider (or an embedding provider) to one that accepts images, and add its API key.', 'tukify' ) );
 		}
 
-		$raw  = (string) $provider->generate_vision( $base64, $mime, $this->look_prompt(), $this->look_schema() );
+		// Triage first: an uploaded photo is not always a search. A cracked screen
+		// or a torn seam is a support request, and answering it with "here are
+		// similar products to buy" is the worst possible reply. One cheap call
+		// decides which pipeline the image belongs in.
+		$intent = $this->classify_image( $provider, $base64, $mime );
+
+		switch ( $intent['intent'] ) {
+			case 'issue':
+				return $this->issue_response( $intent );
+
+			case 'unclear':
+				return $this->unclear_response();
+
+			case 'scene':
+				// A room or an outfit: detect each distinct item and search per item.
+				return $this->detect_and_search( $provider, $base64, $mime, true );
+
+			case 'single_product':
+			default:
+				// Also the fallback when classification is unavailable or
+				// unparseable — this is exactly the pre-classification behaviour, so
+				// a simple product photo takes the identical path it always did.
+				return $this->detect_and_search( $provider, $base64, $mime, false );
+		}
+	}
+
+	/**
+	 * Classifies an uploaded image before anything is searched.
+	 *
+	 * Deliberately one small call: a four-value enum plus a short reason, no item
+	 * detection. Detection is the expensive half and is only worth paying for
+	 * once we know the image is a shopping request at all — so an "issue" or
+	 * "unclear" photo costs this call and nothing more.
+	 *
+	 * Never throws. Classification is an enhancement, not a dependency: if the
+	 * provider errors the image falls through to the original visual-search path
+	 * rather than failing the shopper's upload.
+	 *
+	 * @param Tuki_AI_Provider $provider Vision-capable provider.
+	 * @param string           $base64   Raw base64 image data.
+	 * @param string           $mime     Image MIME type.
+	 * @return array{intent:string,reason:string,note:string} Empty intent means "could not classify".
+	 */
+	private function classify_image( $provider, $base64, $mime ) {
+		$empty = array(
+			'intent' => '',
+			'reason' => '',
+			'note'   => '',
+		);
+
+		// Same photo, same verdict: a re-upload (a shopper retrying, or sending it
+		// again later) reuses the cached triage instead of paying twice. Only a
+		// hash is ever stored, never the image.
+		$signature = $provider->label() . ':' . Tuki_Settings::chat_provider();
+		$hash      = sha1( $base64 );
+
+		$cached = Tuki_Cache::get_image_intent( $signature, $hash );
+
+		if ( is_array( $cached ) && isset( $cached['intent'] ) ) {
+			return wp_parse_args( $cached, $empty );
+		}
+
+		try {
+			$raw = (string) $provider->generate_vision( $base64, $mime, $this->intent_prompt(), $this->intent_schema() );
+		} catch ( Exception $e ) {
+			// Fall through to the original pipeline; the shopper never sees this.
+			return $empty;
+		}
+
+		$data = json_decode( $raw, true );
+
+		if ( ! is_array( $data ) || empty( $data['intent'] ) ) {
+			return $empty;
+		}
+
+		// Only Gemini enforces the response schema; OpenAI and Grok guarantee valid
+		// JSON but not its shape, and Anthropic is asked in prose. So the enum is
+		// validated here rather than trusted — an unrecognised value degrades to
+		// the original path instead of routing somewhere arbitrary.
+		$allowed = array( 'single_product', 'scene', 'issue', 'unclear' );
+		$intent  = sanitize_key( (string) $data['intent'] );
+
+		if ( ! in_array( $intent, $allowed, true ) ) {
+			return $empty;
+		}
+
+		$out = array(
+			'intent' => $intent,
+			'reason' => isset( $data['reason'] ) ? sanitize_text_field( (string) $data['reason'] ) : '',
+			'note'   => isset( $data['note'] ) ? sanitize_text_field( (string) $data['note'] ) : '',
+		);
+
+		Tuki_Cache::set_image_intent( $signature, $hash, $out );
+
+		return $out;
+	}
+
+	/**
+	 * Triage prompt for the classification call.
+	 *
+	 * Kept short on purpose — the image dominates the token cost, so a long
+	 * instruction buys nothing. The four intents are mutually exclusive and the
+	 * tie-break rules are explicit, because the failure that actually hurts is
+	 * selling to someone reporting a broken product.
+	 *
+	 * @return string
+	 */
+	private function intent_prompt() {
+		return __(
+			'You are triaging one image a shopper uploaded into an online store\'s chat. Choose exactly one intent. "single_product": one clear product is the subject and the shopper wants to find it or something like it. "scene": a setting or collection holding several distinct purchasable items — a room interior, a furnished space, an outfit worn or laid flat, a flatlay, a styled shelf — and the shopper wants to shop the items in it. "issue": the photo shows something WRONG — damage, a crack, a tear, a stain, a defect, the wrong item received, or a screenshot of an order or error problem — so the shopper needs help, not products. "unclear": you cannot tell what is wanted, the image is too blurry or dark, or it shows nothing purchasable (a face, a document, a landscape). Rules: choose "issue" whenever visible damage or a defect is the point of the photo, even when the product is otherwise recognisable; choose "scene" over "single_product" when two or more distinct purchasable items are clearly visible; choose "unclear" rather than guessing. Set "reason" to at most eight plain words describing what you see. Set "note" only for "issue", naming the apparent problem in a few words such as "cracked screen" or "torn seam"; otherwise set it to an empty string. Return only the JSON object.',
+			'tukify'
+		);
+	}
+
+	/**
+	 * Structured-output schema for the classification call.
+	 *
+	 * @return array
+	 */
+	private function intent_schema() {
+		return array(
+			'type'       => 'OBJECT',
+			'properties' => array(
+				'intent' => array(
+					'type' => 'STRING',
+					'enum' => array( 'single_product', 'scene', 'issue', 'unclear' ),
+				),
+				'reason' => array( 'type' => 'STRING' ),
+				'note'   => array( 'type' => 'STRING' ),
+			),
+			'required'   => array( 'intent' ),
+		);
+	}
+
+	/**
+	 * Detects the purchasable items in an image and searches the catalog for each.
+	 *
+	 * This is the original visual-search pipeline, unchanged in behaviour: one
+	 * detection call, then the single-item or grouped flow depending on how many
+	 * distinct items came back. The only difference is that a scene gets a prompt
+	 * that also knows about rooms and interiors, since the original wording only
+	 * described garments.
+	 *
+	 * @param Tuki_AI_Provider $provider Vision-capable provider.
+	 * @param string           $base64   Raw base64 image data.
+	 * @param string           $mime     Image MIME type.
+	 * @param bool             $scene    Whether the image was classified as a scene.
+	 * @return array Reply object.
+	 * @throws Exception If the provider call fails.
+	 */
+	private function detect_and_search( $provider, $base64, $mime, $scene = false ) {
+		$raw  = (string) $provider->generate_vision( $base64, $mime, $this->look_prompt( $scene ), $this->look_schema() );
 		$data = json_decode( $raw, true );
 
 		$reply     = ( is_array( $data ) && isset( $data['reply'] ) ) ? trim( (string) $data['reply'] ) : '';
@@ -941,15 +1105,143 @@ class Tuki_Chat {
 	}
 
 	/**
+	 * Reply for an image showing a damaged, defective, or wrong product.
+	 *
+	 * Sells nothing. Offers the two things that actually help: the existing secure
+	 * order lookup, and the store's own returns policy from the knowledge base.
+	 *
+	 * @param array $intent Classification result (its 'note' names the problem).
+	 * @return array Reply object.
+	 */
+	private function issue_response( array $intent ) {
+		Tuki_Analytics::record_event( 'image_issue' );
+
+		$note = trim( (string) $intent['note'] );
+
+		$reply = ( '' !== $note )
+			? sprintf(
+				/* translators: %s: short description of the visible problem, e.g. "cracked screen". */
+				__( 'Sorry about that — it looks like there might be an issue with this item (%s). I can help: tell me your order number and I\'ll look it up, or ask me how returns work.', 'tukify' ),
+				$note
+			)
+			: __( 'Sorry about that — it looks like there might be an issue with this item. I can help: tell me your order number and I\'ll look it up, or ask me how returns work.', 'tukify' );
+
+		$response = array(
+			'reply'         => $reply,
+			'products'      => array(),
+			'intent'        => 'support',
+			// Reuses the existing secure order-status lookup: the shopper verifies
+			// with an order number and billing e-mail, exactly as in the text flow.
+			'order_form'    => array( 'logged_in' => is_user_logged_in() ),
+			'quick_replies' => array(
+				__( 'How do returns work?', 'tukify' ),
+				__( 'Is this covered by warranty?', 'tukify' ),
+			),
+		);
+
+		$sources = $this->support_sources();
+
+		if ( ! empty( $sources ) ) {
+			$response['sources'] = $sources;
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Citations for the store's own returns/warranty pages, when the knowledge
+	 * base has them, so the support reply points at real policy rather than a
+	 * generic promise.
+	 *
+	 * @return array List of [ 'title', 'url' ].
+	 */
+	private function support_sources() {
+		if ( ! Tuki_KB::is_available() || ! Tuki_Settings::get( 'show_citations' ) ) {
+			return array();
+		}
+
+		try {
+			$kb       = new Tuki_KB();
+			$snippets = $kb->search( __( 'returns refund damaged faulty warranty', 'tukify' ), 2 );
+		} catch ( Exception $e ) {
+			// Citations are a bonus; a provider hiccup must not cost the shopper
+			// the support reply itself.
+			return array();
+		}
+
+		$sources = array();
+		$seen    = array();
+
+		foreach ( $snippets as $snippet ) {
+			if ( ! isset( $snippet['score'] ) || (float) $snippet['score'] < 0.3 || empty( $snippet['url'] ) ) {
+				continue;
+			}
+
+			$key = strtolower( trim( (string) $snippet['url'] ) );
+
+			if ( '' === $key || isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+
+			$sources[] = array(
+				'title' => ( '' !== trim( (string) $snippet['title'] ) ) ? (string) $snippet['title'] : (string) $snippet['url'],
+				'url'   => (string) $snippet['url'],
+			);
+		}
+
+		return $sources;
+	}
+
+	/**
+	 * Reply for an image the classifier could not read as a request.
+	 *
+	 * Asks one short question instead of guessing. The quick replies are phrased
+	 * so they work as plain text on their own — they go back through the normal
+	 * chat pipeline, which no longer has the image, so an option like "find
+	 * something similar" would be a dead end.
+	 *
+	 * @return array Reply object.
+	 */
+	private function unclear_response() {
+		Tuki_Analytics::record_event( 'image_unclear' );
+
+		return array(
+			'reply'         => __( 'I\'m not sure what you\'d like me to do with that image. Could you tell me in a few words — are you looking for a product like it, or is something wrong with an order?', 'tukify' ),
+			'products'      => array(),
+			'intent'        => 'clarify',
+			'quick_replies' => array(
+				__( 'Help me find a product', 'tukify' ),
+				__( 'There\'s a problem with my order', 'tukify' ),
+			),
+		);
+	}
+
+	/**
 	 * Vision prompt for multi-item "shop the look" detection.
 	 *
+	 * The base wording is unchanged, so a simple product photo is detected exactly
+	 * as before. A scene adds one sentence covering rooms and interiors: the
+	 * original prompt only ever described garments, so a living-room photo had no
+	 * vocabulary to detect furniture or lighting with.
+	 *
+	 * @param bool $scene Whether the image was classified as a scene.
 	 * @return string
 	 */
-	private function look_prompt() {
-		return __(
-			'You are a visual shopping assistant for an online store. Look at the image and detect each DISTINCT purchasable item a shopper might want to buy. For an outfit that means each garment and accessory separately (e.g. top, bottom, jacket, shoes, belt, bag, hat); for other images, the main products shown. For EACH item return: "group" (one of Top, Bottom, Outerwear, Footwear, Accessory, Bag, Headwear, Other), "type" (the item, e.g. "denim jacket"), "color", "style", and "query" (a short search phrase combining the type and key visible attributes such as colour, material and style). List at most 6 items, most prominent first, and do not repeat the same item. Ignore people, faces, backgrounds and anything not purchasable. If the image shows no clear products, return an empty "items" array. In "reply", write one short friendly sentence — do NOT mention any specific store product, price, or stock.',
+	private function look_prompt( $scene = false ) {
+		$prompt = __(
+			'You are a visual shopping assistant for an online store. Look at the image and detect each DISTINCT purchasable item a shopper might want to buy. For an outfit that means each garment and accessory separately (e.g. top, bottom, jacket, shoes, belt, bag, hat); for other images, the main products shown. For EACH item return: "group" (one of Top, Bottom, Outerwear, Footwear, Accessory, Bag, Headwear, Furniture, Lighting, Decor, Textile, Appliance, Kitchenware, Plant, Other), "type" (the item, e.g. "denim jacket"), "color", "style", and "query" (a short search phrase combining the type and key visible attributes such as colour, material and style). List at most 6 items, most prominent first, and do not repeat the same item. Ignore people, faces, backgrounds and anything not purchasable. If the image shows no clear products, return an empty "items" array. In "reply", write one short friendly sentence — do NOT mention any specific store product, price, or stock.',
 			'tukify'
 		);
+
+		if ( $scene ) {
+			$prompt .= ' ' . __(
+				'This image is a scene containing several items. If it is an interior, treat each piece of furniture, light fitting, rug, cushion, artwork, plant pot and visible appliance as its own item. Detect the 2-4 most dominant items rather than every small object, and describe each one well enough to search for on its own.',
+				'tukify'
+			);
+		}
+
+		return $prompt;
 	}
 
 	/**
@@ -968,7 +1260,10 @@ class Tuki_Chat {
 						'properties' => array(
 							'group' => array(
 								'type' => 'STRING',
-								'enum' => array( 'Top', 'Bottom', 'Outerwear', 'Footwear', 'Accessory', 'Bag', 'Headwear', 'Other' ),
+								// Home/interior groups sit alongside the apparel ones so a room
+								// photo has somewhere to land. Unused by the single-item flow,
+								// which never renders a group label.
+								'enum' => array( 'Top', 'Bottom', 'Outerwear', 'Footwear', 'Accessory', 'Bag', 'Headwear', 'Furniture', 'Lighting', 'Decor', 'Textile', 'Appliance', 'Kitchenware', 'Plant', 'Other' ),
 							),
 							'type'  => array( 'type' => 'STRING' ),
 							'color' => array( 'type' => 'STRING' ),
@@ -1121,14 +1416,21 @@ class Tuki_Chat {
 	 */
 	private function look_group_label( $group ) {
 		$map = array(
-			'top'       => __( 'Top', 'tukify' ),
-			'bottom'    => __( 'Bottom', 'tukify' ),
-			'outerwear' => __( 'Outerwear', 'tukify' ),
-			'footwear'  => __( 'Footwear', 'tukify' ),
-			'accessory' => __( 'Accessory', 'tukify' ),
-			'bag'       => __( 'Bag', 'tukify' ),
-			'headwear'  => __( 'Headwear', 'tukify' ),
-			'other'     => __( 'Item', 'tukify' ),
+			'top'         => __( 'Top', 'tukify' ),
+			'bottom'      => __( 'Bottom', 'tukify' ),
+			'outerwear'   => __( 'Outerwear', 'tukify' ),
+			'footwear'    => __( 'Footwear', 'tukify' ),
+			'accessory'   => __( 'Accessory', 'tukify' ),
+			'bag'         => __( 'Bag', 'tukify' ),
+			'headwear'    => __( 'Headwear', 'tukify' ),
+			'furniture'   => __( 'Furniture', 'tukify' ),
+			'lighting'    => __( 'Lighting', 'tukify' ),
+			'decor'       => __( 'Decor', 'tukify' ),
+			'textile'     => __( 'Textiles', 'tukify' ),
+			'appliance'   => __( 'Appliance', 'tukify' ),
+			'kitchenware' => __( 'Kitchenware', 'tukify' ),
+			'plant'       => __( 'Plants', 'tukify' ),
+			'other'       => __( 'Item', 'tukify' ),
 		);
 
 		$key = strtolower( trim( (string) $group ) );

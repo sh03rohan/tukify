@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, chatbot, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Your AI sales assistant for WooCommerce - greets shoppers, answers questions, fi
 
 Tukify is an AI chatbot and shopping assistant for WooCommerce that works like a knowledgeable sales assistant who never sleeps. A shopper types a question in plain language - or uploads a photo - and Tukify finds the right products, answers honestly from your store's real data, recommends complementary items, and guides them to checkout, all inside the chat without leaving the page.
 
-It is a real AI shopping assistant, not a scripted FAQ bot. It understands intent with conversational search, replies with product cards (image, price, stock, add to cart), and only ever recommends real, in-stock products from your own catalog - so it never invents items or prices.
+It is a real AI shopping assistant, not a scripted FAQ bot. It understands intent with conversational search, replies with product cards (image, price, stock, add to cart), and only ever recommends real, in-stock products from your own catalog - so it never invents items or prices. It also steps in on its own: when a shopper stalls on the cart or checkout page, Tukify offers help with the things that usually hold a sale up.
 
 Tukify is bring-your-own-key: connect your own AI provider - Google Gemini, OpenAI (ChatGPT), Anthropic (Claude), xAI (Grok), or Groq (fast inference) - and Tukify never pays for inference. Every AI request runs server-side in PHP, so your API keys are never exposed to the browser, and your product embeddings stay in your own site database, keeping your catalog data on your server.
 
@@ -23,7 +23,7 @@ Tukify is bring-your-own-key: connect your own AI provider - Google Gemini, Open
 * AI chatbot for WooCommerce - a natural, conversational way to shop, available around the clock.
 * Conversational search - matches by meaning, not just keywords ("warm clothes for winter" surfaces jackets and sweaters).
 * Product recommendations - cart-aware upsell suggests genuinely complementary items based on what is already in the cart.
-* Visual / image search - a shopper uploads a photo and Tukify finds similar products in your catalog, great for "find me something like this".
+* Visual / image search - a shopper uploads a photo and Tukify finds similar products in your catalog, great for "find me something like this". A photo of a room or an outfit is broken into its individual items and each one is searched separately.
 * In-chat product detail popup - tap a product to see full details, an image gallery, variations (size, colour) and add to cart, all without leaving the chat.
 * Add to cart in chat - a quantity stepper and add-to-cart on every product card and in the detail popup, plus an optional guided in-chat checkout.
 * Order status - a secure order-status lookup, verified by order number and billing email, right in the conversation.
@@ -31,7 +31,7 @@ Tukify is bring-your-own-key: connect your own AI provider - Google Gemini, Open
 * Natural-language filters - understands price, colour, size, brand, stock, category and sorting ("cheapest wireless headphones under $200") and applies them as real WooCommerce queries.
 * Comparison mode - a side-by-side comparison of 2-3 products with a one-line trade-off summary.
 * Policy and FAQ answers - answers shipping, returns and warranty questions from your own pages and a custom Q&A knowledge base.
-* Exit-intent re-engagement - a helpful, dismissible prompt when a shopper is about to leave (once per visit, with a cooldown).
+* Abandonment help - if a shopper stalls on the cart or checkout page, or looks about to leave, Tukify offers a hand with the things that usually hold people up: shipping cost, sizing, and payment. Dismissible, and never more than once per visit.
 
 = What Tukify gives store owners =
 
@@ -39,8 +39,9 @@ Tukify is bring-your-own-key: connect your own AI provider - Google Gemini, Open
 * Choice of models - pick a chat provider and an embedding provider independently, and choose the model for each.
 * Background indexing - embeds your catalog in the background via Action Scheduler, and only re-embeds products that changed.
 * Presentation surfaces - a global floating chat widget plus three Elementor widgets (Chat, Search, Recommendations), each rendered in a Shadow DOM so your theme's CSS cannot break them.
-* Analytics dashboard - top queries, zero-result queries, click-through and chat-to-sale, plus unmet-demand insights.
-* Privacy-first - all AI calls are server-side, keys are masked in the admin, and your catalog data stays in your own database.
+* Conversion analytics - cart recovery rate, resolution rate, chat-assisted average order value against your store-wide average, and attributed revenue, over any date range. Plus top queries, zero-result queries, and unmet-demand insights.
+* Knows a problem from a purchase - when a shopper sends a photo of a damaged or wrong item, Tukify stops selling and offers the order lookup and your returns policy instead.
+* Privacy-first - all AI calls are server-side, keys are masked in the admin, and your catalog data stays in your own database. Analytics are aggregate counts only.
 
 Coming soon: a WhatsApp channel, so the same AI shopping assistant can answer shoppers on WhatsApp through Meta's WhatsApp Business Cloud API. It is previewed in Settings but is not active in this release - nothing is sent or received yet.
 
@@ -142,6 +143,34 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 
 == Changelog ==
 
+= 1.6.0 =
+Three new features in this release: a proactive abandonment intervention, conversion analytics, and smarter image search.
+
+Abandonment intervention
+
+* The chat now opens itself with a helpful nudge when a shopper stalls on the cart or checkout page, or looks about to leave.
+* Three triggers - checkout idle, cart idle, and exit intent - each switchable, with editable idle thresholds and message templates.
+* The nudge offers quick-reply chips for the most common blockers: shipping cost, sizing, and payment. Each is answered from your live cart, shipping zones, and payment gateways plus your knowledge base, with no AI call.
+* One frequency cap covers every trigger, so a shopper is nudged at most once per session and at most once per N hours.
+* Never fires for logged-in administrators or shop managers, so it stays out of your way while you work on your own store.
+* Replaces the separate "Exit intent" and "Proactive re-engagement" settings with a single Engagement tab. Your existing settings are migrated automatically.
+
+Conversion analytics
+
+* New KPIs on the dashboard: cart recovery rate, resolution rate, chat-assisted average order value against your store-wide average, and attributed revenue.
+* New date-range filter - 7, 30, or 90 days, 1 year, or all time - and a trend line of attributed orders per day.
+* Chat-to-sale is now range-aware and counts distinct sessions on both sides of the ratio. It previously compared every attributed order against chat sessions only, which could report over 100%.
+* Order totals are recorded at attribution time, so revenue metrics need no per-order lookups when the dashboard loads.
+* Aggregate counts only. No customer, order contents, or personal data is stored or displayed.
+
+Smarter image search
+
+* Uploaded images are now understood before they are searched. A quick classification decides whether the photo shows a single product, a scene, a problem with an item, or something unclear.
+* A photo of a damaged, faulty, or wrong item no longer returns products to buy. Tukify offers the secure order lookup and your own returns policy instead.
+* Scene photos - a room, an outfit, a flatlay - detect the main items and search for each one, now covering furniture, lighting, decor, textiles, appliances, kitchenware, and plants as well as clothing.
+* An image Tukify cannot read now asks one short question instead of guessing.
+* Simple product photos take exactly the same path as before, and any classification failure falls back to it, so image search keeps working even if the extra step is unavailable.
+
 = 1.5.0 =
 * New: in-chat product detail popup (gallery, variations, add to cart).
 * New: Groq (fast inference) chat provider.
@@ -193,6 +222,10 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 * Initial release: semantic search, RAG chat, background indexing, cart integration, analytics dashboard, floating widget and Elementor widgets.
 
 == Upgrade Notice ==
+
+= 1.6.0 =
+Adds proactive cart and checkout abandonment nudges, conversion KPIs on the dashboard, and image search that tells a shopping photo from a support one. Reindex is not required.
+
 
 = 1.1.0 =
 Adds conversational filters, comparison, policy/FAQ answers, upsell and exit-intent, plus visual search and a cart fix. Reindex is not required.
