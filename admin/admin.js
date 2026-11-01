@@ -468,7 +468,8 @@
 			$bar.css( 'width', pct + '%' );
 
 			var text = embeddedText( data.indexed, total );
-			if ( running && data.lastError ) {
+			// While retrying, and after giving up, say why.
+			if ( ( running || 'failed' === data.status ) && data.lastError ) {
 				text += ' — ' + data.lastError;
 			}
 			$text.text( text );

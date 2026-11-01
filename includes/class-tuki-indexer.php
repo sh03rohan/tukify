@@ -51,6 +51,12 @@ class Tuki_Indexer {
 	const BATCH_SIZE = 20;
 
 	/**
+	 * Consecutive failed attempts at one batch before the reindex is marked
+	 * failed (with backoff, about 12 minutes of retrying).
+	 */
+	const MAX_BATCH_ATTEMPTS = 6;
+
+	/**
 	 * Registers product-change hooks and background action handlers.
 	 */
 	public function __construct() {
@@ -245,6 +251,18 @@ class Tuki_Indexer {
 				$state['queue']      = array_merge( $ids, $queue );
 				$state['attempts']   = $attempts;
 				$state['last_error'] = $e->getMessage();
+
+				// A persistent error (invalid key, exhausted quota) would otherwise
+				// retry every 5 minutes forever. Stop and surface it; the owner fixes
+				// the cause and starts a new reindex.
+				// Not stamped 'finished': the "Last reindexed" caption must keep
+				// pointing at the last run that actually completed.
+				if ( $attempts >= self::MAX_BATCH_ATTEMPTS ) {
+					$state['status'] = 'failed';
+					update_option( self::STATE_OPTION, $state, false );
+					return;
+				}
+
 				update_option( self::STATE_OPTION, $state, false );
 
 				$delay = min( 300, 15 * pow( 2, min( $attempts, 5 ) ) );
