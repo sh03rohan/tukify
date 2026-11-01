@@ -413,7 +413,7 @@ class Tuki_Admin {
 				'nonce'            => wp_create_nonce( 'tuki_admin' ),
 				'testing'          => __( 'Testing connection…', 'tukify' ),
 				'connected'        => __( 'Connected', 'tukify' ),
-				'failed'           => __( 'Couldn\'t reach Gemini — check the API key', 'tukify' ),
+				'failed'           => __( 'Couldn\'t reach the provider — check the API key', 'tukify' ),
 				'reindexConfirm'   => __( 'Reindex all products now? This runs in the background.', 'tukify' ),
 				'reindexError'     => __( 'Couldn\'t start reindex — please try again', 'tukify' ),
 				/* translators: 1: embedded count, 2: total products. */

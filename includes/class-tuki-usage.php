@@ -3,7 +3,7 @@
  * API usage tracking + cost estimation.
  *
  * Aggregates request/token counts per day and kind (embedding vs chat) so the
- * owner can see how their bring-your-own Gemini key is being spent. Only counts
+ * owner can see how their bring-your-own provider keys are being spent. Only counts
  * are stored — never any query text or personal data. Caching (Tuki_Cache) is
  * what actually reduces the calls; this just measures what's left.
  *
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Records and reports Gemini API usage.
+ * Records and reports AI provider API usage.
  */
 class Tuki_Usage {
 
