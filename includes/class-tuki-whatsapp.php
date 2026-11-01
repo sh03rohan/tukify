@@ -49,6 +49,13 @@ class Tuki_WhatsApp {
 	const GROUP        = 'tukify-whatsapp';
 
 	/**
+	 * Transient prefix + lifetime (seconds) for a message waiting on its async
+	 * job. Only the job's opaque token goes into Action Scheduler.
+	 */
+	const PENDING_PREFIX = 'tuki_wa_q_';
+	const PENDING_TTL    = 3600;
+
+	/**
 	 * Outbound request timeout (seconds).
 	 */
 	const TIMEOUT = 20;
@@ -70,7 +77,7 @@ class Tuki_WhatsApp {
 			return;
 		}
 
-		add_action( self::HOOK_PROCESS, array( __CLASS__, 'process' ), 10, 1 );
+		add_action( self::HOOK_PROCESS, array( __CLASS__, 'process_queued' ), 10, 1 );
 		add_action( 'template_redirect', array( __CLASS__, 'handle_add_to_cart_link' ) );
 	}
 
@@ -256,7 +263,13 @@ class Tuki_WhatsApp {
 			}
 
 			if ( function_exists( 'as_enqueue_async_action' ) ) {
-				as_enqueue_async_action( self::HOOK_PROCESS, array( $message ), self::GROUP );
+				// Action Scheduler keeps job args for weeks after the job runs, and the
+				// message carries the raw phone number. So the job only gets an opaque
+				// token; the message waits in a short-lived transient that the job
+				// deletes as soon as it picks it up.
+				$token = wp_generate_password( 32, false );
+				set_transient( self::PENDING_PREFIX . $token, $message, self::PENDING_TTL );
+				as_enqueue_async_action( self::HOOK_PROCESS, array( $token ), self::GROUP );
 			} else {
 				// No Action Scheduler (WooCommerce inactive): degrade to inline.
 				self::process( $message );
@@ -350,6 +363,30 @@ class Tuki_WhatsApp {
 	/*
 	 * Processing (async) — one brain, second door
 	 */
+
+	/**
+	 * Action Scheduler callback: loads the queued message by its token, deletes
+	 * it at once (so the number is not kept even if processing fails), and runs it.
+	 *
+	 * @param string|array $job Token from handle_webhook(), or a full message
+	 *                          descriptor for jobs queued before tokens existed.
+	 * @return void
+	 */
+	public static function process_queued( $job ) {
+		if ( is_array( $job ) ) {
+			self::process( $job );
+			return;
+		}
+
+		$key     = self::PENDING_PREFIX . preg_replace( '/[^A-Za-z0-9]/', '', (string) $job );
+		$message = get_transient( $key );
+
+		delete_transient( $key );
+
+		if ( is_array( $message ) ) {
+			self::process( $message );
+		}
+	}
 
 	/**
 	 * Runs one inbound message through the shared pipeline and sends the reply.
