@@ -623,7 +623,13 @@
 				btn.classList.add( 'added' );
 				refreshCart();
 				try {
-					document.dispatchEvent( new CustomEvent( 'tuki:added', {
+					// Fired from the button (bubbling out of the shadow root to the
+					// document) so listeners can tell which widget the add came from.
+					// If the button is gone (popup closed mid-request), fire on the
+					// document so checkout bars still update.
+					( btn.isConnected ? btn : document ).dispatchEvent( new CustomEvent( 'tuki:added', {
+						bubbles: true,
+						composed: true,
 						detail: {
 							id: p.id,
 							quantity: qty,
@@ -1116,13 +1122,18 @@
 				.catch( function () {} );
 		}
 
-		// Cart changed from a chat add-to-cart: update the bar from the fresh
-		// count/total in the event, then consider an upsell.
+		// Cart changed from any widget's add-to-cart: update the bar from the fresh
+		// count/total in the event. Only the chat the product was added from (its
+		// cards, comparison or popup) considers an upsell — not every chat on the
+		// page, and not for adds from the search or recommendation widgets.
 		document.addEventListener( 'tuki:added', function ( e ) {
 			if ( e && e.detail ) {
 				updateCheckoutBar( e.detail.count, e.detail.total );
 			}
-			setTimeout( maybeUpsell, 800 );
+			var path = ( e && e.composedPath ) ? e.composedPath() : [];
+			if ( -1 !== path.indexOf( root ) ) {
+				setTimeout( maybeUpsell, 800 );
+			}
 		} );
 
 		function readCartCount() {
