@@ -3,8 +3,11 @@
  * REST API endpoints.
  *
  * Namespace: tukify/v1. All AI work happens here, server-side and
- * user-triggered — never on page load. Guests are IP rate-limited; logged-in
- * users authenticate via the standard REST cookie nonce.
+ * user-triggered — never on page load. Guests are IP rate-limited on the routes
+ * that spend provider quota (chat, search, visual search, intervention) and on
+ * stock-notify; the other routes are plain store reads/cart actions, like the
+ * native WooCommerce cart and checkout, and are not. Logged-in users
+ * authenticate via the standard REST cookie nonce.
  *
  * @package Tukify
  */
@@ -113,7 +116,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_browse' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'mode'     => array(
 						'required' => false,
@@ -137,7 +140,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_upsell' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 
@@ -147,7 +150,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_cart_state' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 
@@ -157,7 +160,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_product' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'product_id' => array(
 						'required' => true,
@@ -214,7 +217,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_recommendations' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'product_id'  => array(
 						'required' => false,
@@ -238,7 +241,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_event' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'type'       => array(
 						'required' => true,
@@ -258,7 +261,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_add_to_cart' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'product_id'   => array(
 						'required' => true,
@@ -282,11 +285,13 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_order_status' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
+					// The order number as the shopper sees it — may be a custom
+					// number (e.g. "INV-123"), so a string, not an integer id.
 					'order_id' => array(
 						'required' => true,
-						'type'     => 'integer',
+						'type'     => 'string',
 					),
 					'email'    => array(
 						'required' => false,
@@ -302,7 +307,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_size_advice' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 				'args'                => array(
 					'product_id' => array(
 						'required' => true,
@@ -337,7 +342,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_checkout_state' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 
@@ -347,7 +352,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_checkout_update' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 
@@ -357,7 +362,7 @@ class Tuki_Rest {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'handle_checkout_place' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 
@@ -407,7 +412,11 @@ class Tuki_Rest {
 	}
 
 	/**
-	 * Permission callback: logged-in users pass; guests are rate-limited by IP.
+	 * Permission callback for the provider-backed routes (and stock-notify):
+	 * logged-in users pass; guests are rate-limited by IP.
+	 *
+	 * Only those routes count against the limit, so the widget's own background
+	 * calls (cart state, popups, events) can't use up a shopper's chat budget.
 	 *
 	 * @return true|WP_Error
 	 */
@@ -891,14 +900,20 @@ class Tuki_Rest {
 			);
 		}
 
-		$order_id = absint( $request->get_param( 'order_id' ) );
-		$email    = strtolower( sanitize_email( (string) $request->get_param( 'email' ) ) );
+		$number = ltrim( trim( sanitize_text_field( (string) $request->get_param( 'order_id' ) ) ), '#' );
+		$email  = strtolower( sanitize_email( (string) $request->get_param( 'email' ) ) );
 
-		if ( ! $order_id ) {
+		if ( '' === $number ) {
 			return new WP_Error( 'tuki_order_bad_request', __( 'Please enter your order number.', 'tukify' ), array( 'status' => 400 ) );
 		}
 
-		$order = wc_get_order( $order_id );
+		// Resolve the number the shopper sees to the order id exactly as
+		// WooCommerce's own order-tracking page does: custom/sequential order
+		// number plugins hook this filter to map e.g. "INV-123" to its id. A plain
+		// numeric id passes through unchanged; an unmapped string matches nothing.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		$order_id = apply_filters( 'woocommerce_shortcode_order_tracking_order_id', $number );
+		$order    = wc_get_order( $order_id );
 
 		// Same response whether the order does not exist or ownership failed, so a
 		// guesser cannot distinguish real order numbers from fake ones.
@@ -1101,9 +1116,31 @@ class Tuki_Rest {
 			return 'u:' . get_current_user_id();
 		}
 
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+		return 'ip:' . $this->client_ip();
+	}
 
-		return 'ip:' . $ip;
+	/**
+	 * The requester's IP, for guest throttling.
+	 *
+	 * REMOTE_ADDR by default. Behind a CDN or reverse proxy that is the proxy's
+	 * address, so every shopper would share one counter; such sites can return
+	 * the real visitor IP via the `tuki_client_ip` filter (e.g. Cloudflare's
+	 * CF-Connecting-IP). Forwarded headers are never trusted by default, since
+	 * any client can send them to dodge the limits.
+	 *
+	 * @return string
+	 */
+	private function client_ip() {
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+
+		/**
+		 * Filters the client IP used for Tukify's guest rate limits.
+		 *
+		 * @param string $ip REMOTE_ADDR.
+		 */
+		$ip = (string) apply_filters( 'tuki_client_ip', $remote );
+
+		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : $remote;
 	}
 
 	/**
@@ -1194,8 +1231,7 @@ class Tuki_Rest {
 			return true;
 		}
 
-		$ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
-		$key   = 'tuki_rl_' . md5( $ip );
+		$key   = 'tuki_rl_' . md5( $this->client_ip() );
 		$count = (int) get_transient( $key );
 
 		if ( $count >= $limit ) {

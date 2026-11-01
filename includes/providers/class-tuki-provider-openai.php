@@ -7,6 +7,10 @@
  * prompt already describes the fields, and Tuki_Chat::parse_decision tolerates
  * minor formatting differences across providers.
  *
+ * Also the base for the other OpenAI-compatible providers (Grok, Groq): they
+ * override API_BASE, DEFAULT_MODEL, the label and the capabilities, and this
+ * class reads those through static:: so each request goes to the child's host.
+ *
  * @package Tukify
  */
 
@@ -24,6 +28,11 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 	 * API base URL.
 	 */
 	const API_BASE = 'https://api.openai.com/v1/';
+
+	/**
+	 * Chat model used when none is configured.
+	 */
+	const DEFAULT_MODEL = 'gpt-6-luna';
 
 	/**
 	 * {@inheritDoc}
@@ -47,6 +56,11 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 	 * @throws Exception On a provider or transport error.
 	 */
 	public function create_embeddings( array $texts ): array {
+		// Compatible providers without an embeddings endpoint keep the base's error.
+		if ( ! $this->supports( 'embeddings' ) ) {
+			return parent::create_embeddings( $texts );
+		}
+
 		$texts = array_values( array_map( 'strval', $texts ) );
 
 		if ( empty( $texts ) ) {
@@ -54,7 +68,7 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 		}
 
 		$response = $this->request(
-			self::API_BASE . 'embeddings',
+			static::API_BASE . 'embeddings',
 			array(
 				'model' => $this->embedding_model ? $this->embedding_model : 'text-embedding-3-small',
 				'input' => $texts,
@@ -93,7 +107,7 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 	public function generate_chat( array $messages, array $opts = array() ): string {
 		$json = ! empty( $opts['json_schema'] );
 		$body = array(
-			'model'    => $this->chat_model ? $this->chat_model : 'gpt-4o-mini',
+			'model'    => $this->chat_model ? $this->chat_model : static::DEFAULT_MODEL,
 			'messages' => $this->build_messages( $messages, isset( $opts['system'] ) ? (string) $opts['system'] : '', $json ),
 		);
 
@@ -101,7 +115,7 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 			$body['response_format'] = array( 'type' => 'json_object' );
 		}
 
-		$response = $this->request( self::API_BASE . 'chat/completions', $body, $this->auth_headers() );
+		$response = $this->request( static::API_BASE . 'chat/completions', $body, $this->auth_headers() );
 		$this->track_chat_usage( $response, $this->estimate( wp_json_encode( $body ) ) );
 
 		return $this->extract_text( $response );
@@ -118,6 +132,11 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 	 * @throws Exception On a provider or transport error.
 	 */
 	public function generate_vision( string $base64, string $mime, string $prompt, $schema = null ): string {
+		// Compatible providers without image input keep the base's error.
+		if ( ! $this->supports( 'vision' ) ) {
+			return parent::generate_vision( $base64, $mime, $prompt, $schema );
+		}
+
 		$json    = null !== $schema;
 		$content = array(
 			array(
@@ -131,7 +150,7 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 		);
 
 		$body = array(
-			'model'    => $this->chat_model ? $this->chat_model : 'gpt-4o-mini',
+			'model'    => $this->chat_model ? $this->chat_model : static::DEFAULT_MODEL,
 			'messages' => array(
 				array(
 					'role'    => 'user',
@@ -144,7 +163,7 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 			$body['response_format'] = array( 'type' => 'json_object' );
 		}
 
-		$response = $this->request( self::API_BASE . 'chat/completions', $body, $this->auth_headers() );
+		$response = $this->request( static::API_BASE . 'chat/completions', $body, $this->auth_headers() );
 		$this->track_chat_usage( $response, $this->estimate( $prompt ) );
 
 		return $this->extract_text( $response );

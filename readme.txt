@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, chatbot, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -143,6 +143,36 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 
 == Changelog ==
 
+= 1.6.1 =
+A maintenance release: current AI models, sturdier chat on cached and busy sites, and a round of fixes.
+
+AI models
+
+* Updated every provider's model list to its current lineup. New defaults: Gemini 3.8 Flash, GPT-6 Luna, Claude Haiku 5.5, Grok 4.7 and Groq gpt-oss-120b.
+* Retired models (Claude 3.5, Grok 2 and 3, Groq Llama 3.x and DeepSeek) are removed. A store still set to one is moved to the provider's default automatically, with no need to re-save settings.
+* Models that still work but are being phased out stay selectable, labelled with their shutdown date.
+* Claude Haiku 5.5 and Sonnet 5.5 now answer without slow up-front reasoning, so replies are fast and never cut short.
+
+Reliability
+
+* The chat keeps working on pages served from a full-page cache. Previously it could stop responding about a day after the page was cached.
+* The guest rate limit now counts only AI requests, so normal browsing in the chat (opening products, the cart, "show more") no longer uses up a shopper's allowance. Sites behind a CDN or proxy can pass the real visitor IP with the new tuki_client_ip filter.
+* A slow or unreachable AI provider now fails within about 35 seconds instead of keeping the shopper waiting for minutes.
+* A product reindex that keeps failing (for example with an invalid key) now stops and shows the error instead of retrying forever.
+
+Fixes
+
+* Password-protected pages and posts are no longer added to the knowledge base.
+* The knowledge base no longer mixes results from different embedding models after you switch provider; a reindex now refreshes every entry.
+* Image search with Claude no longer fails when the model wraps its answer in formatting.
+* Order lookup accepts custom order numbers such as "INV-123".
+* Adding a product from the Search or Recommendations widget no longer makes every chat on the page suggest add-ons.
+* The image button is disabled while a reply is loading, so a photo is never silently dropped.
+* Opening checkout twice no longer stacks two checkout forms.
+* The connection status in the admin header now reflects your active chat provider's saved key.
+* Wording that assumed Gemini now covers every provider.
+* WhatsApp preview (still locked): the conversation table is created when the channel is unlocked, phone numbers are no longer kept in background job data, the damaged-item reply is no longer handed to a human, and clarifying questions reset for a returning shopper.
+
 = 1.6.0 =
 Three new features in this release: a proactive abandonment intervention, conversion analytics, and smarter image search.
 
@@ -222,6 +252,9 @@ Smarter image search
 * Initial release: semantic search, RAG chat, background indexing, cart integration, analytics dashboard, floating widget and Elementor widgets.
 
 == Upgrade Notice ==
+
+= 1.6.1 =
+Updates every AI provider to its current models (retired Claude, Grok and Groq models stopped working) and fixes chat on cached pages. Reindex is not required.
 
 = 1.6.0 =
 Adds proactive cart and checkout abandonment nudges, conversion KPIs on the dashboard, and image search that tells a shopping photo from a support one. Reindex is not required.

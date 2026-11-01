@@ -41,7 +41,7 @@
 		return node;
 	}
 
-	function api( path, body ) {
+	function api( path, body, retried ) {
 		return fetch( cfg.restUrl + path, {
 			method: 'POST',
 			credentials: 'include',
@@ -55,10 +55,52 @@
 				if ( ! response.ok ) {
 					var error = new Error( 'request_failed' );
 					error.data = json;
+
+					// The page's nonces went stale (full-page cache, or a tab left
+					// open for a day): fetch fresh ones and retry exactly once.
+					if ( ! retried && 403 === response.status && json &&
+						( 'rest_cookie_invalid_nonce' === json.code || 'tuki_bad_nonce' === json.code ) ) {
+						return refreshNonces().then( function ( ok ) {
+							if ( ! ok ) {
+								throw error;
+							}
+							if ( body && 'checkout_nonce' in body ) {
+								body.checkout_nonce = ( cfg.checkout && cfg.checkout.nonce ) || '';
+							}
+							return api( path, body, true );
+						} );
+					}
+
 					throw error;
 				}
 				return json;
 			} );
+		} );
+	}
+
+	// Resolves true once cfg holds fresh REST + checkout nonces for this visitor.
+	function refreshNonces() {
+		if ( ! cfg.ajaxUrl || ! cfg.nonceAction ) {
+			return Promise.resolve( false );
+		}
+		return fetch( cfg.ajaxUrl, {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: 'action=' + encodeURIComponent( cfg.nonceAction )
+		} ).then( function ( response ) {
+			return response.json();
+		} ).then( function ( json ) {
+			if ( ! json || ! json.success || ! json.data || ! json.data.rest ) {
+				return false;
+			}
+			cfg.nonce = json.data.rest;
+			if ( cfg.checkout ) {
+				cfg.checkout.nonce = json.data.checkout || cfg.checkout.nonce;
+			}
+			return true;
+		} ).catch( function () {
+			return false;
 		} );
 	}
 
@@ -581,7 +623,13 @@
 				btn.classList.add( 'added' );
 				refreshCart();
 				try {
-					document.dispatchEvent( new CustomEvent( 'tuki:added', {
+					// Fired from the button (bubbling out of the shadow root to the
+					// document) so listeners can tell which widget the add came from.
+					// If the button is gone (popup closed mid-request), fire on the
+					// document so checkout bars still update.
+					( btn.isConnected ? btn : document ).dispatchEvent( new CustomEvent( 'tuki:added', {
+						bubbles: true,
+						composed: true,
 						detail: {
 							id: p.id,
 							quantity: qty,
@@ -1074,13 +1122,18 @@
 				.catch( function () {} );
 		}
 
-		// Cart changed from a chat add-to-cart: update the bar from the fresh
-		// count/total in the event, then consider an upsell.
+		// Cart changed from any widget's add-to-cart: update the bar from the fresh
+		// count/total in the event. Only the chat the product was added from (its
+		// cards, comparison or popup) considers an upsell — not every chat on the
+		// page, and not for adds from the search or recommendation widgets.
 		document.addEventListener( 'tuki:added', function ( e ) {
 			if ( e && e.detail ) {
 				updateCheckoutBar( e.detail.count, e.detail.total );
 			}
-			setTimeout( maybeUpsell, 800 );
+			var path = ( e && e.composedPath ) ? e.composedPath() : [];
+			if ( -1 !== path.indexOf( root ) ) {
+				setTimeout( maybeUpsell, 800 );
+			}
 		} );
 
 		function readCartCount() {
@@ -1428,9 +1481,18 @@
 		 * the normal checkout page.
 		 * ----------------------------------------------------------------- */
 
+		// The checkout form currently open in this chat (null once finished), so the
+		// checkout bar can't stack a second live form under the first.
+		var activeCheckout = null;
+		var checkoutSeq = 0;
+
 		function startCheckout() {
 			if ( busy ) {
 				return;
+			}
+			var prev = ( activeCheckout && ! activeCheckout.done ) ? activeCheckout : null;
+			if ( prev && prev.busy ) {
+				return; // Mid update / place-order: let that finish first.
 			}
 			engaged = true;
 			setBusy( true );
@@ -1449,7 +1511,19 @@
 						addCheckoutFallback( state.fallback_url );
 						return;
 					}
-					buildCheckout( state );
+					// Re-opened while a form is still open: replace it with a fresh one
+					// (the cart may have changed), keeping what the shopper typed.
+					if ( prev ) {
+						state.address = state.address || {};
+						Object.keys( prev.fields ).forEach( function ( k ) {
+							var v = prev.fields[ k ].input.value;
+							if ( v ) {
+								state.address[ k ] = v;
+							}
+						} );
+						prev.box.remove();
+					}
+					activeCheckout = buildCheckout( state );
 				} )
 				.catch( function ( err ) {
 					typing.remove();
@@ -1506,7 +1580,8 @@
 		}
 
 		function buildCheckout( state ) {
-			var co = { state: state, fields: {}, selectedShipping: '', selectedPayment: '', busy: false };
+			// uid keeps each form's radio groups separate within the shadow root.
+			var co = { state: state, fields: {}, selectedShipping: '', selectedPayment: '', busy: false, done: false, uid: ++checkoutSeq };
 			var box = el( 'div', 'tuki-co' );
 			co.box = box;
 
@@ -1590,6 +1665,8 @@
 
 			msgsEl.appendChild( box );
 			scrollDown();
+
+			return co;
 		}
 
 		function collectCheckout( co ) {
@@ -1671,7 +1748,7 @@
 					var row = el( 'label', 'tuki-co-radio' );
 					var input = document.createElement( 'input' );
 					input.type = 'radio';
-					input.name = 'tuki-ship';
+					input.name = 'tuki-ship-' + co.uid;
 					input.value = r.id;
 					input.checked = ( r.id === co.selectedShipping );
 					input.addEventListener( 'change', function () {
@@ -1701,7 +1778,7 @@
 					var row = el( 'label', 'tuki-co-radio' );
 					var input = document.createElement( 'input' );
 					input.type = 'radio';
-					input.name = 'tuki-pay';
+					input.name = 'tuki-pay-' + co.uid;
 					input.value = p.id;
 					input.checked = ( p.id === co.selectedPayment );
 					input.addEventListener( 'change', function () {
@@ -1816,6 +1893,7 @@
 		}
 
 		function finalizeCheckout( co ) {
+			co.done = true;
 			co.box.classList.add( 'is-done' );
 			if ( co.actions ) {
 				co.actions.remove();
@@ -1892,6 +1970,8 @@
 		function setBusy( state ) {
 			busy = state;
 			sendBtn.disabled = state;
+			// sendImage() ignores a photo while busy, so don't let one be picked.
+			attach.disabled = state;
 		}
 
 		function addComparison( cmp ) {
@@ -1985,7 +2065,6 @@
 			numLabel.textContent = S.orderNumber || 'Order number';
 			var num = el( 'input', 'tuki-order-input' );
 			num.type = 'text';
-			num.inputMode = 'numeric';
 			num.placeholder = S.orderNumPlaceholder || '';
 
 			var mailLabel = el( 'label', 'tuki-order-label' );
@@ -2010,7 +2089,10 @@
 				if ( submit.disabled ) {
 					return;
 				}
-				var id = parseInt( ( num.value || '' ).replace( /[^0-9]/g, '' ), 10 );
+				// Sent as typed (minus a leading "#"): stores with custom order
+				// numbers like "INV-123" are resolved server-side, as on WooCommerce's
+				// own order-tracking page.
+				var id = ( num.value || '' ).trim().replace( /^#+/, '' );
 				if ( ! id ) {
 					err.textContent = S.orderNeedNumber || '';
 					return;

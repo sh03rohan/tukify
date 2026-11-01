@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Tuki_Admin {
 
 	/**
-	 * Option persisting the last "Test connection" outcome ('1' or '0').
+	 * Option persisting the last "Test connection" outcome per provider:
+	 * [ provider => [ 'ok' => bool, 'key' => wp_hash( tested key ) ] ].
 	 */
 	const CONNECTION_OPTION = 'tuki_connection_ok';
 
@@ -412,7 +413,7 @@ class Tuki_Admin {
 				'nonce'            => wp_create_nonce( 'tuki_admin' ),
 				'testing'          => __( 'Testing connection…', 'tukify' ),
 				'connected'        => __( 'Connected', 'tukify' ),
-				'failed'           => __( 'Couldn\'t reach Gemini — check the API key', 'tukify' ),
+				'failed'           => __( 'Couldn\'t reach the provider — check the API key', 'tukify' ),
 				'reindexConfirm'   => __( 'Reindex all products now? This runs in the background.', 'tukify' ),
 				'reindexError'     => __( 'Couldn\'t start reindex — please try again', 'tukify' ),
 				/* translators: 1: embedded count, 2: total products. */
@@ -509,7 +510,19 @@ class Tuki_Admin {
 
 		$result = $provider_obj->test_connection();
 
-		update_option( self::CONNECTION_OPTION, empty( $result['success'] ) ? '0' : '1' );
+		// Remember the outcome for this provider and this exact key (hashed, never
+		// stored raw), so the header pill only trusts it for the saved key of the
+		// active chat provider — not for another provider or a typed-but-unsaved key.
+		$tested_key = '' !== trim( $api_key ) ? trim( $api_key ) : Tuki_Settings::provider_key( $provider );
+		$results    = get_option( self::CONNECTION_OPTION, array() );
+		$results    = is_array( $results ) ? $results : array();
+
+		$results[ $provider ] = array(
+			'ok'  => ! empty( $result['success'] ),
+			'key' => wp_hash( $tested_key ),
+		);
+
+		update_option( self::CONNECTION_OPTION, $results );
 
 		if ( ! empty( $result['success'] ) ) {
 			wp_send_json_success( array( 'message' => $result['message'] ) );
@@ -696,7 +709,14 @@ class Tuki_Admin {
 			);
 		}
 
-		if ( '0' === get_option( self::CONNECTION_OPTION, '' ) ) {
+		// Only a test of this provider's currently saved key counts; anything else
+		// (another provider, an unsaved key, never tested) is treated as untested.
+		$results = get_option( self::CONNECTION_OPTION, array() );
+		$tested  = ( is_array( $results ) && isset( $results[ $provider ]['key'] ) && hash_equals( (string) $results[ $provider ]['key'], wp_hash( $key ) ) )
+			? $results[ $provider ]
+			: null;
+
+		if ( null !== $tested && empty( $tested['ok'] ) ) {
 			return array(
 				'state' => 'warn',
 				'label' => __( 'Check API key', 'tukify' ),

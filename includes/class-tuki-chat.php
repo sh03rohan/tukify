@@ -488,6 +488,24 @@ class Tuki_Chat {
 	}
 
 	/**
+	 * Decodes a model's JSON object reply, tolerating a markdown code fence or a
+	 * sentence around it. Gemini, OpenAI and Grok enforce pure JSON, but Claude is
+	 * only asked for it in the prompt and may wrap the object.
+	 *
+	 * @param string $raw Raw model output.
+	 * @return array|null Decoded object, or null if none could be found.
+	 */
+	private function decode_json_object( $raw ) {
+		$data = json_decode( (string) $raw, true );
+
+		if ( ! is_array( $data ) && preg_match( '/\{.*\}/s', (string) $raw, $match ) ) {
+			$data = json_decode( $match[0], true );
+		}
+
+		return is_array( $data ) ? $data : null;
+	}
+
+	/**
 	 * Hybrid filtered response: hard WooCommerce constraints + semantic ranking.
 	 *
 	 * @param string $message Shopper message.
@@ -965,7 +983,7 @@ class Tuki_Chat {
 			return $empty;
 		}
 
-		$data = json_decode( $raw, true );
+		$data = $this->decode_json_object( $raw );
 
 		if ( ! is_array( $data ) || empty( $data['intent'] ) ) {
 			return $empty;
@@ -1048,7 +1066,7 @@ class Tuki_Chat {
 	 */
 	private function detect_and_search( $provider, $base64, $mime, $scene = false ) {
 		$raw  = (string) $provider->generate_vision( $base64, $mime, $this->look_prompt( $scene ), $this->look_schema() );
-		$data = json_decode( $raw, true );
+		$data = $this->decode_json_object( $raw );
 
 		$reply     = ( is_array( $data ) && isset( $data['reply'] ) ) ? trim( (string) $data['reply'] ) : '';
 		$raw_items = ( is_array( $data ) && isset( $data['items'] ) && is_array( $data['items'] ) ) ? $data['items'] : array();

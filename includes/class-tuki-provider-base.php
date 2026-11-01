@@ -35,6 +35,18 @@ abstract class Tuki_Provider_Base implements Tuki_AI_Provider {
 	const MAX_ATTEMPTS = 3;
 
 	/**
+	 * Wall-clock budget (seconds) for all provider calls in one shopper-facing
+	 * REST request, measured from the start of the request. A shopper is waiting
+	 * on the other end, so retries only happen while they still fit in it.
+	 */
+	const INTERACTIVE_BUDGET = 35;
+
+	/**
+	 * An attempt is not started (or retried) with less time than this left.
+	 */
+	const MIN_ATTEMPT_SECONDS = 5;
+
+	/**
 	 * API key.
 	 *
 	 * @var string
@@ -194,7 +206,46 @@ abstract class Tuki_Provider_Base implements Tuki_AI_Provider {
 	}
 
 	/**
-	 * Performs a server-side POST with retry + exponential backoff on 429/5xx.
+	 * The time by which every provider call in this request must be done, or
+	 * null when there is no shopper waiting (indexing, cron, Action Scheduler,
+	 * admin AJAX) and the full retry schedule applies.
+	 *
+	 * Shared across calls, so a chat turn's embedding and chat calls together
+	 * stay inside one budget instead of each getting its own.
+	 *
+	 * @return float|null Unix timestamp, or null for no deadline.
+	 */
+	protected function deadline() {
+		if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
+			return null;
+		}
+
+		/**
+		 * Filters the time budget (seconds) for provider calls in one REST request.
+		 *
+		 * @param int $budget Seconds from the start of the request.
+		 */
+		$budget = (float) apply_filters( 'tuki_provider_time_budget', self::INTERACTIVE_BUDGET );
+		$start  = isset( $_SERVER['REQUEST_TIME_FLOAT'] ) ? (float) $_SERVER['REQUEST_TIME_FLOAT'] : microtime( true );
+
+		return $start + max( self::MIN_ATTEMPT_SECONDS, $budget );
+	}
+
+	/**
+	 * Throws the "took too long" error used when the request budget runs out.
+	 *
+	 * @return void
+	 * @throws Exception Always.
+	 */
+	protected function throw_timeout() {
+		/* translators: %s: provider name. */
+		throw new Exception( esc_html( sprintf( __( '%s took too long to respond. Please try again.', 'tukify' ), $this->label() ) ) );
+	}
+
+	/**
+	 * Performs a server-side POST with retry + backoff on transport errors and
+	 * 429/5xx. In a shopper-facing request every attempt (and every retry) must
+	 * fit in the request's time budget; see deadline().
 	 *
 	 * @param string $url     Full endpoint URL.
 	 * @param array  $body    Request body (JSON-encoded here).
@@ -211,15 +262,26 @@ abstract class Tuki_Provider_Base implements Tuki_AI_Provider {
 			'body'    => wp_json_encode( $body ),
 		);
 
-		$attempt = 0;
+		$deadline = $this->deadline();
+		$attempt  = 0;
 
 		while ( true ) {
 			++$attempt;
 
+			if ( null !== $deadline ) {
+				$left = $deadline - microtime( true );
+
+				if ( $left < self::MIN_ATTEMPT_SECONDS ) {
+					$this->throw_timeout();
+				}
+
+				$args['timeout'] = min( self::TIMEOUT, $left );
+			}
+
 			$response = wp_remote_post( $url, $args );
 
 			if ( is_wp_error( $response ) ) {
-				if ( $attempt < self::MAX_ATTEMPTS ) {
+				if ( $attempt < self::MAX_ATTEMPTS && $this->can_retry( $deadline, $attempt ) ) {
 					sleep( $attempt );
 					continue;
 				}
@@ -241,7 +303,7 @@ abstract class Tuki_Provider_Base implements Tuki_AI_Provider {
 				return is_array( $data ) ? $data : array();
 			}
 
-			if ( ( 429 === $code || $code >= 500 ) && $attempt < self::MAX_ATTEMPTS ) {
+			if ( ( 429 === $code || $code >= 500 ) && $attempt < self::MAX_ATTEMPTS && $this->can_retry( $deadline, $attempt ) ) {
 				sleep( $attempt );
 				continue;
 			}
@@ -250,6 +312,18 @@ abstract class Tuki_Provider_Base implements Tuki_AI_Provider {
 
 			throw new Exception( esc_html( $this->friendly_error( $code, $this->extract_error( $decoded ) ) ) );
 		}
+	}
+
+	/**
+	 * Whether a retry after this attempt's backoff still leaves time for a
+	 * useful attempt. Always true without a deadline.
+	 *
+	 * @param float|null $deadline Request deadline from deadline().
+	 * @param int        $attempt  Attempt that just failed (its backoff is $attempt seconds).
+	 * @return bool
+	 */
+	private function can_retry( $deadline, $attempt ) {
+		return null === $deadline || ( $deadline - microtime( true ) - $attempt ) >= self::MIN_ATTEMPT_SECONDS;
 	}
 
 	/**

@@ -59,11 +59,11 @@ class Tuki_Settings {
 			'wa_business_account_id'     => '',
 			'wa_notify_email'            => '',
 			'wa_session_days'            => 30,
-			'chat_model_gemini'          => 'gemini-2.5-flash',
-			'chat_model_openai'          => 'gpt-4o-mini',
-			'chat_model_anthropic'       => 'claude-3-5-haiku-latest',
-			'chat_model_grok'            => 'grok-2-latest',
-			'chat_model_groq'            => 'llama-3.3-70b-versatile',
+			'chat_model_gemini'          => 'gemini-3.8-flash',
+			'chat_model_openai'          => 'gpt-6-luna',
+			'chat_model_anthropic'       => 'claude-haiku-5-5',
+			'chat_model_grok'            => 'grok-4.7',
+			'chat_model_groq'            => 'openai/gpt-oss-120b',
 			'embedding_model_gemini'     => 'gemini-embedding-001',
 			'embedding_model_openai'     => 'text-embedding-3-small',
 			'retrieval_count'            => 5,
@@ -465,15 +465,21 @@ class Tuki_Settings {
 				'class'             => 'Tuki_Provider_Gemini',
 				'key'               => 'gemini_api_key',
 				'caps'              => array( 'chat', 'embeddings', 'vision' ),
+				// Model lists checked against each provider's docs on 2026-11-01. Retired
+				// models are removed; deprecated ones that still work stay, labelled, so
+				// a saved choice is never switched silently.
 				'chat_models'       => array(
-					'gemini-2.5-flash'      => 'gemini-2.5-flash',
-					'gemini-2.5-flash-lite' => 'gemini-2.5-flash-lite (economy)',
-					'gemini-2.5-pro'        => 'gemini-2.5-pro',
+					'gemini-3.8-flash'      => 'gemini-3.8-flash',
+					'gemini-3.5-flash-lite' => 'gemini-3.5-flash-lite (economy)',
+					// Google limits the 2.5 models to accounts that already used them.
+					'gemini-2.5-flash'      => 'gemini-2.5-flash (legacy, existing accounts only)',
+					'gemini-2.5-flash-lite' => 'gemini-2.5-flash-lite (legacy, existing accounts only)',
+					'gemini-2.5-pro'        => 'gemini-2.5-pro (legacy, existing accounts only)',
 				),
 				'embedding_models'  => array(
 					'gemini-embedding-001' => 'gemini-embedding-001',
 				),
-				'default_chat'      => 'gemini-2.5-flash',
+				'default_chat'      => 'gemini-3.8-flash',
 				'default_embedding' => 'gemini-embedding-001',
 				'key_hint'          => 'aistudio.google.com',
 			),
@@ -483,16 +489,19 @@ class Tuki_Settings {
 				'key'               => 'openai_api_key',
 				'caps'              => array( 'chat', 'embeddings', 'vision' ),
 				'chat_models'       => array(
-					'gpt-4o-mini'  => 'gpt-4o-mini (fast)',
-					'gpt-4o'       => 'gpt-4o',
-					'gpt-4.1-mini' => 'gpt-4.1-mini',
-					'gpt-4.1'      => 'gpt-4.1',
+					'gpt-6-luna'    => 'gpt-6-luna (fast, economy)',
+					'gpt-6.1-terra' => 'gpt-6.1-terra',
+					'gpt-6.1-sol'   => 'gpt-6.1-sol',
+					'gpt-4o-mini'   => 'gpt-4o-mini (deprecated, shuts down 14 Jan 2027)',
+					'gpt-4o'        => 'gpt-4o (deprecated, shuts down 14 Jan 2027)',
+					'gpt-4.1-mini'  => 'gpt-4.1-mini (deprecated, shuts down 14 Jan 2027)',
+					'gpt-4.1'       => 'gpt-4.1 (deprecated, shuts down 14 Jan 2027)',
 				),
 				'embedding_models'  => array(
 					'text-embedding-3-small' => 'text-embedding-3-small',
 					'text-embedding-3-large' => 'text-embedding-3-large',
 				),
-				'default_chat'      => 'gpt-4o-mini',
+				'default_chat'      => 'gpt-6-luna',
 				'default_embedding' => 'text-embedding-3-small',
 				'key_hint'          => 'platform.openai.com',
 			),
@@ -502,11 +511,11 @@ class Tuki_Settings {
 				'key'          => 'anthropic_api_key',
 				'caps'         => array( 'chat', 'vision' ),
 				'chat_models'  => array(
-					'claude-3-5-haiku-latest'  => 'claude-3-5-haiku (fast)',
-					'claude-3-5-sonnet-latest' => 'claude-3-5-sonnet',
-					'claude-sonnet-4-5'        => 'claude-sonnet-4-5',
+					'claude-haiku-5-5'  => 'claude-haiku-5-5 (fast)',
+					'claude-sonnet-5-5' => 'claude-sonnet-5-5',
+					'claude-sonnet-4-5' => 'claude-sonnet-4-5 (deprecated, retires 30 Nov 2026)',
 				),
-				'default_chat' => 'claude-3-5-haiku-latest',
+				'default_chat' => 'claude-haiku-5-5',
 				'key_hint'     => 'console.anthropic.com',
 			),
 			'grok'      => array(
@@ -515,11 +524,10 @@ class Tuki_Settings {
 				'key'          => 'xai_api_key',
 				'caps'         => array( 'chat', 'vision' ),
 				'chat_models'  => array(
-					'grok-2-latest'      => 'grok-2-latest',
-					'grok-2-vision-1212' => 'grok-2-vision-1212 (image input)',
-					'grok-3'             => 'grok-3',
+					'grok-4.7'                     => 'grok-4.7 (image input)',
+					'grok-4.20-0309-non-reasoning' => 'grok-4.20-0309-non-reasoning (faster)',
 				),
-				'default_chat' => 'grok-2-latest',
+				'default_chat' => 'grok-4.7',
 				'key_hint'     => 'console.x.ai',
 			),
 			'groq'      => array(
@@ -531,12 +539,10 @@ class Tuki_Settings {
 				'key'          => 'groq_api_key',
 				'caps'         => array( 'chat' ),
 				'chat_models'  => array(
-					'llama-3.3-70b-versatile'       => 'llama-3.3-70b-versatile (default)',
-					'llama-3.1-8b-instant'          => 'llama-3.1-8b-instant (fastest)',
-					'openai/gpt-oss-120b'           => 'gpt-oss-120b',
-					'deepseek-r1-distill-llama-70b' => 'deepseek-r1-distill-70b',
+					'openai/gpt-oss-120b' => 'gpt-oss-120b (default)',
+					'openai/gpt-oss-20b'  => 'gpt-oss-20b (fastest)',
 				),
-				'default_chat' => 'llama-3.3-70b-versatile',
+				'default_chat' => 'openai/gpt-oss-120b',
 				'key_hint'     => 'console.groq.com',
 			),
 		);
@@ -686,7 +692,16 @@ class Tuki_Settings {
 			? trim( (string) $key_override )
 			: self::provider_key( $provider );
 
-		$chat_model      = (string) self::get( 'chat_model_' . $provider );
+		$chat_model = (string) self::get( 'chat_model_' . $provider );
+
+		// A saved model that is no longer offered (retired by the provider) would
+		// fail every request until someone re-saves the settings, so use the
+		// provider's default instead. Embedding models are deliberately not
+		// remapped: switching one changes the vector space and needs a reindex.
+		if ( ! isset( $meta['chat_models'][ $chat_model ] ) && ! empty( $meta['default_chat'] ) ) {
+			$chat_model = (string) $meta['default_chat'];
+		}
+
 		$embedding_model = in_array( 'embeddings', $meta['caps'], true ) ? (string) self::get( 'embedding_model_' . $provider ) : '';
 
 		return new $meta['class']( $key, $chat_model, $embedding_model );

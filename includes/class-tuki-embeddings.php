@@ -46,7 +46,7 @@ class Tuki_Embeddings {
 		$provider = Tuki_Settings::make_embedding_provider();
 
 		if ( ! $provider ) {
-			throw new Exception( esc_html__( 'No embedding provider is configured. Claude and Grok have no embeddings endpoint; set your embedding provider to Gemini or OpenAI.', 'tukify' ) );
+			throw new Exception( esc_html__( 'No embedding provider is configured. Claude, Grok and Groq have no embeddings endpoint; set your embedding provider to Gemini or OpenAI.', 'tukify' ) );
 		}
 
 		return $provider->create_embeddings( $texts );

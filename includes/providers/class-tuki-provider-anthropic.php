@@ -37,6 +37,19 @@ class Tuki_Provider_Anthropic extends Tuki_Provider_Base {
 	const MAX_TOKENS = 1024;
 
 	/**
+	 * Models that think by default, mapped to the lowest thinking setting each
+	 * accepts. Thinking tokens count toward max_tokens, so left on they could
+	 * crowd out the short JSON reply; a shopping turn needs a fast answer, not
+	 * deliberation. Sonnet 5.5 rejects "disabled", and "between_tools" is its
+	 * lowest setting (text-only without tools). Models not listed keep the API
+	 * default.
+	 */
+	const THINKING_OFF = array(
+		'claude-haiku-5-5'  => 'disabled',
+		'claude-sonnet-5-5' => 'between_tools',
+	);
+
+	/**
 	 * {@inheritDoc}
 	 */
 	protected function capabilities(): array {
@@ -67,7 +80,7 @@ class Tuki_Provider_Anthropic extends Tuki_Provider_Base {
 		}
 
 		$body = array(
-			'model'      => $this->chat_model ? $this->chat_model : 'claude-3-5-haiku-latest',
+			'model'      => $this->chat_model ? $this->chat_model : 'claude-haiku-5-5',
 			'max_tokens' => self::MAX_TOKENS,
 			'messages'   => $this->build_messages( $messages ),
 		);
@@ -75,6 +88,8 @@ class Tuki_Provider_Anthropic extends Tuki_Provider_Base {
 		if ( '' !== trim( $system ) ) {
 			$body['system'] = $system;
 		}
+
+		$body = $this->with_thinking_off( $body );
 
 		$response = $this->request( self::API_URL, $body, $this->auth_headers() );
 		$this->track_chat_usage( $response, $this->estimate( wp_json_encode( $body ) ) );
@@ -111,7 +126,7 @@ class Tuki_Provider_Anthropic extends Tuki_Provider_Base {
 		);
 
 		$body = array(
-			'model'      => $this->chat_model ? $this->chat_model : 'claude-3-5-haiku-latest',
+			'model'      => $this->chat_model ? $this->chat_model : 'claude-haiku-5-5',
 			'max_tokens' => self::MAX_TOKENS,
 			'messages'   => array(
 				array(
@@ -121,10 +136,28 @@ class Tuki_Provider_Anthropic extends Tuki_Provider_Base {
 			),
 		);
 
+		$body = $this->with_thinking_off( $body );
+
 		$response = $this->request( self::API_URL, $body, $this->auth_headers() );
 		$this->track_chat_usage( $response, $this->estimate( $prompt ) );
 
 		return $this->extract_text( $response );
+	}
+
+	/**
+	 * Adds the lowest thinking setting for models that think by default.
+	 *
+	 * @param array $body Messages API request body (with 'model').
+	 * @return array
+	 */
+	private function with_thinking_off( array $body ) {
+		$model = (string) $body['model'];
+
+		if ( isset( self::THINKING_OFF[ $model ] ) ) {
+			$body['thinking'] = array( 'type' => self::THINKING_OFF[ $model ] );
+		}
+
+		return $body;
 	}
 
 	/**

@@ -1037,7 +1037,7 @@ $tuki_tabs = array(
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'API usage & estimated cost', 'tukify' ); ?></h2>
-							<p class="tkfy-card-cap"><?php esc_html_e( 'Tokens and requests spent on your Gemini key. Caching (below) reduces these.', 'tukify' ); ?></p>
+							<p class="tkfy-card-cap"><?php esc_html_e( 'Tokens and requests spent on your AI provider keys. Caching (below) reduces these.', 'tukify' ); ?></p>
 						</div>
 						<div class="tkfy-card-body">
 							<div class="tkfy-demand-summary tkfy-field--wide">
@@ -1114,7 +1114,7 @@ $tuki_tabs = array(
 									<span class="tuki-switch-slider"></span>
 									<span class="tuki-switch-text"><?php esc_html_e( 'Cache query embeddings and knowledge-base answers', 'tukify' ); ?></span>
 								</label>
-								<p class="tkfy-hint"><?php esc_html_e( 'Identical or near-identical repeat queries reuse a cached result instead of calling Gemini again.', 'tukify' ); ?></p>
+								<p class="tkfy-hint"><?php esc_html_e( 'Identical or near-identical repeat queries reuse a cached result instead of calling your AI provider again.', 'tukify' ); ?></p>
 							</div>
 							<div class="tkfy-field">
 								<label class="tkfy-label" for="tuki_cache_ttl"><?php esc_html_e( 'Cache lifetime (hours)', 'tukify' ); ?></label>
@@ -1140,7 +1140,7 @@ $tuki_tabs = array(
 								<label class="tkfy-label" for="tuki_price_embedding"><?php esc_html_e( 'Embedding $ / 1M tokens', 'tukify' ); ?></label>
 								<input type="number" step="0.01" min="0" class="tuki-input tuki-input--sm" id="tuki_price_embedding" name="<?php echo esc_attr( $tuki_option ); ?>[price_embedding]" value="<?php echo esc_attr( $tuki_settings['price_embedding'] ); ?>" />
 							</div>
-							<p class="tkfy-hint tkfy-field--wide"><?php esc_html_e( 'Prices are only used for the cost estimate above — set them to match your Gemini pricing tier.', 'tukify' ); ?></p>
+							<p class="tkfy-hint tkfy-field--wide"><?php esc_html_e( 'Prices are only used for the cost estimate above — set them to match your chat and embedding providers\' pricing.', 'tukify' ); ?></p>
 						</div>
 					</div>
 
@@ -1333,6 +1333,7 @@ $tuki_tabs = array(
 							<div class="tkfy-field">
 								<label class="tkfy-label" for="tuki_guest_rate_limit"><?php esc_html_e( 'Guest rate limit (per minute)', 'tukify' ); ?></label>
 								<input type="number" class="tuki-input tuki-input--sm" id="tuki_guest_rate_limit" name="<?php echo esc_attr( $tuki_option ); ?>[guest_rate_limit]" value="<?php echo esc_attr( $tuki_settings['guest_rate_limit'] ); ?>" min="1" max="1000" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Per visitor IP, for AI requests (chat, search, image search) and back-in-stock sign-ups. Behind a CDN or proxy, use the tuki_client_ip filter to pass the real visitor IP.', 'tukify' ); ?></p>
 							</div>
 						</div>
 					</div>
