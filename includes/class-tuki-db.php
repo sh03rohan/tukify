@@ -276,17 +276,30 @@ class Tuki_DB {
 			dbDelta( $sql_wa_sessions );
 		}
 
-		update_option( 'tuki_db_version', TUKI_VERSION );
+		update_option( 'tuki_db_version', self::schema_version() );
 	}
 
 	/**
-	 * Runs create_tables() when the stored DB version is behind the plugin version,
-	 * so tables added in an update (e.g. the KB table) appear on existing installs.
+	 * The schema marker stored in tuki_db_version: the plugin version, plus a
+	 * suffix while the WhatsApp channel is unlocked. Flipping the flag therefore
+	 * changes the marker, so the next maybe_upgrade() creates the WhatsApp table
+	 * on an existing install without waiting for a version bump.
+	 *
+	 * @return string
+	 */
+	private static function schema_version() {
+		return TUKI_VERSION . ( ( defined( 'TUKI_WHATSAPP_ENABLED' ) && TUKI_WHATSAPP_ENABLED ) ? '+wa' : '' );
+	}
+
+	/**
+	 * Runs create_tables() when the stored schema marker differs from the current
+	 * one, so tables added in an update (e.g. the KB table) or by unlocking the
+	 * WhatsApp channel appear on existing installs.
 	 *
 	 * @return void
 	 */
 	public static function maybe_upgrade() {
-		if ( get_option( 'tuki_db_version' ) !== TUKI_VERSION ) {
+		if ( get_option( 'tuki_db_version' ) !== self::schema_version() ) {
 			self::create_tables();
 		}
 	}
