@@ -29,6 +29,12 @@ class Tuki_WA_Sessions {
 	const PURGE_HOOK = 'tuki_purge_wa_sessions';
 
 	/**
+	 * Silence (seconds) after which a returning shopper starts a new
+	 * conversation — WhatsApp's own 24-hour customer-service window.
+	 */
+	const CONVERSATION_GAP = 86400;
+
+	/**
 	 * Registers the purge schedule — only while the channel is unlocked.
 	 *
 	 * If the feature is locked (or gets locked again) any previously scheduled
@@ -93,7 +99,7 @@ class Tuki_WA_Sessions {
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT id, conversation_context FROM {$table} WHERE phone_hash = %s", $hash ),
+			$wpdb->prepare( "SELECT id, conversation_context, updated_at FROM {$table} WHERE phone_hash = %s", $hash ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -122,11 +128,22 @@ class Tuki_WA_Sessions {
 		}
 
 		$context = json_decode( (string) $row['conversation_context'], true );
+		$session = Tuki_Channel::normalize_session( is_array( $context ) ? $context : array() );
+
+		// "Max clarifying questions per conversation": the row lives for weeks, so
+		// a shopper returning after a long silence is in a new conversation and
+		// gets a fresh allowance. History is kept for follow-up references. Both
+		// times are site-local (current_time( 'mysql' )), so they compare directly.
+		$last = strtotime( (string) $row['updated_at'] );
+
+		if ( $last && ( strtotime( current_time( 'mysql' ) ) - $last ) > self::CONVERSATION_GAP ) {
+			$session['clarify_count'] = 0;
+		}
 
 		return array(
 			'id'         => (int) $row['id'],
 			'phone_hash' => $hash,
-			'session'    => Tuki_Channel::normalize_session( is_array( $context ) ? $context : array() ),
+			'session'    => $session,
 		);
 	}
 
