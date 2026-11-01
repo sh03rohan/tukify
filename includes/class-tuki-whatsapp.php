@@ -476,8 +476,9 @@ class Tuki_WhatsApp {
 			return true;
 		}
 
-		// Clarifying questions and KB/policy answers are legitimate replies.
-		if ( in_array( $intent, array( 'clarify', 'policy', 'info', 'order_status', 'size_advice' ), true ) ) {
+		// Clarifying questions, KB/policy answers, and the damaged-item support
+		// reply (order lookup + returns, deliberately product-free) are legitimate.
+		if ( in_array( $intent, array( 'clarify', 'policy', 'info', 'order_status', 'size_advice', 'support' ), true ) ) {
 			return false;
 		}
 
