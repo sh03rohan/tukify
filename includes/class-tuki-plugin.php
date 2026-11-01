@@ -144,6 +144,11 @@ final class Tuki_Plugin {
 		// only instantiated on the storefront, where it hooks wp_enqueue_scripts.
 		require_once TUKI_PLUGIN_DIR . 'public/class-tuki-frontend.php';
 
+		// Nonce refresh for widgets on cached pages. Registered here, not in
+		// Tuki_Frontend, because admin-ajax runs in the admin context.
+		add_action( 'wp_ajax_' . Tuki_Frontend::NONCE_ACTION, array( 'Tuki_Frontend', 'ajax_refresh_nonce' ) );
+		add_action( 'wp_ajax_nopriv_' . Tuki_Frontend::NONCE_ACTION, array( 'Tuki_Frontend', 'ajax_refresh_nonce' ) );
+
 		// Elementor widgets (hooks are namespaced, so this is inert without Elementor).
 		require_once TUKI_PLUGIN_DIR . 'elementor/class-tuki-elementor.php';
 		new Tuki_Elementor();

@@ -41,7 +41,7 @@
 		return node;
 	}
 
-	function api( path, body ) {
+	function api( path, body, retried ) {
 		return fetch( cfg.restUrl + path, {
 			method: 'POST',
 			credentials: 'include',
@@ -55,10 +55,52 @@
 				if ( ! response.ok ) {
 					var error = new Error( 'request_failed' );
 					error.data = json;
+
+					// The page's nonces went stale (full-page cache, or a tab left
+					// open for a day): fetch fresh ones and retry exactly once.
+					if ( ! retried && 403 === response.status && json &&
+						( 'rest_cookie_invalid_nonce' === json.code || 'tuki_bad_nonce' === json.code ) ) {
+						return refreshNonces().then( function ( ok ) {
+							if ( ! ok ) {
+								throw error;
+							}
+							if ( body && 'checkout_nonce' in body ) {
+								body.checkout_nonce = ( cfg.checkout && cfg.checkout.nonce ) || '';
+							}
+							return api( path, body, true );
+						} );
+					}
+
 					throw error;
 				}
 				return json;
 			} );
+		} );
+	}
+
+	// Resolves true once cfg holds fresh REST + checkout nonces for this visitor.
+	function refreshNonces() {
+		if ( ! cfg.ajaxUrl || ! cfg.nonceAction ) {
+			return Promise.resolve( false );
+		}
+		return fetch( cfg.ajaxUrl, {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: 'action=' + encodeURIComponent( cfg.nonceAction )
+		} ).then( function ( response ) {
+			return response.json();
+		} ).then( function ( json ) {
+			if ( ! json || ! json.success || ! json.data || ! json.data.rest ) {
+				return false;
+			}
+			cfg.nonce = json.data.rest;
+			if ( cfg.checkout ) {
+				cfg.checkout.nonce = json.data.checkout || cfg.checkout.nonce;
+			}
+			return true;
+		} ).catch( function () {
+			return false;
 		} );
 	}
 

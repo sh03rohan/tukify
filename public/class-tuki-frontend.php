@@ -25,6 +25,11 @@ class Tuki_Frontend {
 	const HANDLE = 'tuki-widget';
 
 	/**
+	 * Admin-ajax action that hands the widget fresh nonces.
+	 */
+	const NONCE_ACTION = 'tuki_refresh_nonce';
+
+	/**
 	 * Hooks the frontend enqueue.
 	 */
 	public function __construct() {
@@ -94,6 +99,28 @@ class Tuki_Frontend {
 	}
 
 	/**
+	 * Admin-ajax handler (logged-in and guest): fresh REST + checkout nonces for
+	 * the current visitor.
+	 *
+	 * The nonces printed into the page go stale under a full-page cache (they
+	 * expire after 12-24h, and a cached guest page is wrong for a logged-in
+	 * visitor), which made every widget call fail with a 403. The widget calls
+	 * this once on that 403 and retries. admin-ajax sends no-cache headers, and a
+	 * nonce only ever authorises the requester's own identity, so this reveals
+	 * nothing a fresh page load would not.
+	 *
+	 * @return void
+	 */
+	public static function ajax_refresh_nonce() {
+		wp_send_json_success(
+			array(
+				'rest'     => wp_create_nonce( 'wp_rest' ),
+				'checkout' => wp_create_nonce( 'tuki_checkout' ),
+			)
+		);
+	}
+
+	/**
 	 * Builds the config object passed to the widget.
 	 *
 	 * @return array
@@ -122,6 +149,10 @@ class Tuki_Frontend {
 		return array(
 			'restUrl'         => esc_url_raw( rest_url( 'tukify/v1/' ) ),
 			'nonce'           => wp_create_nonce( 'wp_rest' ),
+			// Where the widget fetches fresh nonces when the ones above have gone
+			// stale in a cached page.
+			'ajaxUrl'         => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
+			'nonceAction'     => self::NONCE_ACTION,
 			'floating'        => (bool) $settings['floating_widget'],
 			'accent'          => $settings['accent_color'],
 			'bubbleBg'        => $settings['bubble_bg_color'],
