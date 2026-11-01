@@ -37,8 +37,17 @@ if ( 'delete' === $tuki_sn_action ) {
 $tuki_sn_products = Tuki_DB::stock_notify_products();
 $tuki_sn_total    = Tuki_DB::count_stock_notify_pending();
 ?>
-<div class="wrap">
-	<h1><?php esc_html_e( 'Back in stock — pending notifications', 'tukify' ); ?></h1>
+<div class="tuki-admin" data-theme="<?php echo esc_attr( Tuki_Admin::admin_theme() ); ?>" data-tk-screen="stock">
+	<?php
+	$tuki_current = 'stock';
+	require TUKI_PLUGIN_DIR . 'admin/partials/sidebar.php';
+	?>
+
+	<div class="tk-main">
+		<div class="tk-scroll">
+			<?php require TUKI_PLUGIN_DIR . 'admin/partials/header.php'; ?>
+
+	<div class="tk-legacy-stock">
 
 	<?php if ( '' !== $tuki_sn_notice ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $tuki_sn_notice ); ?></p></div>
@@ -123,4 +132,8 @@ $tuki_sn_total    = Tuki_DB::count_stock_notify_pending();
 			</table>
 		<?php endforeach; ?>
 	<?php endif; ?>
+	</div><!-- .tk-legacy-stock -->
+
+		</div><!-- .tk-scroll -->
+	</div><!-- .tk-main -->
 </div>

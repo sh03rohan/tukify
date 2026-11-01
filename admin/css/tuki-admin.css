@@ -1,0 +1,538 @@
+/**
+ * Tukify admin — shared shell for the Dashboard, Settings and Back-in-stock
+ * screens.
+ *
+ * Every component rule is scoped under the .tuki-admin root (component classes
+ * use the tk- prefix). The only rules outside it are the WordPress-chrome
+ * adjustments at the top, scoped to body.tukify-admin — a class added only on
+ * Tukify's own screens — because they style WordPress's wrappers, not ours.
+ *
+ * Layout: the root fills the space under the admin bar and right of the admin
+ * menu exactly, so the page itself never scrolls. The sidebar and the main
+ * area are separate scroll containers with hidden scrollbars; the save bar sits
+ * outside the main scroll area so it is always visible.
+ */
+
+/* ---------------------------------------------------------------------------
+ * WordPress chrome (Tukify screens only)
+ * ------------------------------------------------------------------------- */
+
+body.tukify-admin.tukify-theme-dark {
+	background: #0e0e11;
+}
+
+body.tukify-admin.tukify-theme-light {
+	background: #f4f4f7;
+}
+
+/* No gutter, no bottom padding: the root fills the content area edge to edge. */
+body.tukify-admin #wpcontent {
+	padding-left: 0;
+}
+
+body.tukify-admin #wpbody-content {
+	padding-bottom: 0;
+}
+
+/* The footer would sit below a full-height root and add a page scrollbar. */
+body.tukify-admin #wpfooter {
+	display: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Root + theme tokens (dark by default; data-theme is printed server-side)
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin {
+	--tk-bg: #0e0e11;
+	--tk-side: #121216;
+	--tk-card: #16161a;
+	--tk-card2: #1c1c22;
+	--tk-track: #2a2a31;
+	--tk-line: rgba(255, 255, 255, .08);
+	--tk-line2: rgba(255, 255, 255, .06);
+	--tk-text: #f5f5f7;
+	--tk-text2: #d8d8de;
+	--tk-muted: #a1a1aa;
+	--tk-accent: #9d92f5;
+	--tk-solid: #6a5ce6;
+	--tk-accent-bg: #201d38;
+	--tk-ok: #5bc98e;
+	--tk-ok-bg: #14231c;
+	--tk-warn: #efa43a;
+	--tk-warn-bg: #2a1f0e;
+	--tk-focus: #b4abff;
+	--tk-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+
+	display: flex;
+	align-items: stretch;
+	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
+	height: calc(100dvh - var(--wp-admin--admin-bar--height, 32px));
+	overflow: hidden;
+	background: var(--tk-bg);
+	color: var(--tk-text);
+	color-scheme: dark;
+	font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.tuki-admin[data-theme="light"] {
+	--tk-bg: #f4f4f7;
+	--tk-side: #ffffff;
+	--tk-card: #ffffff;
+	--tk-card2: #f4f4f7;
+	--tk-track: #e2e2e8;
+	--tk-line: rgba(20, 20, 30, .11);
+	--tk-line2: rgba(20, 20, 30, .07);
+	--tk-text: #17171c;
+	--tk-text2: #2e2e36;
+	--tk-muted: #5d5d68;
+	--tk-accent: #5245cf;
+	--tk-solid: #6a5ce6;
+	--tk-accent-bg: #eeebff;
+	--tk-ok: #1b7a4b;
+	--tk-ok-bg: #e6f4ec;
+	--tk-warn: #94570a;
+	--tk-warn-bg: #fcf1e0;
+	--tk-focus: #5245cf;
+	--tk-shadow: 0 10px 30px rgba(20, 20, 40, .10);
+
+	color-scheme: light;
+}
+
+/* No admin bar (e.g. removed by another plugin): use the full viewport. */
+html:not(.wp-toolbar) .tuki-admin {
+	height: 100vh;
+	height: 100dvh;
+}
+
+.tuki-admin *,
+.tuki-admin *::before,
+.tuki-admin *::after {
+	box-sizing: border-box;
+}
+
+/* Hidden scrollbars; areas still scroll by wheel, touch and keyboard. The
+ * body.tukify-admin prefix outranks older scoped stylesheets on these screens. */
+body.tukify-admin .tuki-admin,
+body.tukify-admin .tuki-admin * {
+	scrollbar-width: none;
+}
+
+body.tukify-admin .tuki-admin::-webkit-scrollbar,
+body.tukify-admin .tuki-admin ::-webkit-scrollbar {
+	display: none;
+}
+
+.tuki-admin :focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.tuki-admin h1,
+.tuki-admin h2,
+.tuki-admin h3,
+.tuki-admin p {
+	margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin .tk-side {
+	flex: 0 0 248px;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	padding: 20px 14px;
+	background: var(--tk-side);
+	border-right: 1px solid var(--tk-line);
+}
+
+.tuki-admin .tk-brand {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 4px 8px 8px;
+}
+
+.tuki-admin .tk-chip {
+	flex: 0 0 auto;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 11px;
+	background: var(--tk-accent-bg);
+}
+
+.tuki-admin .tk-chip img {
+	width: 26px;
+	height: 26px;
+}
+
+.tuki-admin .tk-brand-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.tuki-admin .tk-brand-title {
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-brand-sub {
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-navs {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.tuki-admin .tk-group {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.tuki-admin .tk-glabel {
+	padding: 0 12px 6px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-tab {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	min-height: 44px;
+	padding: 0 12px;
+	border-radius: 10px;
+	background: transparent;
+	color: var(--tk-text2);
+	font-size: 14px;
+	text-decoration: none;
+}
+
+.tuki-admin .tk-tab svg {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-tab:hover {
+	background: var(--tk-card2);
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-tab[aria-current="page"] {
+	background: var(--tk-accent-bg);
+	color: var(--tk-text);
+	font-weight: 500;
+}
+
+.tuki-admin .tk-tab[aria-current="page"] svg {
+	color: var(--tk-accent);
+}
+
+/* ---------------------------------------------------------------------------
+ * Main area: scrolling header + panel, fixed save bar
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin .tk-main {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+}
+
+.tuki-admin .tk-scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 28px 32px 24px;
+}
+
+.tuki-admin .tk-phead {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.tuki-admin .tk-ptitle {
+	padding: 0;
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -.01em;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-pdesc {
+	max-width: 640px;
+	margin-top: 4px;
+	color: var(--tk-muted);
+}
+
+/* Toggle + pill stay together on one line, even when the header wraps. */
+.tuki-admin .tk-hright {
+	display: flex;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 12px;
+}
+
+.tuki-admin .tk-tgl {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--tk-text2);
+	font-size: 13.5px;
+	font-weight: 500;
+}
+
+.tuki-admin .tk-tgl label {
+	cursor: pointer;
+}
+
+/* Switch: 44px tall hit area, 44x26 visual track. */
+.tuki-admin .tk-sw {
+	position: relative;
+	flex: 0 0 auto;
+	width: 54px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.tuki-admin .tk-sw::before {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 9px;
+	width: 44px;
+	height: 26px;
+	border-radius: 13px;
+	background: var(--tk-track);
+	transition: background .15s;
+}
+
+.tuki-admin .tk-sw::after {
+	content: "";
+	position: absolute;
+	left: 8px;
+	top: 12px;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: #ffffff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+	transition: transform .15s;
+}
+
+.tuki-admin .tk-sw[aria-checked="true"]::before {
+	background: var(--tk-solid);
+}
+
+.tuki-admin .tk-sw[aria-checked="true"]::after {
+	transform: translateX(18px);
+}
+
+.tuki-admin .tk-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 32px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: var(--tk-ok-bg);
+	color: var(--tk-ok);
+	font-size: 12.5px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.tuki-admin .tk-pill.is-warn {
+	background: var(--tk-warn-bg);
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tk-pill.is-muted {
+	background: var(--tk-card2);
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+/* The notice anchor itself takes no space; notices land right after it. */
+.tuki-admin .wp-header-end {
+	display: none;
+}
+
+.tuki-admin .tk-scroll > .notice,
+.tuki-admin .tk-scroll > .updated,
+.tuki-admin .tk-scroll > .error {
+	margin: 0;
+}
+
+.tuki-admin .tk-hint {
+	color: var(--tk-muted);
+	font-size: 12.5px;
+}
+
+.tuki-admin .tk-savebar {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 0 32px 16px;
+	padding: 12px 14px 12px 18px;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+	box-shadow: var(--tk-shadow);
+}
+
+.tuki-admin .tk-savebar .tk-hint {
+	flex: 1 1 260px;
+}
+
+.tuki-admin .tk-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.tuki-admin .tk-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 18px;
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+	background: var(--tk-card2);
+	color: var(--tk-text);
+	font: inherit;
+	font-weight: 500;
+	white-space: nowrap;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.tuki-admin .tk-btn:hover {
+	border-color: var(--tk-muted);
+}
+
+.tuki-admin .tk-btn.is-primary {
+	background: var(--tk-solid);
+	border-color: transparent;
+	color: #ffffff;
+}
+
+.tuki-admin .tk-btn.is-primary:hover {
+	filter: brightness(1.08);
+}
+
+/* ---------------------------------------------------------------------------
+ * Older page styles still inside the shell (replaced in later steps)
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin .tkfy {
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+}
+
+.tuki-admin .tuki-app {
+	max-width: none;
+	margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Narrow screens: the sidebar becomes a tab strip above the content
+ * ------------------------------------------------------------------------- */
+
+@media screen and (max-width: 782px) {
+	.tuki-admin {
+		flex-direction: column;
+	}
+
+	.tuki-admin .tk-side {
+		flex: 0 0 auto;
+		gap: 8px;
+		overflow: visible;
+		padding: 12px 16px 10px;
+		border-right: 0;
+		border-bottom: 1px solid var(--tk-line);
+	}
+
+	.tuki-admin .tk-navs {
+		flex-direction: row;
+		gap: 6px;
+		overflow-x: auto;
+		margin: 0 -16px;
+		padding: 2px 16px;
+	}
+
+	.tuki-admin .tk-group {
+		flex-direction: row;
+		gap: 6px;
+	}
+
+	.tuki-admin .tk-glabel {
+		display: none;
+	}
+
+	.tuki-admin .tk-tab {
+		flex: 0 0 auto;
+		width: auto;
+		white-space: nowrap;
+		background: var(--tk-card2);
+	}
+
+	.tuki-admin .tk-scroll {
+		padding: 20px 16px;
+	}
+
+	.tuki-admin .tk-savebar {
+		margin: 0 16px 12px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tuki-admin .tk-sw::before,
+	.tuki-admin .tk-sw::after {
+		transition: none;
+	}
+}

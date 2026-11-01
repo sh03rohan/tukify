@@ -55,7 +55,6 @@ $tuki_signed = static function ( $value ) {
 };
 $tuki_total     = Tuki_Admin::total_products();
 $tuki_pending   = max( 0, $tuki_total - $tuki_indexed );
-$tuki_conn      = Tuki_Admin::connection_state();
 $tuki_state     = Tuki_Indexer::get_state();
 $tuki_running   = ( 'running' === $tuki_state['status'] );
 $tuki_embed_pct = $tuki_total > 0 ? min( 100, (int) round( $tuki_indexed / $tuki_total * 100 ) ) : 0;
@@ -83,22 +82,18 @@ $tuki_svg_allowed = array(
 	),
 );
 ?>
-<div class="wrap tuki-wrap">
+<div class="tuki-admin" data-theme="<?php echo esc_attr( Tuki_Admin::admin_theme() ); ?>" data-tk-screen="dashboard">
+	<?php
+	$tuki_current = 'dashboard';
+	require TUKI_PLUGIN_DIR . 'admin/partials/sidebar.php';
+	?>
+
+	<div class="tk-main">
+		<div class="tk-scroll">
+			<?php require TUKI_PLUGIN_DIR . 'admin/partials/header.php'; ?>
+
 	<div class="tuki-app">
 		<div class="tuki-panel">
-
-			<header class="tuki-header">
-				<div class="tuki-brand">
-					<span class="tuki-brand-chip"><img src="<?php echo esc_url( Tuki_Settings::logo_url() ); ?>" alt="Tukify" /></span>
-					<span class="tuki-brand-text">
-						<span class="tuki-brand-title">Tukify</span>
-						<span class="tuki-brand-sub"><?php esc_html_e( 'AI shopping assistant', 'tukify' ); ?></span>
-					</span>
-				</div>
-				<span class="tuki-pill tuki-pill--<?php echo esc_attr( $tuki_conn['state'] ); ?>">
-					<span class="tuki-dot"></span><?php echo esc_html( $tuki_conn['label'] ); ?>
-				</span>
-			</header>
 
 			<div class="tuki-body">
 
@@ -415,4 +410,7 @@ $tuki_svg_allowed = array(
 			</div><!-- .tuki-body -->
 		</div><!-- .tuki-panel -->
 	</div><!-- .tuki-app -->
+
+		</div><!-- .tk-scroll -->
+	</div><!-- .tk-main -->
 </div>

@@ -7,8 +7,8 @@
  * panel is visible (CSS display), so hidden tabs' values still submit. "Test
  * connection", "Search test" and "Reindex" run through AJAX (admin.js).
  *
- * Styled by admin-dark.css (dark "Midnight blue" theme) and driven by
- * admin-tabs.js (tab switching), both scoped to this screen. Field name=""
+ * Sits in the shared shell (admin/partials/, admin/css/tuki-admin.css) and is
+ * driven by admin/js/tuki-admin-ui.js (tab switching via the URL hash). Field name=""
  * attributes and the AJAX element IDs/classes are a contract with
  * Tuki_Settings::sanitize() and admin.js — keep them stable across redesigns.
  *
@@ -22,63 +22,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $tuki_settings = Tuki_Settings::get();
 $tuki_option   = Tuki_Settings::OPTION;
-$tuki_conn     = Tuki_Admin::connection_state();
 
-// Tab definitions: key => label. The first is active by default.
-$tuki_tabs = array(
-	'general'    => __( 'General', 'tukify' ),
-	'appearance' => __( 'Appearance', 'tukify' ),
-	'engagement' => __( 'Engagement', 'tukify' ),
-	'products'   => __( 'Products & Cart', 'tukify' ),
-	'channels'   => __( 'Channels', 'tukify' ),
-	'kb'         => __( 'Knowledge Base', 'tukify' ),
-	'analytics'  => __( 'Logs / Analytics', 'tukify' ),
-	'advanced'   => __( 'Advanced', 'tukify' ),
-);
+// Tabs, titles and descriptions come from Tuki_Admin::sections(); the first
+// settings tab (General) is shown until tuki-admin-ui.js reads the URL hash.
 ?>
-<div class="wrap tkfy">
-	<div class="tkfy-shell">
+<div class="tuki-admin" data-theme="<?php echo esc_attr( Tuki_Admin::admin_theme() ); ?>" data-tk-screen="settings">
+	<?php
+	$tuki_current = 'general';
+	require TUKI_PLUGIN_DIR . 'admin/partials/sidebar.php';
+	?>
 
-		<header class="tkfy-header">
-			<div class="tkfy-brand">
-				<span class="tkfy-brand-chip"><img src="<?php echo esc_url( Tuki_Settings::logo_url() ); ?>" alt="Tukify" /></span>
-				<span class="tkfy-brand-text">
-					<span class="tkfy-brand-title">Tukify</span>
-					<span class="tkfy-brand-sub"><?php esc_html_e( 'Settings', 'tukify' ); ?></span>
-				</span>
-			</div>
-			<span class="tkfy-pill tkfy-pill--<?php echo esc_attr( $tuki_conn['state'] ); ?>">
-				<span class="tkfy-dot"></span><?php echo esc_html( $tuki_conn['label'] ); ?>
-			</span>
-		</header>
+	<?php // One form for every tab: hidden panels still submit, so saving stores all of them. ?>
+	<form method="post" action="options.php" class="tk-main tkfy-form" id="tk-settings-form">
+		<?php settings_fields( Tuki_Settings::GROUP ); ?>
 
-		<nav class="tkfy-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Tukify settings sections', 'tukify' ); ?>">
-			<?php
-			$tuki_first = true;
-			foreach ( $tuki_tabs as $tuki_key => $tuki_label ) :
-				?>
-				<button
-					type="button"
-					class="tkfy-tab<?php echo $tuki_first ? ' is-active' : ''; ?>"
-					role="tab"
-					id="tkfy-tab-<?php echo esc_attr( $tuki_key ); ?>"
-					data-tab="<?php echo esc_attr( $tuki_key ); ?>"
-					aria-controls="tkfy-panel-<?php echo esc_attr( $tuki_key ); ?>"
-					aria-selected="<?php echo $tuki_first ? 'true' : 'false'; ?>"
-				><?php echo esc_html( $tuki_label ); ?></button>
-				<?php
-				$tuki_first = false;
-			endforeach;
-			?>
-		</nav>
+		<div class="tk-scroll">
+			<?php require TUKI_PLUGIN_DIR . 'admin/partials/header.php'; ?>
 
-		<form method="post" action="options.php" class="tkfy-form">
-			<?php settings_fields( Tuki_Settings::GROUP ); ?>
-
+			<?php // .tkfy is the root admin-controls.js enhances selects inside. ?>
+			<div class="tkfy">
 			<div class="tkfy-panels">
 
 				<!-- ============================ GENERAL / SETUP ============================ -->
-				<section class="tkfy-panel is-active" role="tabpanel" id="tkfy-panel-general" data-tab="general" aria-labelledby="tkfy-tab-general" tabindex="0">
+				<section class="tkfy-panel is-active" role="region" id="tkfy-panel-general" data-tab="general" aria-labelledby="tkfy-tab-general" tabindex="0">
 					<?php
 					$tuki_registry      = Tuki_Settings::providers_registry();
 					$tuki_emb_provs     = Tuki_Settings::embedding_providers();
@@ -238,7 +204,7 @@ $tuki_tabs = array(
 				</section>
 
 				<!-- ============================ APPEARANCE ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-appearance" data-tab="appearance" aria-labelledby="tkfy-tab-appearance" tabindex="0" hidden>
+				<section class="tkfy-panel" role="region" id="tkfy-panel-appearance" data-tab="appearance" aria-labelledby="tkfy-tab-appearance" tabindex="0" hidden>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Widget appearance', 'tukify' ); ?></h2>
@@ -283,7 +249,7 @@ $tuki_tabs = array(
 
 				<!-- ============================ PRODUCTS & CART ============================ -->
 				<!-- ============================ ENGAGEMENT ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-engagement" data-tab="engagement" aria-labelledby="tkfy-tab-engagement" tabindex="0" hidden>
+				<section class="tkfy-panel" role="region" id="tkfy-panel-engagement" data-tab="engagement" aria-labelledby="tkfy-tab-engagement" tabindex="0" hidden>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Abandonment intervention', 'tukify' ); ?></h2>
@@ -424,7 +390,7 @@ $tuki_tabs = array(
 					</div>
 				</section>
 
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-products" data-tab="products" aria-labelledby="tkfy-tab-products" tabindex="0" hidden>
+				<section class="tkfy-panel" role="region" id="tkfy-panel-products" data-tab="products" aria-labelledby="tkfy-tab-products" tabindex="0" hidden>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Product search & browsing', 'tukify' ); ?></h2>
@@ -633,7 +599,7 @@ $tuki_tabs = array(
 				</section>
 
 				<!-- ============================ CHANNELS ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-channels" data-tab="channels" aria-labelledby="tkfy-tab-channels" tabindex="0" hidden>
+				<section class="tkfy-panel" role="region" id="tkfy-panel-channels" data-tab="channels" aria-labelledby="tkfy-tab-channels" tabindex="0" hidden>
 					<?php
 					// While the channel is locked the whole panel is rendered as an
 					// inert teaser: fields are disabled (so they can't be focused,
@@ -824,7 +790,7 @@ $tuki_tabs = array(
 				</section>
 
 				<!-- ============================ KNOWLEDGE BASE ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-kb" data-tab="kb" aria-labelledby="tkfy-tab-kb" tabindex="0" hidden>
+				<section class="tkfy-panel" role="region" id="tkfy-panel-kb" data-tab="kb" aria-labelledby="tkfy-tab-kb" tabindex="0" hidden>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Knowledge base (site content)', 'tukify' ); ?></h2>
@@ -928,7 +894,7 @@ $tuki_tabs = array(
 				</section>
 
 				<!-- ============================ LOGS / ANALYTICS ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-analytics" data-tab="analytics" aria-labelledby="tkfy-tab-analytics" tabindex="0" hidden>
+				<section class="tkfy-panel" role="region" id="tkfy-panel-analytics" data-tab="analytics" aria-labelledby="tkfy-tab-analytics" tabindex="0" hidden>
 					<?php
 					// -------- Demand insights (read-only display; GET range filter) --------
 					$tuki_ranges = array(
@@ -975,7 +941,7 @@ $tuki_tabs = array(
 
 						return array(
 							'label' => __( 'Write FAQ', 'tukify' ),
-							'url'   => admin_url( 'admin.php?page=tukify-settings#tab-kb' ),
+							'url'   => admin_url( 'admin.php?page=tukify-settings#kb' ),
 							'kind'  => 'faq',
 						);
 					};
@@ -1154,7 +1120,7 @@ $tuki_tabs = array(
 							<div class="tkfy-demand-filter tkfy-field--wide" role="group" aria-label="<?php esc_attr_e( 'Date range', 'tukify' ); ?>">
 								<?php
 								foreach ( $tuki_ranges as $tuki_days => $tuki_label ) :
-									$tuki_url = esc_url( add_query_arg( 'demand_range', $tuki_days, $tuki_base_url ) . '#tab-analytics' );
+									$tuki_url = esc_url( add_query_arg( 'demand_range', $tuki_days, $tuki_base_url ) . '#analytics' );
 									?>
 									<a class="tkfy-range-link<?php echo (int) $tuki_days === $tuki_range ? ' is-active' : ''; ?>" href="<?php echo $tuki_url; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_url above. ?>"><?php echo esc_html( $tuki_label ); ?></a>
 								<?php endforeach; ?>
@@ -1297,7 +1263,7 @@ $tuki_tabs = array(
 				</section>
 
 				<!-- ============================ ADVANCED ============================ -->
-				<section class="tkfy-panel" role="tabpanel" id="tkfy-panel-advanced" data-tab="advanced" aria-labelledby="tkfy-tab-advanced" tabindex="0" hidden>
+				<section class="tkfy-panel" role="region" id="tkfy-panel-advanced" data-tab="advanced" aria-labelledby="tkfy-tab-advanced" tabindex="0" hidden>
 					<div class="tkfy-card">
 						<div class="tkfy-card-head">
 							<h2 class="tkfy-card-title"><?php esc_html_e( 'Data & cleanup', 'tukify' ); ?></h2>
@@ -1378,12 +1344,15 @@ $tuki_tabs = array(
 				</section>
 
 			</div><!-- .tkfy-panels -->
+			</div><!-- .tkfy -->
+		</div><!-- .tk-scroll -->
 
-			<div class="tkfy-actions">
-				<button type="submit" class="tuki-btn tuki-btn--accent"><?php esc_html_e( 'Save changes', 'tukify' ); ?></button>
-				<span class="tkfy-actions-hint"><?php esc_html_e( 'Saves every tab.', 'tukify' ); ?></span>
+		<div class="tk-savebar">
+			<p class="tk-hint"><?php esc_html_e( 'One form for every settings tab — saving stores all of them together.', 'tukify' ); ?></p>
+			<div class="tk-actions">
+				<button type="button" class="tk-btn" data-tk-reset><?php esc_html_e( 'Reset', 'tukify' ); ?></button>
+				<button type="submit" class="tk-btn is-primary"><?php esc_html_e( 'Save changes', 'tukify' ); ?></button>
 			</div>
-		</form>
-
-	</div><!-- .tkfy-shell -->
+		</div>
+	</form>
 </div>
