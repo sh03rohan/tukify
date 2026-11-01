@@ -287,9 +287,11 @@ class Tuki_Rest {
 				'callback'            => array( $this, 'handle_order_status' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
+					// The order number as the shopper sees it — may be a custom
+					// number (e.g. "INV-123"), so a string, not an integer id.
 					'order_id' => array(
 						'required' => true,
-						'type'     => 'integer',
+						'type'     => 'string',
 					),
 					'email'    => array(
 						'required' => false,
@@ -898,14 +900,20 @@ class Tuki_Rest {
 			);
 		}
 
-		$order_id = absint( $request->get_param( 'order_id' ) );
-		$email    = strtolower( sanitize_email( (string) $request->get_param( 'email' ) ) );
+		$number = ltrim( trim( sanitize_text_field( (string) $request->get_param( 'order_id' ) ) ), '#' );
+		$email  = strtolower( sanitize_email( (string) $request->get_param( 'email' ) ) );
 
-		if ( ! $order_id ) {
+		if ( '' === $number ) {
 			return new WP_Error( 'tuki_order_bad_request', __( 'Please enter your order number.', 'tukify' ), array( 'status' => 400 ) );
 		}
 
-		$order = wc_get_order( $order_id );
+		// Resolve the number the shopper sees to the order id exactly as
+		// WooCommerce's own order-tracking page does: custom/sequential order
+		// number plugins hook this filter to map e.g. "INV-123" to its id. A plain
+		// numeric id passes through unchanged; an unmapped string matches nothing.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		$order_id = apply_filters( 'woocommerce_shortcode_order_tracking_order_id', $number );
+		$order    = wc_get_order( $order_id );
 
 		// Same response whether the order does not exist or ownership failed, so a
 		// guesser cannot distinguish real order numbers from fake ones.

@@ -2065,7 +2065,6 @@
 			numLabel.textContent = S.orderNumber || 'Order number';
 			var num = el( 'input', 'tuki-order-input' );
 			num.type = 'text';
-			num.inputMode = 'numeric';
 			num.placeholder = S.orderNumPlaceholder || '';
 
 			var mailLabel = el( 'label', 'tuki-order-label' );
@@ -2090,7 +2089,10 @@
 				if ( submit.disabled ) {
 					return;
 				}
-				var id = parseInt( ( num.value || '' ).replace( /[^0-9]/g, '' ), 10 );
+				// Sent as typed (minus a leading "#"): stores with custom order
+				// numbers like "INV-123" are resolved server-side, as on WooCommerce's
+				// own order-tracking page.
+				var id = ( num.value || '' ).trim().replace( /^#+/, '' );
 				if ( ! id ) {
 					err.textContent = S.orderNeedNumber || '';
 					return;
