@@ -1333,6 +1333,7 @@ $tuki_tabs = array(
 							<div class="tkfy-field">
 								<label class="tkfy-label" for="tuki_guest_rate_limit"><?php esc_html_e( 'Guest rate limit (per minute)', 'tukify' ); ?></label>
 								<input type="number" class="tuki-input tuki-input--sm" id="tuki_guest_rate_limit" name="<?php echo esc_attr( $tuki_option ); ?>[guest_rate_limit]" value="<?php echo esc_attr( $tuki_settings['guest_rate_limit'] ); ?>" min="1" max="1000" />
+								<p class="tkfy-hint"><?php esc_html_e( 'Per visitor IP, for AI requests (chat, search, image search) and back-in-stock sign-ups. Behind a CDN or proxy, use the tuki_client_ip filter to pass the real visitor IP.', 'tukify' ); ?></p>
 							</div>
 						</div>
 					</div>
