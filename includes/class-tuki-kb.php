@@ -100,7 +100,7 @@ class Tuki_KB {
 		}
 
 		$entries  = $this->gather_entries();
-		$existing = Tuki_DB::kb_hash_map();
+		$existing = Tuki_DB::kb_hash_map( Tuki_Settings::embedding_model() );
 
 		$desired  = array();
 		$to_embed = array();
@@ -178,7 +178,7 @@ class Tuki_KB {
 		Tuki_DB::delete_kb_other_types( $post_id, $source_type );
 
 		$entries  = $this->post_entries( $post, $source_type );
-		$existing = Tuki_DB::kb_source_hashes( $source_type, $post_id );
+		$existing = Tuki_DB::kb_source_hashes( $source_type, $post_id, Tuki_Settings::embedding_model() );
 
 		$to_embed = array();
 		$keep     = array();
@@ -626,7 +626,7 @@ class Tuki_KB {
 			return array();
 		}
 
-		$rows = Tuki_DB::kb_rows();
+		$rows = Tuki_DB::kb_rows( Tuki_Settings::embedding_model() );
 
 		if ( empty( $rows ) ) {
 			return array();

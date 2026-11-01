@@ -547,22 +547,26 @@ class Tuki_DB {
 	 * "source_type:source_id:chunk". Used to diff against freshly-gathered
 	 * chunks so only changed/new chunks are re-embedded.
 	 *
+	 * A chunk embedded with a different model maps to '' so it never matches and
+	 * is re-embedded, but stays in the map so it can still be pruned.
+	 *
+	 * @param string $model Active embedding model.
 	 * @return array<string,string>
 	 */
-	public static function kb_hash_map() {
+	public static function kb_hash_map( $model ) {
 		global $wpdb;
 
 		$table = self::kb_table();
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT source_type, source_id, chunk, content_hash FROM {$table}", ARRAY_A );
+		$rows = $wpdb->get_results( "SELECT source_type, source_id, chunk, content_hash, model FROM {$table}", ARRAY_A );
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$map = array();
 
 		foreach ( (array) $rows as $row ) {
 			$key         = $row['source_type'] . ':' . (int) $row['source_id'] . ':' . (int) $row['chunk'];
-			$map[ $key ] = (string) $row['content_hash'];
+			$map[ $key ] = ( (string) $model === (string) $row['model'] ) ? (string) $row['content_hash'] : '';
 		}
 
 		return $map;
@@ -571,11 +575,14 @@ class Tuki_DB {
 	/**
 	 * Returns the stored chunk => content_hash map for a single source.
 	 *
+	 * As in kb_hash_map(), a chunk embedded with a different model maps to ''.
+	 *
 	 * @param string $source_type Source type.
 	 * @param int    $source_id   Source id.
+	 * @param string $model       Active embedding model.
 	 * @return array<int,string>
 	 */
-	public static function kb_source_hashes( $source_type, $source_id ) {
+	public static function kb_source_hashes( $source_type, $source_id, $model ) {
 		global $wpdb;
 
 		$table = self::kb_table();
@@ -583,7 +590,7 @@ class Tuki_DB {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT chunk, content_hash FROM {$table} WHERE source_type = %s AND source_id = %d",
+				"SELECT chunk, content_hash, model FROM {$table} WHERE source_type = %s AND source_id = %d",
 				substr( (string) $source_type, 0, 20 ),
 				absint( $source_id )
 			),
@@ -594,7 +601,7 @@ class Tuki_DB {
 		$map = array();
 
 		foreach ( (array) $rows as $row ) {
-			$map[ (int) $row['chunk'] ] = (string) $row['content_hash'];
+			$map[ (int) $row['chunk'] ] = ( (string) $model === (string) $row['model'] ) ? (string) $row['content_hash'] : '';
 		}
 
 		return $map;
@@ -677,17 +684,23 @@ class Tuki_DB {
 	}
 
 	/**
-	 * Returns all KB rows (id, title, content, url, embedding) for retrieval.
+	 * Returns the KB rows (title, content, url, embedding) built with the given
+	 * embedding model, for retrieval. Vectors from another model live in a
+	 * different space (often a different length), so they are never compared.
 	 *
+	 * @param string $model Active embedding model.
 	 * @return array
 	 */
-	public static function kb_rows() {
+	public static function kb_rows( $model ) {
 		global $wpdb;
 
 		$table = self::kb_table();
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT title, content, url, embedding FROM {$table}", ARRAY_A );
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( "SELECT title, content, url, embedding FROM {$table} WHERE model = %s", (string) $model ),
+			ARRAY_A
+		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return is_array( $rows ) ? $rows : array();
