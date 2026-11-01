@@ -33,7 +33,7 @@ class Tuki_Provider_Groq extends Tuki_Provider_Base {
 	 * Default chat model when none is configured. Easy to change here or via the
 	 * provider registry in Tuki_Settings.
 	 */
-	const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+	const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 	/**
 	 * {@inheritDoc}

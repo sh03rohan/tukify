@@ -91,7 +91,7 @@ class Tuki_Provider_Gemini extends Tuki_Provider_Base {
 	 * @throws Exception On a provider or transport error.
 	 */
 	public function generate_chat( array $messages, array $opts = array() ): string {
-		$model    = $this->normalize_model( $this->chat_model ? $this->chat_model : 'gemini-2.5-flash' );
+		$model    = $this->normalize_model( $this->chat_model ? $this->chat_model : 'gemini-3.8-flash' );
 		$contents = array();
 
 		foreach ( $messages as $message ) {
@@ -139,7 +139,7 @@ class Tuki_Provider_Gemini extends Tuki_Provider_Base {
 	 * @throws Exception On a provider or transport error.
 	 */
 	public function generate_vision( string $base64, string $mime, string $prompt, $schema = null ): string {
-		$model = $this->normalize_model( $this->chat_model ? $this->chat_model : 'gemini-2.5-flash' );
+		$model = $this->normalize_model( $this->chat_model ? $this->chat_model : 'gemini-3.8-flash' );
 
 		$body = array(
 			'contents' => array(

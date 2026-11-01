@@ -93,7 +93,7 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 	public function generate_chat( array $messages, array $opts = array() ): string {
 		$json = ! empty( $opts['json_schema'] );
 		$body = array(
-			'model'    => $this->chat_model ? $this->chat_model : 'gpt-4o-mini',
+			'model'    => $this->chat_model ? $this->chat_model : 'gpt-6-luna',
 			'messages' => $this->build_messages( $messages, isset( $opts['system'] ) ? (string) $opts['system'] : '', $json ),
 		);
 
@@ -131,7 +131,7 @@ class Tuki_Provider_OpenAI extends Tuki_Provider_Base {
 		);
 
 		$body = array(
-			'model'    => $this->chat_model ? $this->chat_model : 'gpt-4o-mini',
+			'model'    => $this->chat_model ? $this->chat_model : 'gpt-6-luna',
 			'messages' => array(
 				array(
 					'role'    => 'user',
