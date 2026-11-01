@@ -1945,6 +1945,8 @@
 		function setBusy( state ) {
 			busy = state;
 			sendBtn.disabled = state;
+			// sendImage() ignores a photo while busy, so don't let one be picked.
+			attach.disabled = state;
 		}
 
 		function addComparison( cmp ) {

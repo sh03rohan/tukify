@@ -1380,6 +1380,14 @@
 	border-color: var(--tuki-accent);
 }
 
+/* Disabled while a reply is pending; after :hover so hovering doesn't light it up. */
+.tuki-attach[disabled] {
+	opacity: 0.5;
+	cursor: default;
+	color: var(--tuki-text-muted);
+	border-color: var(--tuki-border);
+}
+
 .tuki-attach svg {
 	width: 18px;
 	height: 18px;
