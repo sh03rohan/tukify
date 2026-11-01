@@ -1481,9 +1481,18 @@
 		 * the normal checkout page.
 		 * ----------------------------------------------------------------- */
 
+		// The checkout form currently open in this chat (null once finished), so the
+		// checkout bar can't stack a second live form under the first.
+		var activeCheckout = null;
+		var checkoutSeq = 0;
+
 		function startCheckout() {
 			if ( busy ) {
 				return;
+			}
+			var prev = ( activeCheckout && ! activeCheckout.done ) ? activeCheckout : null;
+			if ( prev && prev.busy ) {
+				return; // Mid update / place-order: let that finish first.
 			}
 			engaged = true;
 			setBusy( true );
@@ -1502,7 +1511,19 @@
 						addCheckoutFallback( state.fallback_url );
 						return;
 					}
-					buildCheckout( state );
+					// Re-opened while a form is still open: replace it with a fresh one
+					// (the cart may have changed), keeping what the shopper typed.
+					if ( prev ) {
+						state.address = state.address || {};
+						Object.keys( prev.fields ).forEach( function ( k ) {
+							var v = prev.fields[ k ].input.value;
+							if ( v ) {
+								state.address[ k ] = v;
+							}
+						} );
+						prev.box.remove();
+					}
+					activeCheckout = buildCheckout( state );
 				} )
 				.catch( function ( err ) {
 					typing.remove();
@@ -1559,7 +1580,8 @@
 		}
 
 		function buildCheckout( state ) {
-			var co = { state: state, fields: {}, selectedShipping: '', selectedPayment: '', busy: false };
+			// uid keeps each form's radio groups separate within the shadow root.
+			var co = { state: state, fields: {}, selectedShipping: '', selectedPayment: '', busy: false, done: false, uid: ++checkoutSeq };
 			var box = el( 'div', 'tuki-co' );
 			co.box = box;
 
@@ -1643,6 +1665,8 @@
 
 			msgsEl.appendChild( box );
 			scrollDown();
+
+			return co;
 		}
 
 		function collectCheckout( co ) {
@@ -1724,7 +1748,7 @@
 					var row = el( 'label', 'tuki-co-radio' );
 					var input = document.createElement( 'input' );
 					input.type = 'radio';
-					input.name = 'tuki-ship';
+					input.name = 'tuki-ship-' + co.uid;
 					input.value = r.id;
 					input.checked = ( r.id === co.selectedShipping );
 					input.addEventListener( 'change', function () {
@@ -1754,7 +1778,7 @@
 					var row = el( 'label', 'tuki-co-radio' );
 					var input = document.createElement( 'input' );
 					input.type = 'radio';
-					input.name = 'tuki-pay';
+					input.name = 'tuki-pay-' + co.uid;
 					input.value = p.id;
 					input.checked = ( p.id === co.selectedPayment );
 					input.addEventListener( 'change', function () {
@@ -1869,6 +1893,7 @@
 		}
 
 		function finalizeCheckout( co ) {
+			co.done = true;
 			co.box.classList.add( 'is-done' );
 			if ( co.actions ) {
 				co.actions.remove();
