@@ -164,7 +164,9 @@ class Tuki_KB {
 
 		$post = get_post( $post_id );
 
-		if ( ! $post || 'publish' !== $post->post_status || ! $this->is_kb_source( $post_id ) ) {
+		// A password-protected post is published but not public: its content must
+		// never be quoted to shoppers, so it is treated like an unpublished one.
+		if ( ! $post || 'publish' !== $post->post_status || '' !== $post->post_password || ! $this->is_kb_source( $post_id ) ) {
 			Tuki_DB::delete_kb_post( $post_id );
 			return;
 		}
@@ -309,7 +311,7 @@ class Tuki_KB {
 		foreach ( $page_ids as $page_id ) {
 			$post = get_post( $page_id );
 
-			if ( ! $post || 'publish' !== $post->post_status ) {
+			if ( ! $post || 'publish' !== $post->post_status || '' !== $post->post_password ) {
 				continue;
 			}
 
@@ -355,7 +357,7 @@ class Tuki_KB {
 
 					$post = get_post( $id );
 
-					if ( ! $post ) {
+					if ( ! $post || '' !== $post->post_password ) {
 						continue;
 					}
 
