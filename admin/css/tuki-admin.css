@@ -463,6 +463,287 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 	filter: brightness(1.08);
 }
 
+/* `hidden` must win over the display values set on buttons and cards. */
+.tuki-admin [hidden] {
+	display: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Components: cards, metrics, segmented range, progress, lists
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin .tk-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.tuki-admin .tk-grid2 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+	gap: 16px;
+}
+
+.tuki-admin .tk-grid3 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+	gap: 12px;
+}
+
+.tuki-admin .tk-card {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-width: 0;
+	padding: 20px 22px;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+}
+
+.tuki-admin .tk-card-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.tuki-admin .tk-ctitle {
+	padding: 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-ccap {
+	margin-top: 2px;
+	color: var(--tk-muted);
+	font-size: 13px;
+}
+
+.tuki-admin .tk-lbl {
+	color: var(--tk-text2);
+	font-size: 13.5px;
+	font-weight: 500;
+}
+
+.tuki-admin .tk-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 44px;
+}
+
+.tuki-admin .tk-row.is-tight {
+	min-height: 0;
+}
+
+.tuki-admin .tk-row.is-top {
+	align-items: flex-start;
+	flex-wrap: wrap;
+}
+
+.tuki-admin .tk-rt {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.tuki-admin .tk-metric {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	padding: 16px 18px;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+}
+
+/* Metrics inside a card sit on the slightly raised surface. */
+.tuki-admin .tk-card .tk-metric {
+	background: var(--tk-card2);
+}
+
+.tuki-admin .tk-ml {
+	color: var(--tk-muted);
+	font-size: 12.5px;
+}
+
+.tuki-admin .tk-mv {
+	color: var(--tk-text);
+	font-size: 26px;
+	font-weight: 500;
+	line-height: 1.3;
+	letter-spacing: -.01em;
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tk-ms {
+	color: var(--tk-muted);
+	font-size: 12px;
+}
+
+.tuki-admin .tk-ms.is-ok {
+	color: var(--tk-ok);
+}
+
+.tuki-admin .tk-ms.is-warn {
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tk-ms.is-accent {
+	color: var(--tk-accent);
+}
+
+.tuki-admin .tk-seg {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 4px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tk-seg-btn {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 14px;
+	border-radius: 9px;
+	color: var(--tk-muted);
+	font-size: 13.5px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.tuki-admin .tk-seg-btn:hover {
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-seg-btn[aria-current="true"] {
+	background: var(--tk-card);
+	color: var(--tk-text);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+}
+
+.tuki-admin .tk-trend {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.tuki-admin .tk-trend-svg {
+	display: block;
+	width: 100%;
+	height: 120px;
+	overflow: visible;
+}
+
+.tuki-admin .tk-trend-area {
+	fill: var(--tk-accent);
+	opacity: .14;
+}
+
+.tuki-admin .tk-trend-line {
+	fill: none;
+	stroke: var(--tk-accent);
+	stroke-width: 2;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.tuki-admin .tk-trend-axis {
+	display: flex;
+	justify-content: space-between;
+	color: var(--tk-muted);
+	font-size: 12px;
+}
+
+.tuki-admin .tk-chart-empty {
+	display: grid;
+	place-items: center;
+	min-height: 120px;
+	padding: 16px;
+	border: 1px dashed var(--tk-line);
+	border-radius: 12px;
+	color: var(--tk-muted);
+	font-size: 13px;
+	text-align: center;
+}
+
+.tuki-admin .tk-bar {
+	height: 8px;
+	overflow: hidden;
+	border-radius: 4px;
+	background: var(--tk-track);
+}
+
+.tuki-admin .tk-bar span {
+	display: block;
+	height: 100%;
+	border-radius: 4px;
+	background: var(--tk-ok);
+	transition: width .3s ease;
+}
+
+.tuki-admin .tk-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.tuki-admin .tk-li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 44px;
+	border-bottom: 1px solid var(--tk-line2);
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tk-li:last-child {
+	border-bottom: 0;
+}
+
+.tuki-admin .tk-li-label {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tk-badge {
+	flex: 0 0 auto;
+	padding: 2px 9px;
+	border-radius: 999px;
+	background: var(--tk-card2);
+	color: var(--tk-muted);
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.tuki-admin .tk-badge.is-warn {
+	background: var(--tk-warn-bg);
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tk-empty {
+	padding: 4px 0;
+	color: var(--tk-muted);
+	font-size: 13.5px;
+}
+
+.tuki-admin .tk-btn[disabled] {
+	opacity: .55;
+	cursor: not-allowed;
+}
+
 /* ---------------------------------------------------------------------------
  * Older page styles still inside the shell (replaced in later steps)
  * ------------------------------------------------------------------------- */
@@ -472,11 +753,6 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 	margin: 0;
 	padding: 0;
 	background: transparent;
-}
-
-.tuki-admin .tuki-app {
-	max-width: none;
-	margin: 0;
 }
 
 /* ---------------------------------------------------------------------------
@@ -532,7 +808,8 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 
 @media (prefers-reduced-motion: reduce) {
 	.tuki-admin .tk-sw::before,
-	.tuki-admin .tk-sw::after {
+	.tuki-admin .tk-sw::after,
+	.tuki-admin .tk-bar span {
 		transition: none;
 	}
 }

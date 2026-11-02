@@ -420,18 +420,6 @@ class Tuki_Admin {
 			true
 		);
 
-		// The dashboard keeps its existing styles; the settings screen uses the
-		// redesigned dark theme + tab controller (both fully self-contained and
-		// scoped under .tkfy) instead.
-		if ( $is_dashboard ) {
-			wp_enqueue_style(
-				'tuki-admin',
-				TUKI_PLUGIN_URL . 'admin/admin.css',
-				array(),
-				TUKI_VERSION
-			);
-		}
-
 		if ( $is_settings ) {
 			wp_enqueue_style(
 				'tuki-admin-dark',
