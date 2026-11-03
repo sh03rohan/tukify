@@ -1357,6 +1357,270 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 	font-size: 13.5px;
 }
 
+/* A lone button in a field column (Add Q&A) keeps its natural width. */
+.tuki-admin .tkfy-field > .tuki-btn {
+	align-self: flex-start;
+}
+
+/* Knowledge Base: custom Q&A repeater (rows are also built by admin.js). */
+.tuki-admin .tkfy .tuki-kb-row {
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.tuki-admin .tkfy .tuki-kb-row textarea.tuki-input {
+	min-height: 44px;
+}
+
+.tuki-admin .tkfy-checklist-empty {
+	padding: 10px;
+	font-size: 13px;
+	color: var(--tk-muted);
+}
+
+/* Empty states (usage, demand insights). */
+.tuki-admin .tkfy-empty {
+	padding: 20px;
+	color: var(--tk-muted);
+	font-size: 13.5px;
+	background: transparent;
+	border: 1px dashed var(--tk-line);
+	border-radius: 12px;
+}
+
+/* Logs / Analytics: range links as a segmented control. */
+.tuki-admin .tkfy-demand-filter {
+	display: inline-flex;
+	justify-self: start;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 4px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tkfy .tkfy-range-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 14px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--tk-muted);
+	background: transparent;
+	border: 0;
+	border-radius: 9px;
+}
+
+.tuki-admin .tkfy .tkfy-range-link:hover {
+	color: var(--tk-text);
+	background: transparent;
+}
+
+.tuki-admin .tkfy .tkfy-range-link.is-active {
+	color: var(--tk-text);
+	background: var(--tk-card);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+	font-weight: 500;
+}
+
+.tuki-admin .tkfy .tkfy-range-link:focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+/* Totals tiles, matched to the dashboard metrics. */
+.tuki-admin .tkfy-demand-summary {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+	gap: 12px;
+}
+
+.tuki-admin .tkfy-tile {
+	gap: 4px;
+	padding: 16px 18px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+}
+
+.tuki-admin .tkfy-tile-value {
+	order: 2;
+	font-size: 26px;
+	font-weight: 500;
+	line-height: 1.3;
+	letter-spacing: -.01em;
+	color: var(--tk-text);
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tkfy-tile-value--warn {
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tkfy-tile-label {
+	order: 1;
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+/* Usage chart. */
+.tuki-admin .tkfy-legend-item {
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy-legend-dot--chat,
+.tuki-admin .tkfy-ubar-seg--chat,
+.tuki-admin .tkfy-ubar:hover .tkfy-ubar-seg--chat {
+	background: var(--tk-accent);
+}
+
+.tuki-admin .tkfy-legend-dot--embed,
+.tuki-admin .tkfy-ubar-seg--embed {
+	background: var(--tk-ok);
+}
+
+.tuki-admin .tkfy-usage-chart {
+	height: 150px;
+	padding: 10px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+/* Demand tables. */
+.tuki-admin .tkfy-demand-title {
+	margin: 0 0 8px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-demand-list {
+	background: transparent;
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tkfy-demand-row {
+	min-height: 44px;
+	padding: 6px 14px;
+	border-top: 1px solid var(--tk-line2);
+	font-size: 13.5px;
+}
+
+.tuki-admin .tkfy-demand-row:not(.tkfy-demand-row--head):hover {
+	background: var(--tk-hover);
+}
+
+.tuki-admin .tkfy-demand-row--head {
+	min-height: 0;
+	padding: 10px 14px;
+	font-size: 12.5px;
+	font-weight: 500;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--tk-muted);
+	background: transparent;
+	border-top: 0;
+	border-bottom: 1px solid var(--tk-line);
+}
+
+.tuki-admin .tkfy-demand-row--head + .tkfy-demand-row {
+	border-top: 0;
+}
+
+.tuki-admin .tkfy-demand-q {
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-demand-n {
+	color: var(--tk-text);
+	font-weight: 500;
+}
+
+.tuki-admin .tkfy .tkfy-demand-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 0 14px;
+	font-size: 13px;
+	font-weight: 500;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+}
+
+.tuki-admin .tkfy .tkfy-demand-action--product {
+	color: var(--tk-accent);
+}
+
+.tuki-admin .tkfy .tkfy-demand-action--faq {
+	color: var(--tk-ok);
+}
+
+.tuki-admin .tkfy .tkfy-demand-action--product:hover,
+.tuki-admin .tkfy .tkfy-demand-action--faq:hover {
+	background: var(--tk-card2);
+	border-color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy .tkfy-demand-action:focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy-trend--up,
+.tuki-admin .tkfy-trend--new {
+	color: var(--tk-ok);
+}
+
+.tuki-admin .tkfy-trend--down {
+	color: var(--tk-danger);
+}
+
+.tuki-admin .tkfy-trend--flat {
+	color: var(--tk-muted);
+}
+
+/* Advanced: search-test results (filled by admin.js). */
+.tuki-admin .tkfy .tuki-search-results {
+	margin: 4px 0 0;
+	gap: 6px;
+	color: var(--tk-text2);
+	font-size: 13.5px;
+}
+
+.tuki-admin .tkfy .tuki-search-results:empty {
+	display: none;
+}
+
+.tuki-admin .tkfy .tuki-search-results a {
+	color: var(--tk-accent);
+}
+
+.tuki-admin .tkfy .tuki-search-score {
+	color: var(--tk-muted);
+}
+
+@media screen and (max-width: 782px) {
+	.tuki-admin .tkfy-demand-row {
+		grid-template-columns: 1fr auto;
+	}
+
+	.tuki-admin .tkfy-demand-row > :nth-child(3) {
+		grid-column: 1 / -1;
+	}
+
+	.tuki-admin .tkfy-demand-row--head > :nth-child(3) {
+		display: none;
+	}
+}
+
 @media screen and (max-width: 782px) {
 	.tuki-admin .tkfy-card-head {
 		padding: 18px 18px 0;
