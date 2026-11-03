@@ -169,33 +169,39 @@ class Tuki_Admin {
 	 * Renders the dashboard screen.
 	 */
 	public function render_dashboard_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		require TUKI_PLUGIN_DIR . 'admin/dashboard-page.php';
+		$this->render_app( 'dashboard' );
 	}
 
 	/**
 	 * Renders the settings screen.
 	 */
 	public function render_settings_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		require TUKI_PLUGIN_DIR . 'admin/settings-page.php';
+		$this->render_app( 'general' );
 	}
 
 	/**
 	 * Renders the back-in-stock pending-notifications screen.
 	 */
 	public function render_stock_notify_page() {
+		$this->render_app( 'stock' );
+	}
+
+	/**
+	 * Renders the single Tukify admin app.
+	 *
+	 * All three menu pages print the same app — Dashboard, every settings tab
+	 * and Back in stock are panels in one DOM, switched in the browser without a
+	 * reload. The page slug only picks which panel opens first (a #hash wins).
+	 *
+	 * @param string $default_tab Section key from sections() to open by default.
+	 */
+	private function render_app( $default_tab ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		require TUKI_PLUGIN_DIR . 'admin/stock-notify-page.php';
+		$tuki_default_tab = $default_tab;
+		require TUKI_PLUGIN_DIR . 'admin/app-page.php';
 	}
 
 	/**
@@ -405,13 +411,9 @@ class Tuki_Admin {
 			)
 		);
 
-		if ( $is_stock ) {
-			return;
-		}
-
 		// Shared behaviour (test connection, KB, search test, product reindex).
-		// Each init in admin.js guards on element presence, so it is safe on both
-		// screens; it carries the localized tukiAdmin strings below.
+		// Every Tukify screen prints the whole app, so it loads on all three;
+		// each init guards on element presence. Carries tukiAdmin below.
 		wp_enqueue_script(
 			'tuki-admin',
 			TUKI_PLUGIN_URL . 'admin/admin.js',
@@ -420,18 +422,17 @@ class Tuki_Admin {
 			true
 		);
 
-		if ( $is_settings ) {
-			// WordPress colour picker (Iris) for the Appearance tab bubble/logo colours.
-			wp_enqueue_style( 'wp-color-picker' );
+		// WordPress colour picker (Iris) for the Appearance tab bubble/logo colours,
+		// plus the custom dropdowns — the settings panels are on every Tukify screen.
+		wp_enqueue_style( 'wp-color-picker' );
 
-			wp_enqueue_script(
-				'tuki-admin-controls',
-				TUKI_PLUGIN_URL . 'admin/admin-controls.js',
-				array( 'jquery', 'wp-color-picker' ),
-				TUKI_VERSION,
-				true
-			);
-		}
+		wp_enqueue_script(
+			'tuki-admin-controls',
+			TUKI_PLUGIN_URL . 'admin/admin-controls.js',
+			array( 'jquery', 'wp-color-picker' ),
+			TUKI_VERSION,
+			true
+		);
 
 		wp_localize_script(
 			'tuki-admin',

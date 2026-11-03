@@ -7,10 +7,13 @@
  * adjustments at the top, scoped to body.tukify-admin — a class added only on
  * Tukify's own screens — because they style WordPress's wrappers, not ours.
  *
- * Layout: the root fills the space under the admin bar and right of the admin
- * menu exactly, so the page itself never scrolls. The sidebar and the main
- * area are separate scroll containers with hidden scrollbars; the save bar sits
- * outside the main scroll area so it is always visible.
+ * Layout: the root is pinned (position: fixed) to the area under the admin bar
+ * and right of the admin menu — folded, auto-folded and mobile widths
+ * included — so it always fills that area exactly. Nothing of ours ever
+ * scrolls the page; if the WordPress menu is taller than the window, the page
+ * scrolls only to reveal the menu while Tukify stays put. The sidebar and the
+ * main area are separate scroll containers with hidden scrollbars; the save
+ * bar sits outside the main scroll area so it is always visible.
  */
 
 /* ---------------------------------------------------------------------------
@@ -36,6 +39,16 @@ body.tukify-admin #wpbody-content {
 
 /* The footer would sit below a full-height root and add a page scrollbar. */
 body.tukify-admin #wpfooter {
+	display: none;
+}
+
+/* The page only scrolls to reveal a WordPress menu taller than the window;
+ * keep that scrollbar hidden too (wheel/touch over the menu still scroll). */
+html:has(> body.tukify-admin) {
+	scrollbar-width: none;
+}
+
+html:has(> body.tukify-admin)::-webkit-scrollbar {
 	display: none;
 }
 
@@ -67,10 +80,15 @@ body.tukify-admin #wpfooter {
 	--tk-hover: rgba(255, 255, 255, .04);
 	--tk-shadow: 0 10px 30px rgba(0, 0, 0, .35);
 
+	/* Below the admin menu's flyouts (z-index 9990+) and the admin bar. */
+	position: fixed;
+	z-index: 1;
+	top: var(--wp-admin--admin-bar--height, 32px);
+	bottom: 0;
+	inset-inline-start: 160px;
+	inset-inline-end: 0;
 	display: flex;
 	align-items: stretch;
-	height: calc(100vh - var(--wp-admin--admin-bar--height, 32px));
-	height: calc(100dvh - var(--wp-admin--admin-bar--height, 32px));
 	overflow: hidden;
 	background: var(--tk-bg);
 	color: var(--tk-text);
@@ -107,10 +125,61 @@ body.tukify-admin #wpfooter {
 	color-scheme: light;
 }
 
-/* No admin bar (e.g. removed by another plugin): use the full viewport. */
+/* No admin bar (e.g. removed by another plugin): start at the top. */
 html:not(.wp-toolbar) .tuki-admin {
-	height: 100vh;
-	height: 100dvh;
+	top: 0;
+}
+
+/* Admin menu width: 160px, 36px when folded (by the user, or automatically
+ * between 783px and 960px), and none at 782px and below. */
+body.tukify-admin.folded .tuki-admin {
+	inset-inline-start: 36px;
+}
+
+@media screen and (max-width: 960px) {
+	body.tukify-admin.auto-fold .tuki-admin {
+		inset-inline-start: 36px;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	body.tukify-admin .tuki-admin,
+	body.tukify-admin.folded .tuki-admin,
+	body.tukify-admin.auto-fold .tuki-admin {
+		inset-inline-start: 0;
+	}
+}
+
+/* Panels: all ten are in the DOM; data-tk-tab on the root (set before first
+ * paint by tuki-admin-boot.js) decides which one shows. */
+.tuki-admin .tk-scroll .tk-pane {
+	display: none;
+}
+
+.tuki-admin[data-tk-tab="dashboard"] .tk-scroll .tk-pane[data-tab="dashboard"],
+.tuki-admin[data-tk-tab="general"] .tk-scroll .tk-pane[data-tab="general"],
+.tuki-admin[data-tk-tab="appearance"] .tk-scroll .tk-pane[data-tab="appearance"],
+.tuki-admin[data-tk-tab="engagement"] .tk-scroll .tk-pane[data-tab="engagement"],
+.tuki-admin[data-tk-tab="products"] .tk-scroll .tk-pane[data-tab="products"],
+.tuki-admin[data-tk-tab="channels"] .tk-scroll .tk-pane[data-tab="channels"],
+.tuki-admin[data-tk-tab="kb"] .tk-scroll .tk-pane[data-tab="kb"],
+.tuki-admin[data-tk-tab="analytics"] .tk-scroll .tk-pane[data-tab="analytics"],
+.tuki-admin[data-tk-tab="advanced"] .tk-scroll .tk-pane[data-tab="advanced"],
+.tuki-admin[data-tk-tab="stock"] .tk-scroll .tk-pane[data-tab="stock"] {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+/* The save bar belongs to the settings tabs only. */
+.tuki-admin[data-tk-tab="dashboard"] .tk-savebar,
+.tuki-admin[data-tk-tab="stock"] .tk-savebar {
+	display: none;
+}
+
+/* A panel's own notices (e.g. Back in stock) sit in its flow. */
+.tuki-admin .tk-pane > .notice {
+	margin: 0;
 }
 
 .tuki-admin *,

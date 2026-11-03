@@ -1,10 +1,11 @@
 <?php
 /**
- * Admin view: pending back-in-stock notifications, grouped per product.
+ * Back-in-stock panel (part of the admin app, see admin/app-page.php):
+ * pending notifications, grouped per product.
  *
- * Rendered inside the shared Tukify admin shell (admin/partials/). Each
- * subscriber can be removed with a nonce-protected link; rows disappear
- * automatically once the "it's back" email is sent.
+ * Each subscriber can be removed with a nonce-protected link to the
+ * Back-in-stock page; rows disappear automatically once the "it's back" email
+ * is sent.
  *
  * @package Tukify
  */
@@ -23,7 +24,11 @@ $tuki_sn_notice = '';
 // Handle a single-subscriber removal (nonce-scoped to the exact row id).
 $tuki_sn_action = isset( $_GET['tuki_sn_action'] ) ? sanitize_key( wp_unslash( $_GET['tuki_sn_action'] ) ) : '';
 
-if ( 'delete' === $tuki_sn_action ) {
+// Only on the Back-in-stock page itself: the panel is printed on every Tukify
+// page, but removal links always point here.
+$tuki_sn_page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+if ( 'delete' === $tuki_sn_action && 'tukify-stock-notify' === $tuki_sn_page ) {
 	$tuki_sn_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
 	check_admin_referer( 'tuki_sn_delete_' . $tuki_sn_id );
@@ -37,22 +42,13 @@ if ( 'delete' === $tuki_sn_action ) {
 $tuki_sn_products = Tuki_DB::stock_notify_products();
 $tuki_sn_total    = Tuki_DB::count_stock_notify_pending();
 ?>
-<div class="tuki-admin" data-theme="<?php echo esc_attr( Tuki_Admin::admin_theme() ); ?>" data-tk-screen="stock">
-	<?php
-	$tuki_current = 'stock';
-	require TUKI_PLUGIN_DIR . 'admin/partials/sidebar.php';
-	?>
-
-	<div class="tk-main">
-		<div class="tk-scroll">
-			<?php require TUKI_PLUGIN_DIR . 'admin/partials/header.php'; ?>
-
+<section class="tk-pane" role="region" id="tkfy-panel-stock" data-tab="stock" aria-labelledby="tkfy-tab-stock" tabindex="0">
 			<?php if ( '' !== $tuki_sn_notice ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $tuki_sn_notice ); ?></p></div>
+				<div class="notice notice-success is-dismissible inline"><p><?php echo esc_html( $tuki_sn_notice ); ?></p></div>
 			<?php endif; ?>
 
 			<?php if ( ! Tuki_Stock_Notify::is_enabled() ) : ?>
-				<div class="notice notice-warning">
+				<div class="notice notice-warning inline">
 					<p>
 						<?php
 						printf(
@@ -144,7 +140,4 @@ $tuki_sn_total    = Tuki_DB::count_stock_notify_pending();
 					<?php endforeach; ?>
 				<?php endif; ?>
 			</div><!-- .tk-stack -->
-
-		</div><!-- .tk-scroll -->
-	</div><!-- .tk-main -->
-</div>
+</section>

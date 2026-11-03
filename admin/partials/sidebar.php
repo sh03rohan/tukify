@@ -3,9 +3,10 @@
  * Shared Tukify admin sidebar (Dashboard, Settings, Back in stock screens).
  *
  * Expects $tuki_current: the active section key from Tuki_Admin::sections().
- * Settings tabs are links to the settings screen with a #key hash; on the
- * settings screen tuki-admin-ui.js turns them into in-page tab switches. The
- * tkfy-tab-<key> ids are what the settings panels' aria-labelledby points at.
+ * Every item is a real link (so it works without JS and in a new tab), and
+ * tuki-admin-ui.js turns a plain click into an in-page switch — all panels are
+ * on every Tukify screen. The tkfy-tab-<key> ids are what each panel's
+ * aria-labelledby points at.
  *
  * @package Tukify
  */
@@ -55,17 +56,14 @@ $tuki_icons = array(
 					if ( $tuki_section['group'] !== $tuki_group ) {
 						continue;
 					}
-					$tuki_is_tab = 'settings' === $tuki_group;
 					?>
 					<a
 						class="tk-tab"
 						href="<?php echo esc_url( $tuki_section['url'] ); ?>"
-						<?php if ( $tuki_is_tab ) : ?>
-							id="tkfy-tab-<?php echo esc_attr( $tuki_key ); ?>"
-							data-tab="<?php echo esc_attr( $tuki_key ); ?>"
-							data-title="<?php echo esc_attr( $tuki_section['label'] ); ?>"
-							data-desc="<?php echo esc_attr( $tuki_section['desc'] ); ?>"
-						<?php endif; ?>
+						id="tkfy-tab-<?php echo esc_attr( $tuki_key ); ?>"
+						data-tab="<?php echo esc_attr( $tuki_key ); ?>"
+						data-title="<?php echo esc_attr( $tuki_section['label'] ); ?>"
+						data-desc="<?php echo esc_attr( $tuki_section['desc'] ); ?>"
 						<?php echo $tuki_key === $tuki_current ? 'aria-current="page"' : ''; ?>
 					>
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><?php echo $tuki_icons[ $tuki_key ]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG literals above. ?></svg>

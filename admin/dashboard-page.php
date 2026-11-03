@@ -1,10 +1,9 @@
 <?php
 /**
- * Tukify dashboard view, inside the shared admin shell (admin/partials/).
+ * Tukify dashboard panel (part of the admin app, see admin/app-page.php).
  *
- * Rendered by Tuki_Admin::render_dashboard_page(). Real data from the
- * {prefix}_tuki_events table and the embeddings index. The reindex panel's
- * element ids are the contract with admin.js — keep them stable.
+ * Real data from the {prefix}_tuki_events table and the embeddings index. The
+ * reindex panel's element ids are the contract with admin.js — keep them stable.
  *
  * @package Tukify
  */
@@ -60,17 +59,7 @@ $tuki_state     = Tuki_Indexer::get_state();
 $tuki_running   = ( 'running' === $tuki_state['status'] );
 $tuki_embed_pct = $tuki_total > 0 ? min( 100, (int) round( $tuki_indexed / $tuki_total * 100 ) ) : 0;
 ?>
-<div class="tuki-admin" data-theme="<?php echo esc_attr( Tuki_Admin::admin_theme() ); ?>" data-tk-screen="dashboard">
-	<?php
-	$tuki_current = 'dashboard';
-	require TUKI_PLUGIN_DIR . 'admin/partials/sidebar.php';
-	?>
-
-	<div class="tk-main">
-		<div class="tk-scroll">
-			<?php require TUKI_PLUGIN_DIR . 'admin/partials/header.php'; ?>
-
-
+<section class="tk-pane" role="region" id="tkfy-panel-dashboard" data-tab="dashboard" aria-labelledby="tkfy-tab-dashboard" tabindex="0">
 			<div class="tk-stack">
 
 				<!-- Metric cards -->
@@ -381,7 +370,4 @@ $tuki_embed_pct = $tuki_total > 0 ? min( 100, (int) round( $tuki_indexed / $tuki
 				</div><!-- .tk-grid2 -->
 
 			</div><!-- .tk-stack -->
-
-		</div><!-- .tk-scroll -->
-	</div><!-- .tk-main -->
-</div>
+</section>
