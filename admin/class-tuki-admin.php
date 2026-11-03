@@ -421,13 +421,6 @@ class Tuki_Admin {
 		);
 
 		if ( $is_settings ) {
-			wp_enqueue_style(
-				'tuki-admin-dark',
-				TUKI_PLUGIN_URL . 'admin/admin-dark.css',
-				array(),
-				TUKI_VERSION
-			);
-
 			// WordPress colour picker (Iris) for the Appearance tab bubble/logo colours.
 			wp_enqueue_style( 'wp-color-picker' );
 

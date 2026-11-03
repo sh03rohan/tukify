@@ -750,6 +750,1121 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 	cursor: not-allowed;
 }
 
+.tuki-admin .tk-btn.is-sm {
+	padding: 0 14px;
+	font-size: 13px;
+}
+
+.tuki-admin .tk-ctitle a {
+	color: var(--tk-text);
+	text-decoration: none;
+}
+
+.tuki-admin .tk-ctitle a:hover {
+	color: var(--tk-accent);
+	text-decoration: underline;
+}
+
+/* Tables (Back in stock). The box scrolls sideways on very narrow screens. */
+.tuki-admin .tk-tbox {
+	overflow-x: auto;
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tk-tbl {
+	width: 100%;
+	min-width: 480px;
+	border-collapse: collapse;
+	font-size: 13.5px;
+}
+
+.tuki-admin .tk-tbl th {
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--tk-line);
+	color: var(--tk-muted);
+	font-weight: 500;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.tuki-admin .tk-tbl td {
+	padding: 6px 14px;
+	border-bottom: 1px solid var(--tk-line2);
+	color: var(--tk-text2);
+	vertical-align: middle;
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tk-tbl tr:last-child td {
+	border-bottom: 0;
+}
+
+.tuki-admin .tk-tbl th:last-child,
+.tuki-admin .tk-tbl td:last-child {
+	width: 1%;
+	text-align: right;
+	white-space: nowrap;
+}
+
+/* Phones: each row stacks (email, then date) with Remove on the right; the
+ * header row stays available to screen readers. */
+@media screen and (max-width: 600px) {
+	.tuki-admin .tk-tbl {
+		min-width: 0;
+	}
+
+	.tuki-admin .tk-tbl thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.tuki-admin .tk-tbl tr {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 2px 12px;
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--tk-line2);
+	}
+
+	.tuki-admin .tk-tbl tr:last-child {
+		border-bottom: 0;
+	}
+
+	.tuki-admin .tk-tbl td {
+		display: block;
+		padding: 0;
+		border: 0;
+	}
+
+	.tuki-admin .tk-tbl td:nth-child(2) {
+		grid-row: 2;
+		color: var(--tk-muted);
+		font-size: 12.5px;
+	}
+
+	.tuki-admin .tk-tbl td:last-child {
+		grid-column: 2;
+		grid-row: 1 / span 2;
+		width: auto;
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Settings screen — base layout and control mechanics
+ *
+ * Carried over from the previous settings stylesheet (admin-dark.css): card
+ * grid, field layout, the custom dropdown/checkbox/switch mechanics and the
+ * tab-specific layouts. Prefixed with :where(.tuki-admin) so they are scoped
+ * to the shell without gaining specificity; the restyle that follows wins.
+ * ------------------------------------------------------------------------- */
+
+:where(.tuki-admin) .tkfy ::selection {
+	background: var(--active-bg);
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-lock {
+	position: relative;
+}
+
+:where(.tuki-admin) .tkfy-lock-content {
+	filter: blur(4px);
+	opacity: 0.5;
+	pointer-events: none;
+	user-select: none;
+}
+
+:where(.tuki-admin) .tkfy-lock-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: radial-gradient(ellipse at center, rgba(14, 17, 22, .82) 0%, rgba(14, 17, 22, .62) 100%);
+	border-radius: var(--radius-card);
+}
+
+:where(.tuki-admin) .tkfy-lock-card {
+	max-width: 420px;
+	text-align: center;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-card);
+	padding: 28px 26px;
+	box-shadow: 0 18px 48px rgba(0, 0, 0, .45);
+}
+
+:where(.tuki-admin) .tkfy-lock-icon {
+	display: inline-flex;
+	width: 48px;
+	height: 48px;
+	margin-bottom: 14px;
+}
+
+:where(.tuki-admin) .tkfy-lock-icon svg {
+	width: 100%;
+	height: 100%;
+}
+
+:where(.tuki-admin) .tkfy-lock-title {
+	margin: 0 0 8px;
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-lock-text {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-note--warn {
+	border-left: 3px solid #f6c944;
+	padding-left: 12px;
+}
+
+:where(.tuki-admin) .tkfy-hint--warn {
+	color: #f6c944;
+}
+
+:where(.tuki-admin) .tkfy-steps {
+	margin: 12px 0 0;
+	padding-left: 20px;
+	line-height: 1.9;
+}
+
+:where(.tuki-admin) .tkfy-steps li {
+	margin: 0 0 2px;
+}
+
+:where(.tuki-admin) .tkfy-convo {
+	border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+	border-radius: 8px;
+	padding: 10px 12px;
+	margin: 0 0 8px;
+}
+
+:where(.tuki-admin) .tkfy-convo summary {
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	align-items: baseline;
+	flex-wrap: wrap;
+}
+
+:where(.tuki-admin) .tkfy-convo-line {
+	margin: 6px 0 0;
+	line-height: 1.5;
+}
+
+:where(.tuki-admin) .tkfy-bubble-preview {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+
+:where(.tuki-admin) .tkfy-bubble-mock {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+	flex-shrink: 0;
+}
+
+:where(.tuki-admin) .tkfy-bubble-note {
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+:where(.tuki-admin) .tkfy-bubble-note.is-warn {
+	color: #f6c944;
+}
+
+:where(.tuki-admin) .tkfy-panels {
+	min-height: 340px;
+}
+
+:where(.tuki-admin) .tkfy-panel {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--sp-4);
+	animation: tkfy-fade var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-panel[hidden] {
+	display: none;
+}
+
+@keyframes tkfy-fade {
+	from { opacity: 0; transform: translateY(4px); }
+	to   { opacity: 1; transform: none; }
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	:where(.tuki-admin) .tkfy-panel {
+		animation: none;
+	}
+}
+
+:where(.tuki-admin) .tkfy-card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-card);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+	overflow: visible;
+}
+
+:where(.tuki-admin) .tkfy-card-head {
+	padding: var(--sp-4) var(--sp-6);
+	border-bottom: 1px solid var(--border);
+	background: var(--hover-lift);
+	border-top-left-radius: calc(var(--radius-card) - 1px);
+	border-top-right-radius: calc(var(--radius-card) - 1px);
+}
+
+:where(.tuki-admin) .tkfy-card-title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-card-cap {
+	margin: var(--sp-1) 0 0;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-card-body {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--sp-4) var(--sp-6);
+	padding: var(--sp-6);
+}
+
+@media ( max-width: 782px ) {
+	:where(.tuki-admin) .tkfy-card-body {
+		grid-template-columns: 1fr;
+	}
+}
+
+:where(.tuki-admin) .tkfy-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	min-width: 0;
+}
+
+:where(.tuki-admin) .tkfy-field--wide {
+	grid-column: 1 / -1;
+}
+
+:where(.tuki-admin) .tkfy-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-hint {
+	margin: 0;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-hint strong {
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-note {
+	margin: 0;
+	padding: var(--sp-3) var(--sp-4);
+	font-size: 12px;
+	color: var(--text-muted);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+}
+
+:where(.tuki-admin) .tkfy-note a {
+	color: var(--primary);
+	text-decoration: none;
+	transition: color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-note a:hover {
+	color: var(--primary-hov);
+	text-decoration: underline;
+}
+
+:where(.tuki-admin) .tkfy-inline {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	flex-wrap: wrap;
+}
+
+:where(.tuki-admin) .tkfy-empty {
+	grid-column: 1 / -1;
+	padding: var(--sp-6);
+	text-align: center;
+	color: var(--text-muted);
+	background: var(--surface-2);
+	border: 1px dashed var(--border);
+	border-radius: var(--radius-ctl);
+}
+
+:where(.tuki-admin) .tkfy-empty p {
+	margin: 0 auto;
+	max-width: 52ch;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input {
+	width: 100%;
+	max-width: 520px;
+	min-height: 38px;
+	padding: 8px 12px;
+	font-size: 13px;
+	color: var(--text);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	transition: border-color var(--speed) ease, box-shadow var(--speed) ease, background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy textarea.tuki-input {
+	min-height: 62px;
+	line-height: 1.5;
+	resize: vertical;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input--sm {
+	max-width: 140px;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input::placeholder {
+	color: var(--placeholder);
+	opacity: 1;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input:hover {
+	border-color: #39424d;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input:focus,
+:where(.tuki-admin) .tkfy .tuki-input:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tuki-color {
+	width: 48px;
+	height: 38px;
+	padding: 2px;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	transition: border-color var(--speed) ease, box-shadow var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-color:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tkfy-select-native {
+	display: none;
+}
+
+:where(.tuki-admin) .tkfy-select {
+	position: relative;
+	width: 100%;
+	max-width: 520px;
+}
+
+:where(.tuki-admin) .tkfy-select-trigger {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-2);
+	width: 100%;
+	min-height: 38px;
+	padding: 8px 12px;
+	font-size: 13px;
+	text-align: left;
+	color: var(--text);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	transition: border-color var(--speed) ease, box-shadow var(--speed) ease, background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select-trigger:hover {
+	border-color: #39424d;
+}
+
+:where(.tuki-admin) .tkfy-select-trigger:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-select-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:where(.tuki-admin) .tkfy-select-chevron {
+	display: inline-flex;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+	transition: transform var(--speed) ease, color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select.is-open .tkfy-select-chevron {
+	transform: rotate(180deg);
+	color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-select-panel {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 9999;
+	margin: 4px 0 0;
+	padding: 4px;
+	list-style: none;
+	max-height: 280px;
+	overflow-y: auto;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-4px);
+	transform-origin: top center;
+	pointer-events: none;
+	transition: opacity var(--speed) ease, transform var(--speed) ease, visibility var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select.is-up .tkfy-select-panel {
+	top: auto;
+	bottom: 100%;
+	margin: 0 0 4px;
+	transform: translateY(4px);
+	transform-origin: bottom center;
+}
+
+:where(.tuki-admin) .tkfy-select.is-open .tkfy-select-panel {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+	pointer-events: auto;
+}
+
+:where(.tuki-admin) .tkfy-select-option {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: 8px 10px;
+	font-size: 13px;
+	color: var(--text);
+	background: transparent;
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	transition: background-color var(--speed) ease, color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select-option:hover,
+:where(.tuki-admin) .tkfy-select-option.is-active,
+:where(.tuki-admin) .tkfy-select-option:focus-visible {
+	outline: none;
+	background: var(--active-bg);
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-select-option.is-selected {
+	background: var(--active-bg);
+	color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-select-check {
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: 16px;
+	color: var(--primary);
+	opacity: 0;
+}
+
+:where(.tuki-admin) .tkfy-select-option.is-selected .tkfy-select-check {
+	opacity: 1;
+}
+
+:where(.tuki-admin) .tkfy-checklist {
+	max-width: 520px;
+	max-height: 220px;
+	overflow-y: auto;
+	padding: 4px;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+}
+
+:where(.tuki-admin) .tkfy-checklist-empty {
+	margin: 0;
+	padding: 8px 10px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-check-row {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: 8px 10px;
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	color: var(--text);
+	transition: background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-check-row:hover {
+	background: var(--active-bg);
+}
+
+:where(.tuki-admin) .tkfy-check-row:has( .tkfy-check-input:checked ) {
+	background: var(--active-bg);
+}
+
+:where(.tuki-admin) .tkfy-check-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+:where(.tuki-admin) .tkfy-check-box {
+	position: relative;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	background: var(--surface);
+	transition: background-color var(--speed) ease, border-color var(--speed) ease, box-shadow var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-check-box::after {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 2px;
+	width: 5px;
+	height: 9px;
+	border: solid var(--on-primary);
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg) scale(0);
+	transition: transform var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-check-input:checked + .tkfy-check-box {
+	background: var(--primary);
+	border-color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-check-input:checked + .tkfy-check-box::after {
+	transform: rotate(45deg) scale(1);
+}
+
+:where(.tuki-admin) .tkfy-check-input:focus-visible + .tkfy-check-box {
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-check-text {
+	font-size: 13px;
+	color: var(--text);
+	line-height: 1.3;
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-2);
+	min-height: 38px;
+	padding: 8px 16px;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1;
+	border-radius: var(--radius-ctl);
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition: background-color var(--speed) ease, border-color var(--speed) ease, color var(--speed) ease, box-shadow var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn[disabled] {
+	opacity: .55;
+	cursor: default;
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn--ghost {
+	color: var(--text);
+	background: transparent;
+	border-color: var(--border);
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn--ghost:hover:not([disabled]) {
+	border-color: #39424d;
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-3);
+	cursor: pointer;
+	user-select: none;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch-slider {
+	position: relative;
+	flex: 0 0 auto;
+	width: 40px;
+	height: 22px;
+	border-radius: 999px;
+	background: #3a424d;
+	transition: background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch-slider::after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #e6e9ee;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+	transition: transform var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input:checked + .tuki-switch-slider {
+	background: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input:checked + .tuki-switch-slider::after {
+	transform: translateX(18px);
+	background: var(--on-primary);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input:focus-visible + .tuki-switch-slider {
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch-text {
+	font-size: 13px;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy .tuki-status {
+	font-size: 12px;
+	color: var(--text-muted);
+	min-height: 16px;
+}
+
+:where(.tuki-admin) .tkfy .tuki-status.is-success {
+	color: var(--success);
+}
+
+:where(.tuki-admin) .tkfy .tuki-status.is-error {
+	color: var(--danger);
+}
+
+:where(.tuki-admin) .tkfy .tuki-kb-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+	gap: var(--sp-2);
+	align-items: start;
+	margin-bottom: var(--sp-2);
+}
+
+:where(.tuki-admin) .tkfy .tuki-kb-row .tuki-input {
+	max-width: none;
+}
+
+@media ( max-width: 782px ) {
+	:where(.tuki-admin) .tkfy .tuki-kb-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-results {
+	margin: var(--sp-3) 0 0;
+	padding-left: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-results a {
+	color: var(--primary);
+	text-decoration: none;
+	transition: color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-results a:hover {
+	color: var(--primary-hov);
+	text-decoration: underline;
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-score {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+:where(.tuki-admin) .tkfy-demand-filter {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+}
+
+:where(.tuki-admin) .tkfy-range-link {
+	font-size: 12px;
+	color: var(--text-muted);
+	text-decoration: none;
+	padding: 5px 10px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	transition: color var(--speed) ease, background-color var(--speed) ease, border-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-range-link:hover {
+	color: var(--text);
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy-range-link:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-range-link.is-active {
+	color: var(--primary);
+	background: var(--active-bg);
+	border-color: var(--primary);
+	font-weight: 600;
+}
+
+:where(.tuki-admin) .tkfy-demand-summary {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--sp-3);
+}
+
+@media ( max-width: 782px ) {
+	:where(.tuki-admin) .tkfy-demand-summary {
+		grid-template-columns: 1fr;
+	}
+}
+
+:where(.tuki-admin) .tkfy-tile {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--sp-4);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+}
+
+:where(.tuki-admin) .tkfy-tile-value {
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--text);
+	line-height: 1.1;
+}
+
+:where(.tuki-admin) .tkfy-tile-value--warn {
+	color: var(--danger);
+}
+
+:where(.tuki-admin) .tkfy-tile-label {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-demand-title {
+	margin: 0 0 var(--sp-2);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-demand-list {
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	overflow: hidden;
+}
+
+:where(.tuki-admin) .tkfy-demand-row {
+	display: grid;
+	grid-template-columns: 1fr auto minmax(120px, auto);
+	gap: var(--sp-4);
+	align-items: center;
+	padding: 10px 12px;
+	border-top: 1px solid var(--border);
+	font-size: 13px;
+}
+
+:where(.tuki-admin) .tkfy-demand-row:first-child {
+	border-top: none;
+}
+
+:where(.tuki-admin) .tkfy-demand-row:not(.tkfy-demand-row--head):hover {
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy-demand-row--head {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	color: var(--text-muted);
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy-demand-q {
+	color: var(--text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+
+:where(.tuki-admin) .tkfy-demand-n {
+	color: var(--text);
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	text-align: right;
+	min-width: 40px;
+}
+
+:where(.tuki-admin) .tkfy-demand-action {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 500;
+	text-decoration: none;
+	padding: 5px 10px;
+	border-radius: var(--radius-ctl);
+	border: 1px solid var(--border);
+	white-space: nowrap;
+	transition: background-color var(--speed) ease, border-color var(--speed) ease, color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-demand-action--product {
+	color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-demand-action--product:hover {
+	background: var(--active-bg);
+	border-color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-demand-action--faq {
+	color: var(--success);
+	border-color: rgba(52, 211, 153, .35);
+}
+
+:where(.tuki-admin) .tkfy-demand-action--faq:hover {
+	background: rgba(52, 211, 153, .12);
+	border-color: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-demand-action:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-trend {
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+:where(.tuki-admin) .tkfy-trend--up,
+:where(.tuki-admin) .tkfy-trend--new {
+	color: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-trend--down {
+	color: var(--danger);
+}
+
+:where(.tuki-admin) .tkfy-trend--flat {
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tuki-size-colhead,
+:where(.tuki-admin) .tuki-size-row {
+	display: grid;
+	grid-template-columns: 1.6fr 0.8fr repeat(4, 0.9fr) auto;
+	gap: var(--sp-2);
+	align-items: center;
+}
+
+:where(.tuki-admin) .tuki-size-colhead {
+	margin-bottom: var(--sp-1);
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .03em;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tuki-size-row {
+	margin-bottom: var(--sp-2);
+}
+
+:where(.tuki-admin) .tkfy .tuki-size-row .tuki-input {
+	max-width: none;
+	min-height: 34px;
+	padding: 6px 8px;
+}
+
+@media ( max-width: 900px ) {
+	:where(.tuki-admin) .tuki-size-colhead {
+		display: none;
+	}
+
+	:where(.tuki-admin) .tuki-size-row {
+		grid-template-columns: 1fr 1fr;
+		padding: var(--sp-3);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-ctl);
+	}
+
+	:where(.tuki-admin) .tuki-size-row .tuki-size-cat,
+	:where(.tuki-admin) .tuki-size-row .tuki-size-remove {
+		grid-column: 1 / -1;
+	}
+}
+
+:where(.tuki-admin) .tkfy-legend {
+	display: flex;
+	gap: 16px;
+	margin-bottom: 8px;
+}
+
+:where(.tuki-admin) .tkfy-legend-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-legend-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 3px;
+	display: inline-block;
+}
+
+:where(.tuki-admin) .tkfy-legend-dot--chat {
+	background: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-legend-dot--embed {
+	background: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-usage-chart {
+	display: flex;
+	align-items: flex-end;
+	gap: 3px;
+	height: 120px;
+	padding: 8px;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-card, 10px);
+	overflow-x: auto;
+}
+
+:where(.tuki-admin) .tkfy-ubar {
+	flex: 1 1 0;
+	min-width: 6px;
+	height: 100%;
+	display: flex;
+	align-items: flex-end;
+}
+
+:where(.tuki-admin) .tkfy-ubar-track {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column-reverse;
+	justify-content: flex-start;
+	border-radius: 3px 3px 0 0;
+	overflow: hidden;
+}
+
+:where(.tuki-admin) .tkfy-ubar-seg {
+	display: block;
+	width: 100%;
+	min-height: 0;
+}
+
+:where(.tuki-admin) .tkfy-ubar-seg--chat {
+	background: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-ubar-seg--embed {
+	background: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-ubar:hover .tkfy-ubar-seg--chat {
+	background: var(--primary-hov);
+}
+
 /* ---------------------------------------------------------------------------
  * Settings screen
  *
@@ -758,9 +1873,8 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
  * dropdowns), so they are restyled here rather than renamed.
  * ------------------------------------------------------------------------- */
 
-/* .tkfy wraps the panels. The older settings stylesheet still loads for the
- * tab-specific pieces not restyled yet; mapping its colour variables onto the
- * theme tokens keeps those pieces in step with light/dark mode meanwhile. */
+/* .tkfy wraps the panels. The base rules above use these short variable
+ * names; they map onto the theme tokens so everything follows light/dark. */
 .tuki-admin .tkfy {
 	--bg: var(--tk-bg);
 	--surface: var(--tk-card);
@@ -777,6 +1891,14 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 	--danger: var(--tk-danger);
 	--on-primary: #ffffff;
 	--hover-lift: var(--tk-hover);
+	--sp-1: 4px;
+	--sp-2: 8px;
+	--sp-3: 12px;
+	--sp-4: 16px;
+	--sp-6: 24px;
+	--radius-card: 12px;
+	--radius-ctl: 6px;
+	--speed: 150ms;
 
 	min-height: 0;
 	margin: 0;
