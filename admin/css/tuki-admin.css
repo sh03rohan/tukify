@@ -870,9 +870,11 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 	color: var(--tk-accent);
 }
 
+/* Field + button rows (API key + Test, token + Copy + Regenerate) wrap only
+ * when the field would get narrower than 200px. */
 .tuki-admin .tkfy-inline {
 	gap: 8px;
-	flex-wrap: nowrap;
+	flex-wrap: wrap;
 }
 
 /* Text inputs, textareas, number fields and the dropdown trigger share one look. */
@@ -925,7 +927,7 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 }
 
 .tuki-admin .tkfy-inline .tuki-input {
-	flex: 1 1 auto;
+	flex: 1 1 200px;
 	min-width: 0;
 }
 
@@ -1203,6 +1205,156 @@ body.tukify-admin .tuki-admin ::-webkit-scrollbar {
 	border-radius: 10px;
 	background: var(--tk-card2);
 	color: var(--tk-text);
+}
+
+/* Native selects not (yet) enhanced by admin-controls.js, e.g. size-chart rows
+ * added after load: keep a chevron, since the background reset drops WP's. */
+.tuki-admin .tkfy select.tuki-input {
+	appearance: none;
+	padding-right: 36px;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8a94' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 12px center;
+	background-size: 16px 16px;
+}
+
+/* Products & Cart: size-chart repeater. */
+.tuki-admin .tuki-size-colhead,
+.tuki-admin .tuki-size-row {
+	gap: 8px;
+}
+
+.tuki-admin .tuki-size-colhead {
+	margin-bottom: 2px;
+	padding: 0 2px;
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tuki-size-row {
+	margin-bottom: 8px;
+}
+
+.tuki-admin .tkfy .tuki-size-row .tuki-input {
+	min-height: 44px;
+	padding: 0 10px;
+}
+
+.tuki-admin .tkfy .tuki-size-row select.tuki-input {
+	padding-right: 32px;
+}
+
+@media screen and (max-width: 900px) {
+	.tuki-admin .tuki-size-row {
+		padding: 12px;
+		background: var(--tk-card2);
+		border: 1px solid var(--tk-line);
+		border-radius: 12px;
+	}
+}
+
+/* Channels: "Coming soon" sits as its own card above the dimmed, inert
+ * settings (the fields are rendered disabled server-side). */
+.tuki-admin .tkfy-lock {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.tuki-admin .tkfy-lock-overlay {
+	position: static;
+	display: block;
+	padding: 0;
+	background: none;
+	border-radius: 0;
+}
+
+.tuki-admin .tkfy-lock-card {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: center;
+	gap: 4px 16px;
+	max-width: none;
+	padding: 20px 22px;
+	text-align: left;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy-lock-icon {
+	grid-row: span 2;
+	width: 40px;
+	height: 40px;
+	margin: 0;
+}
+
+.tuki-admin .tkfy-lock-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tkfy-lock-text {
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy-lock-content {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	filter: saturate(.6);
+	opacity: .42;
+}
+
+/* Channels: setup steps and recent conversations. */
+.tuki-admin .tkfy-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 4px 0 0;
+	padding-left: 20px;
+	color: var(--tk-text2);
+	font-size: 13.5px;
+	line-height: 1.5;
+}
+
+.tuki-admin .tkfy-steps li {
+	margin: 0;
+}
+
+.tuki-admin .tkfy-convo {
+	margin: 0 0 8px;
+	padding: 0 14px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+}
+
+.tuki-admin .tkfy-convo:last-child {
+	margin-bottom: 0;
+}
+
+.tuki-admin .tkfy-convo summary {
+	align-items: center;
+	min-height: 44px;
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-convo[open] {
+	padding-bottom: 12px;
+}
+
+.tuki-admin .tkfy-convo-line {
+	color: var(--tk-text2);
+	font-size: 13.5px;
 }
 
 @media screen and (max-width: 782px) {
