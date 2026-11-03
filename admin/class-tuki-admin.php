@@ -62,6 +62,18 @@ class Tuki_Admin {
 	private $hook_settings = '';
 
 	/**
+	 * Back-in-stock screen hook suffix.
+	 *
+	 * @var string
+	 */
+	private $hook_stock = '';
+
+	/**
+	 * User meta key holding each admin's dark/light pick for the Tukify screens.
+	 */
+	const THEME_META = 'tuki_admin_theme';
+
+	/**
 	 * Registers admin hooks.
 	 */
 	public function __construct() {
@@ -85,6 +97,7 @@ class Tuki_Admin {
 		add_action( 'wp_ajax_tuki_kb_reindex', array( $this, 'ajax_kb_reindex' ) );
 		add_action( 'wp_ajax_tuki_clear_cache', array( $this, 'ajax_clear_cache' ) );
 		add_action( 'wp_ajax_tuki_wa_test', array( $this, 'ajax_wa_test' ) );
+		add_action( 'wp_ajax_tuki_admin_theme', array( $this, 'ajax_admin_theme' ) );
 	}
 
 	/**
@@ -142,7 +155,7 @@ class Tuki_Admin {
 			array( $this, 'render_settings_page' )
 		);
 
-		add_submenu_page(
+		$this->hook_stock = add_submenu_page(
 			'tukify',
 			__( 'Back in stock', 'tukify' ),
 			__( 'Back in stock', 'tukify' ),
@@ -156,33 +169,39 @@ class Tuki_Admin {
 	 * Renders the dashboard screen.
 	 */
 	public function render_dashboard_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		require TUKI_PLUGIN_DIR . 'admin/dashboard-page.php';
+		$this->render_app( 'dashboard' );
 	}
 
 	/**
 	 * Renders the settings screen.
 	 */
 	public function render_settings_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		require TUKI_PLUGIN_DIR . 'admin/settings-page.php';
+		$this->render_app( 'general' );
 	}
 
 	/**
 	 * Renders the back-in-stock pending-notifications screen.
 	 */
 	public function render_stock_notify_page() {
+		$this->render_app( 'stock' );
+	}
+
+	/**
+	 * Renders the single Tukify admin app.
+	 *
+	 * All three menu pages print the same app — Dashboard, every settings tab
+	 * and Back in stock are panels in one DOM, switched in the browser without a
+	 * reload. The page slug only picks which panel opens first (a #hash wins).
+	 *
+	 * @param string $default_tab Section key from sections() to open by default.
+	 */
+	private function render_app( $default_tab ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		require TUKI_PLUGIN_DIR . 'admin/stock-notify-page.php';
+		$tuki_default_tab = $default_tab;
+		require TUKI_PLUGIN_DIR . 'admin/app-page.php';
 	}
 
 	/**
@@ -209,6 +228,24 @@ class Tuki_Admin {
 		}
 
 		return in_array( $screen->id, array( $this->hook_dashboard, $this->hook_settings ), true );
+	}
+
+	/**
+	 * Whether the current admin screen is the Back-in-stock page.
+	 *
+	 * Kept separate from is_plugin_screen() so the review request stays limited
+	 * to the Dashboard and Settings screens.
+	 *
+	 * @return bool
+	 */
+	private function is_stock_screen() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+
+		$screen = get_current_screen();
+
+		return $screen && $screen->id === $this->hook_stock;
 	}
 
 	/**
@@ -317,14 +354,15 @@ class Tuki_Admin {
 
 	/**
 	 * Adds a unique body class on Tukify's own screens (and nowhere else), so the
-	 * shell stylesheet's WordPress-chrome overrides can be scoped to it.
+	 * shell stylesheet's WordPress-chrome overrides can be scoped to it, plus the
+	 * admin's theme class so the page background matches before first paint.
 	 *
 	 * @param string $classes Space-separated body classes.
 	 * @return string
 	 */
 	public function add_body_class( $classes ) {
-		if ( $this->is_plugin_screen() ) {
-			$classes .= ' tukify-admin';
+		if ( $this->is_plugin_screen() || $this->is_stock_screen() ) {
+			$classes .= ' tukify-admin tukify-theme-' . self::admin_theme();
 		}
 
 		return $classes;
@@ -338,25 +376,44 @@ class Tuki_Admin {
 	public function enqueue_assets( $hook ) {
 		$is_dashboard = ( $hook === $this->hook_dashboard );
 		$is_settings  = ( $hook === $this->hook_settings );
+		$is_stock     = ( $hook === $this->hook_stock );
 
 		// Hard scope: never touch any other wp-admin screen.
-		if ( ! $is_dashboard && ! $is_settings ) {
+		if ( ! $is_dashboard && ! $is_settings && ! $is_stock ) {
 			return;
 		}
 
-		// Shell: paints the WordPress content chrome dark and removes the top gap
-		// on both Tukify screens. Scoped under body.tukify-admin, so loading it
-		// here (our screens only) can never affect the rest of wp-admin.
+		// Shell: sidebar, header, theme tokens and the WP-admin fit. Scoped under
+		// .tuki-admin (plus body.tukify-admin for the WordPress chrome only).
 		wp_enqueue_style(
-			'tukify-admin-shell',
-			TUKI_PLUGIN_URL . 'admin/admin-shell.css',
+			'tuki-admin-ui',
+			TUKI_PLUGIN_URL . 'admin/css/tuki-admin.css',
 			array(),
 			TUKI_VERSION
 		);
 
+		// Tab switching (URL hash), the theme toggle and Reset.
+		wp_enqueue_script(
+			'tuki-admin-ui',
+			TUKI_PLUGIN_URL . 'admin/js/tuki-admin-ui.js',
+			array(),
+			TUKI_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'tuki-admin-ui',
+			'tukiAdminUi',
+			array(
+				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+				'nonce'        => wp_create_nonce( 'tuki_admin' ),
+				'resetConfirm' => __( 'Discard your unsaved changes?', 'tukify' ),
+			)
+		);
+
 		// Shared behaviour (test connection, KB, search test, product reindex).
-		// Each init in admin.js guards on element presence, so it is safe on both
-		// screens; it carries the localized tukiAdmin strings below.
+		// Every Tukify screen prints the whole app, so it loads on all three;
+		// each init guards on element presence. Carries tukiAdmin below.
 		wp_enqueue_script(
 			'tuki-admin',
 			TUKI_PLUGIN_URL . 'admin/admin.js',
@@ -365,45 +422,17 @@ class Tuki_Admin {
 			true
 		);
 
-		// The dashboard keeps its existing styles; the settings screen uses the
-		// redesigned dark theme + tab controller (both fully self-contained and
-		// scoped under .tkfy) instead.
-		if ( $is_dashboard ) {
-			wp_enqueue_style(
-				'tuki-admin',
-				TUKI_PLUGIN_URL . 'admin/admin.css',
-				array(),
-				TUKI_VERSION
-			);
-		}
+		// WordPress colour picker (Iris) for the Appearance tab bubble/logo colours,
+		// plus the custom dropdowns — the settings panels are on every Tukify screen.
+		wp_enqueue_style( 'wp-color-picker' );
 
-		if ( $is_settings ) {
-			wp_enqueue_style(
-				'tuki-admin-dark',
-				TUKI_PLUGIN_URL . 'admin/admin-dark.css',
-				array(),
-				TUKI_VERSION
-			);
-
-			wp_enqueue_script(
-				'tuki-admin-tabs',
-				TUKI_PLUGIN_URL . 'admin/admin-tabs.js',
-				array(),
-				TUKI_VERSION,
-				true
-			);
-
-			// WordPress colour picker (Iris) for the Appearance tab bubble/logo colours.
-			wp_enqueue_style( 'wp-color-picker' );
-
-			wp_enqueue_script(
-				'tuki-admin-controls',
-				TUKI_PLUGIN_URL . 'admin/admin-controls.js',
-				array( 'jquery', 'wp-color-picker' ),
-				TUKI_VERSION,
-				true
-			);
-		}
+		wp_enqueue_script(
+			'tuki-admin-controls',
+			TUKI_PLUGIN_URL . 'admin/admin-controls.js',
+			array( 'jquery', 'wp-color-picker' ),
+			TUKI_VERSION,
+			true
+		);
 
 		wp_localize_script(
 			'tuki-admin',
@@ -637,6 +666,19 @@ class Tuki_Admin {
 	}
 
 	/**
+	 * AJAX: saves the current admin's dark/light pick for the Tukify screens.
+	 */
+	public function ajax_admin_theme() {
+		$this->verify_admin_request();
+
+		$theme = isset( $_POST['theme'] ) && 'light' === sanitize_key( wp_unslash( $_POST['theme'] ) ) ? 'light' : 'dark';
+
+		update_user_meta( get_current_user_id(), self::THEME_META, $theme );
+
+		wp_send_json_success( array( 'theme' => $theme ) );
+	}
+
+	/**
 	 * Verifies nonce + capability for admin AJAX, or dies with an error.
 	 *
 	 * @return void
@@ -689,6 +731,56 @@ class Tuki_Admin {
 		$counts = wp_count_posts( 'product' );
 
 		return isset( $counts->publish ) ? (int) $counts->publish : 0;
+	}
+
+	/**
+	 * The current admin's saved theme for the Tukify screens (dark by default).
+	 *
+	 * Printed server-side as data-theme on the shell root, so the first paint is
+	 * already in the right theme.
+	 *
+	 * @return string 'dark' or 'light'.
+	 */
+	public static function admin_theme() {
+		return 'light' === get_user_meta( get_current_user_id(), self::THEME_META, true ) ? 'light' : 'dark';
+	}
+
+	/**
+	 * Sidebar sections: key => label, header description, sidebar group and URL.
+	 *
+	 * Settings tab keys match the data-tab keys of the settings panels. Settings
+	 * tabs link to the settings screen with a #key hash, so they also work from
+	 * the Dashboard and Back-in-stock screens.
+	 *
+	 * @return array
+	 */
+	public static function sections() {
+		$settings_url = admin_url( 'admin.php?page=tukify-settings' );
+
+		$sections = array(
+			'dashboard'  => array( __( 'Dashboard', 'tukify' ), __( 'How the assistant is performing, and the state of your product index.', 'tukify' ), 'overview', admin_url( 'admin.php?page=tukify' ) ),
+			'general'    => array( __( 'General', 'tukify' ), __( 'AI providers, API keys and models, and whether the chat appears on your storefront.', 'tukify' ), 'settings', '' ),
+			'appearance' => array( __( 'Appearance', 'tukify' ), __( 'The global look of the storefront widget. Elementor widgets can override it per page.', 'tukify' ), 'settings', '' ),
+			'engagement' => array( __( 'Engagement', 'tukify' ), __( 'The abandonment nudge: when the chat offers help, what it says, and the quick replies it shows.', 'tukify' ), 'settings', '' ),
+			'products'   => array( __( 'Products & Cart', 'tukify' ), __( 'Search and browsing, complementary products, in-chat checkout, back-in-stock alerts and the size advisor.', 'tukify' ), 'settings', '' ),
+			'channels'   => array( __( 'Channels', 'tukify' ), __( 'Reach shoppers beyond your website.', 'tukify' ), 'settings', '' ),
+			'kb'         => array( __( 'Knowledge Base', 'tukify' ), __( 'The store content the assistant answers from: policies, pages, posts, products and your own Q&A.', 'tukify' ), 'settings', '' ),
+			'analytics'  => array( __( 'Logs / Analytics', 'tukify' ), __( 'What gets logged, API usage and cost, response caching, and demand insights.', 'tukify' ), 'settings', '' ),
+			'advanced'   => array( __( 'Advanced', 'tukify' ), __( 'Retrieval, rate limits, clarifying questions, and what happens to your data on uninstall.', 'tukify' ), 'settings', '' ),
+			'stock'      => array( __( 'Back in stock', 'tukify' ), __( 'Shoppers waiting for an out-of-stock product to return.', 'tukify' ), 'store', admin_url( 'admin.php?page=tukify-stock-notify' ) ),
+		);
+
+		$out = array();
+		foreach ( $sections as $key => $row ) {
+			$out[ $key ] = array(
+				'label' => $row[0],
+				'desc'  => $row[1],
+				'group' => $row[2],
+				'url'   => '' !== $row[3] ? $row[3] : $settings_url . '#' . $key,
+			);
+		}
+
+		return $out;
 	}
 
 	/**

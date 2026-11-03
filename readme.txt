@@ -4,7 +4,7 @@ Tags: woocommerce, ai chatbot, chatbot, product recommendations, live chat
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.6.1
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -143,6 +143,19 @@ By default, deleting Tukify removes all of its data: its settings, its custom ta
 
 == Changelog ==
 
+= 1.7.0 =
+A redesigned admin: Dashboard, Settings and Back in stock now live in one fast, app-style screen.
+
+* New layout with a sidebar for every section. Moving between the Dashboard, the settings tabs and Back in stock is instant, with no page reload.
+* Dark mode by default, with a Light mode switch in the header. The choice is saved per admin user and applied before the page shows, so there is no flash.
+* The sidebar stays in place and only the content scrolls; the Save changes bar is always visible on settings tabs.
+* Each section has its own address (for example #products), so reloading, bookmarking or saving brings you back to the same section.
+* A Reset button discards unsaved changes.
+* WordPress notices now appear neatly below the Tukify header instead of jumping into place.
+* Larger controls (at least 44px) and visible keyboard focus throughout, with good contrast in both themes. Works down to phone width, where the sidebar becomes a row of tabs.
+* Back in stock shows one card per product with its waiting shoppers.
+* No settings were renamed or changed: everything you saved before is kept as is.
+
 = 1.6.1 =
 A maintenance release: current AI models, sturdier chat on cached and busy sites, and a round of fixes.
 
@@ -252,6 +265,9 @@ Smarter image search
 * Initial release: semantic search, RAG chat, background indexing, cart integration, analytics dashboard, floating widget and Elementor widgets.
 
 == Upgrade Notice ==
+
+= 1.7.0 =
+A redesigned, faster admin with dark and light modes. Your settings are unchanged and no reindex is needed.
 
 = 1.6.1 =
 Updates every AI provider to its current models (retired Claude, Grok and Groq models stopped working) and fixes chat on cached pages. Reindex is not required.

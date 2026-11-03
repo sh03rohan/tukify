@@ -1,9 +1,9 @@
 <?php
 /**
- * Tukify dashboard view (dark design system).
+ * Tukify dashboard panel (part of the admin app, see admin/app-page.php).
  *
- * Rendered by Tuki_Admin::render_dashboard_page(). Real data from the
- * {prefix}_tuki_events table and the embeddings index.
+ * Real data from the {prefix}_tuki_events table and the embeddings index. The
+ * reindex panel's element ids are the contract with admin.js — keep them stable.
  *
  * @package Tukify
  */
@@ -55,117 +55,75 @@ $tuki_signed = static function ( $value ) {
 };
 $tuki_total     = Tuki_Admin::total_products();
 $tuki_pending   = max( 0, $tuki_total - $tuki_indexed );
-$tuki_conn      = Tuki_Admin::connection_state();
 $tuki_state     = Tuki_Indexer::get_state();
 $tuki_running   = ( 'running' === $tuki_state['status'] );
 $tuki_embed_pct = $tuki_total > 0 ? min( 100, (int) round( $tuki_indexed / $tuki_total * 100 ) ) : 0;
-
-// Warning glyph (inline so no icon font is needed). The brand mark is the
-// Tukify logo PNG shipped in images/ (rendered in the header below).
-$tuki_warn_svg = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M12 4l9 16H3L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-
-$tuki_svg_allowed = array(
-	'svg'  => array(
-		'viewbox'     => true,
-		'width'       => true,
-		'height'      => true,
-		'fill'        => true,
-		'aria-hidden' => true,
-	),
-	'path' => array(
-		'd'               => true,
-		'fill'            => true,
-		'opacity'         => true,
-		'stroke'          => true,
-		'stroke-width'    => true,
-		'stroke-linejoin' => true,
-		'stroke-linecap'  => true,
-	),
-);
 ?>
-<div class="wrap tuki-wrap">
-	<div class="tuki-app">
-		<div class="tuki-panel">
-
-			<header class="tuki-header">
-				<div class="tuki-brand">
-					<span class="tuki-brand-chip"><img src="<?php echo esc_url( Tuki_Settings::logo_url() ); ?>" alt="Tukify" /></span>
-					<span class="tuki-brand-text">
-						<span class="tuki-brand-title">Tukify</span>
-						<span class="tuki-brand-sub"><?php esc_html_e( 'AI shopping assistant', 'tukify' ); ?></span>
-					</span>
-				</div>
-				<span class="tuki-pill tuki-pill--<?php echo esc_attr( $tuki_conn['state'] ); ?>">
-					<span class="tuki-dot"></span><?php echo esc_html( $tuki_conn['label'] ); ?>
-				</span>
-			</header>
-
-			<div class="tuki-body">
+<section class="tk-pane" role="region" id="tkfy-panel-dashboard" data-tab="dashboard" aria-labelledby="tkfy-tab-dashboard" tabindex="0">
+			<div class="tk-stack">
 
 				<!-- Metric cards -->
-				<div class="tuki-cards">
-					<div class="tuki-card">
-						<div class="tuki-card-label"><?php esc_html_e( 'Products indexed', 'tukify' ); ?></div>
-						<div class="tuki-card-value" id="tuki-indexed-count"><?php echo esc_html( number_format_i18n( $tuki_indexed ) ); ?></div>
+				<div class="tk-grid3">
+					<div class="tk-metric">
+						<span class="tk-ml"><?php esc_html_e( 'Products indexed', 'tukify' ); ?></span>
+						<span class="tk-mv" id="tuki-indexed-count"><?php echo esc_html( number_format_i18n( $tuki_indexed ) ); ?></span>
 						<?php if ( $tuki_total > 0 && 0 === $tuki_pending ) : ?>
-							<div class="tuki-card-sub is-success"><?php esc_html_e( 'All synced', 'tukify' ); ?></div>
+							<span class="tk-ms is-ok"><?php esc_html_e( 'All synced', 'tukify' ); ?></span>
 						<?php elseif ( $tuki_pending > 0 ) : ?>
-							<div class="tuki-card-sub is-warning">
+							<span class="tk-ms is-warn">
 								<?php
 								/* translators: %s: number of products awaiting indexing. */
 								echo esc_html( sprintf( __( '%s pending', 'tukify' ), number_format_i18n( $tuki_pending ) ) );
 								?>
-							</div>
+							</span>
 						<?php else : ?>
-							<div class="tuki-card-sub is-muted"><?php esc_html_e( 'No products yet', 'tukify' ); ?></div>
+							<span class="tk-ms"><?php esc_html_e( 'No products yet', 'tukify' ); ?></span>
 						<?php endif; ?>
 					</div>
 
-					<div class="tuki-card">
-						<div class="tuki-card-label"><?php esc_html_e( 'Queries this week', 'tukify' ); ?></div>
-						<div class="tuki-card-value"><?php echo esc_html( number_format_i18n( $tuki_data['queries_week'] ) ); ?></div>
+					<div class="tk-metric">
+						<span class="tk-ml"><?php esc_html_e( 'Queries this week', 'tukify' ); ?></span>
+						<span class="tk-mv"><?php echo esc_html( number_format_i18n( $tuki_data['queries_week'] ) ); ?></span>
 						<?php if ( $tuki_data['queries_week'] > 0 ) : ?>
-							<div class="tuki-card-sub is-accent">
+							<span class="tk-ms is-accent">
 								<?php
 								$tuki_trend = (int) $tuki_data['queries_trend'];
 								/* translators: %s: signed percentage, e.g. "+18%". */
 								echo esc_html( sprintf( __( '%s vs last', 'tukify' ), ( $tuki_trend >= 0 ? '+' : '' ) . $tuki_trend . '%' ) );
 								?>
-							</div>
+							</span>
 						<?php else : ?>
-							<div class="tuki-card-sub is-muted"><?php esc_html_e( 'No queries yet', 'tukify' ); ?></div>
+							<span class="tk-ms"><?php esc_html_e( 'No queries yet', 'tukify' ); ?></span>
 						<?php endif; ?>
 					</div>
-
 				</div>
 
 				<!-- Conversion KPIs -->
-				<div class="tuki-block">
-					<div class="tuki-block-top">
+				<section class="tk-card" aria-labelledby="tk-conv-h">
+					<div class="tk-card-head">
 						<div>
-							<div class="tuki-block-title"><?php esc_html_e( 'Conversion', 'tukify' ); ?></div>
-							<div class="tuki-block-caption"><?php esc_html_e( 'How the assistant turns conversations into orders. Aggregated counts only — no shopper is identifiable.', 'tukify' ); ?></div>
+							<h2 class="tk-ctitle" id="tk-conv-h"><?php esc_html_e( 'Conversion', 'tukify' ); ?></h2>
+							<p class="tk-ccap"><?php esc_html_e( 'How the assistant turns conversations into orders. Aggregated counts only — no shopper is identifiable.', 'tukify' ); ?></p>
+						</div>
+						<div class="tk-seg" role="group" aria-label="<?php esc_attr_e( 'Date range', 'tukify' ); ?>">
+							<?php foreach ( $tuki_kpi_ranges as $tuki_days => $tuki_range_label ) : ?>
+								<a
+									class="tk-seg-btn"
+									href="<?php echo esc_url( add_query_arg( 'kpi_range', $tuki_days, $tuki_kpi_base ) ); ?>"
+									<?php echo ( $tuki_days === $tuki_kpi_range ) ? 'aria-current="true"' : ''; ?>
+								><?php echo esc_html( $tuki_range_label ); ?></a>
+							<?php endforeach; ?>
 						</div>
 					</div>
 
-					<div class="tuki-range" role="group" aria-label="<?php esc_attr_e( 'Date range', 'tukify' ); ?>">
-						<?php foreach ( $tuki_kpi_ranges as $tuki_days => $tuki_range_label ) : ?>
-							<a
-								class="tuki-range-btn<?php echo ( $tuki_days === $tuki_kpi_range ) ? ' is-active' : ''; ?>"
-								href="<?php echo esc_url( add_query_arg( 'kpi_range', $tuki_days, $tuki_kpi_base ) ); ?>"
-								<?php echo ( $tuki_days === $tuki_kpi_range ) ? 'aria-current="true"' : ''; ?>
-							><?php echo esc_html( $tuki_range_label ); ?></a>
-						<?php endforeach; ?>
-					</div>
+					<div class="tk-grid3">
 
-					<div class="tuki-cards tuki-cards--kpi">
-
-						<!-- Chat-to-sale (existing metric, now range-aware and session-consistent) -->
-						<div class="tuki-card">
-							<div class="tuki-card-label"><?php esc_html_e( 'Chat-to-sale', 'tukify' ); ?></div>
-							<div class="tuki-card-value"><?php echo esc_html( number_format_i18n( $tuki_kpi['chat_to_sale'], 1 ) ); ?>%</div>
+						<!-- Chat-to-sale (range-aware and session-consistent) -->
+						<div class="tk-metric">
+							<span class="tk-ml"><?php esc_html_e( 'Chat-to-sale', 'tukify' ); ?></span>
+							<span class="tk-mv"><?php echo esc_html( number_format_i18n( $tuki_kpi['chat_to_sale'], 1 ) ); ?>%</span>
 							<?php if ( $tuki_kpi['query_sessions'] > 0 ) : ?>
-								<div class="tuki-card-sub is-success">
+								<span class="tk-ms is-ok">
 									<?php
 									printf(
 										/* translators: 1: number of converting chat sessions, 2: total chat sessions. */
@@ -174,18 +132,18 @@ $tuki_svg_allowed = array(
 										esc_html( number_format_i18n( $tuki_kpi['query_sessions'] ) )
 									);
 									?>
-								</div>
+								</span>
 							<?php else : ?>
-								<div class="tuki-card-sub is-muted"><?php esc_html_e( 'No chats in range', 'tukify' ); ?></div>
+								<span class="tk-ms"><?php esc_html_e( 'No chats in range', 'tukify' ); ?></span>
 							<?php endif; ?>
 						</div>
 
 						<!-- Cart recovery -->
-						<div class="tuki-card">
-							<div class="tuki-card-label"><?php esc_html_e( 'Cart recovery', 'tukify' ); ?></div>
-							<div class="tuki-card-value"><?php echo esc_html( number_format_i18n( $tuki_kpi['cart_recovery'], 1 ) ); ?>%</div>
+						<div class="tk-metric">
+							<span class="tk-ml"><?php esc_html_e( 'Cart recovery', 'tukify' ); ?></span>
+							<span class="tk-mv"><?php echo esc_html( number_format_i18n( $tuki_kpi['cart_recovery'], 1 ) ); ?>%</span>
 							<?php if ( $tuki_kpi['iv_sessions'] > 0 ) : ?>
-								<div class="tuki-card-sub is-success">
+								<span class="tk-ms is-ok">
 									<?php
 									printf(
 										/* translators: 1: recovered sessions, 2: sessions the nudge fired in. */
@@ -194,19 +152,19 @@ $tuki_svg_allowed = array(
 										esc_html( number_format_i18n( $tuki_kpi['iv_sessions'] ) )
 									);
 									?>
-								</div>
+								</span>
 							<?php else : ?>
-								<div class="tuki-card-sub is-muted"><?php esc_html_e( 'Nudge has not fired yet', 'tukify' ); ?></div>
+								<span class="tk-ms"><?php esc_html_e( 'Nudge has not fired yet', 'tukify' ); ?></span>
 							<?php endif; ?>
 						</div>
 
 						<!-- Resolution rate -->
-						<div class="tuki-card">
-							<div class="tuki-card-label"><?php esc_html_e( 'Resolution rate', 'tukify' ); ?></div>
-							<div class="tuki-card-value"><?php echo esc_html( number_format_i18n( $tuki_kpi['resolution'], 1 ) ); ?>%</div>
+						<div class="tk-metric">
+							<span class="tk-ml"><?php esc_html_e( 'Resolution rate', 'tukify' ); ?></span>
+							<span class="tk-mv"><?php echo esc_html( number_format_i18n( $tuki_kpi['resolution'], 1 ) ); ?>%</span>
 							<?php if ( $tuki_kpi['query_sessions'] > 0 ) : ?>
 								<?php if ( $tuki_kpi['unresolved_sessions'] > 0 ) : ?>
-									<div class="tuki-card-sub is-warning">
+									<span class="tk-ms is-warn">
 										<?php
 										printf(
 											/* translators: %s: number of chat sessions with an unanswered turn. */
@@ -214,21 +172,21 @@ $tuki_svg_allowed = array(
 											esc_html( number_format_i18n( $tuki_kpi['unresolved_sessions'] ) )
 										);
 										?>
-									</div>
+									</span>
 								<?php else : ?>
-									<div class="tuki-card-sub is-success"><?php esc_html_e( 'Every chat answered', 'tukify' ); ?></div>
+									<span class="tk-ms is-ok"><?php esc_html_e( 'Every chat answered', 'tukify' ); ?></span>
 								<?php endif; ?>
 							<?php else : ?>
-								<div class="tuki-card-sub is-muted"><?php esc_html_e( 'No chats in range', 'tukify' ); ?></div>
+								<span class="tk-ms"><?php esc_html_e( 'No chats in range', 'tukify' ); ?></span>
 							<?php endif; ?>
 						</div>
 
 						<!-- Chat-assisted AOV vs store-wide -->
-						<div class="tuki-card">
-							<div class="tuki-card-label"><?php esc_html_e( 'Chat-assisted AOV', 'tukify' ); ?></div>
-							<div class="tuki-card-value"><?php echo esc_html( $tuki_money( $tuki_kpi['chat_aov'] ) ); ?></div>
+						<div class="tk-metric">
+							<span class="tk-ml"><?php esc_html_e( 'Chat-assisted AOV', 'tukify' ); ?></span>
+							<span class="tk-mv"><?php echo esc_html( $tuki_money( $tuki_kpi['chat_aov'] ) ); ?></span>
 							<?php if ( null !== $tuki_kpi['aov_delta'] ) : ?>
-								<div class="tuki-card-sub <?php echo esc_attr( $tuki_kpi['aov_delta'] >= 0 ? 'is-success' : 'is-warning' ); ?>">
+								<span class="tk-ms <?php echo esc_attr( $tuki_kpi['aov_delta'] >= 0 ? 'is-ok' : 'is-warn' ); ?>">
 									<?php
 									printf(
 										/* translators: 1: signed percentage, 2: store-wide average order value. */
@@ -237,9 +195,9 @@ $tuki_svg_allowed = array(
 										esc_html( $tuki_money( $tuki_kpi['store_aov'] ) )
 									);
 									?>
-								</div>
+								</span>
 							<?php elseif ( $tuki_kpi['chat_orders'] > 0 ) : ?>
-								<div class="tuki-card-sub is-muted">
+								<span class="tk-ms">
 									<?php
 									printf(
 										/* translators: %s: number of chat-assisted orders. */
@@ -247,18 +205,18 @@ $tuki_svg_allowed = array(
 										esc_html( number_format_i18n( $tuki_kpi['chat_orders'] ) )
 									);
 									?>
-								</div>
+								</span>
 							<?php else : ?>
-								<div class="tuki-card-sub is-muted"><?php esc_html_e( 'No assisted orders yet', 'tukify' ); ?></div>
+								<span class="tk-ms"><?php esc_html_e( 'No assisted orders yet', 'tukify' ); ?></span>
 							<?php endif; ?>
 						</div>
 
 						<!-- Attributed revenue -->
-						<div class="tuki-card">
-							<div class="tuki-card-label"><?php esc_html_e( 'Attributed revenue', 'tukify' ); ?></div>
-							<div class="tuki-card-value"><?php echo esc_html( $tuki_money( $tuki_kpi['chat_revenue'] ) ); ?></div>
+						<div class="tk-metric">
+							<span class="tk-ml"><?php esc_html_e( 'Attributed revenue', 'tukify' ); ?></span>
+							<span class="tk-mv"><?php echo esc_html( $tuki_money( $tuki_kpi['chat_revenue'] ) ); ?></span>
 							<?php if ( $tuki_kpi['chat_orders'] > 0 ) : ?>
-								<div class="tuki-card-sub is-accent">
+								<span class="tk-ms is-accent">
 									<?php
 									printf(
 										/* translators: %s: number of chat-assisted orders. */
@@ -266,13 +224,13 @@ $tuki_svg_allowed = array(
 										esc_html( number_format_i18n( $tuki_kpi['chat_orders'] ) )
 									);
 									?>
-								</div>
+								</span>
 							<?php else : ?>
-								<div class="tuki-card-sub is-muted"><?php esc_html_e( 'No revenue in range', 'tukify' ); ?></div>
+								<span class="tk-ms"><?php esc_html_e( 'No revenue in range', 'tukify' ); ?></span>
 							<?php endif; ?>
 						</div>
 
-					</div><!-- .tuki-cards -->
+					</div><!-- .tk-grid3 -->
 
 					<?php
 					// -------- Trend line: attributed orders per day across the range --------
@@ -300,11 +258,11 @@ $tuki_svg_allowed = array(
 					$tuki_has_line = $tuki_peak > 0 && count( $tuki_points ) > 1;
 					?>
 
-					<div class="tuki-trend">
-						<div class="tuki-trend-head">
-							<span class="tuki-trend-title"><?php esc_html_e( 'Attributed orders per day', 'tukify' ); ?></span>
+					<div class="tk-trend">
+						<div class="tk-row is-tight">
+							<span class="tk-lbl"><?php esc_html_e( 'Attributed orders per day', 'tukify' ); ?></span>
 							<?php if ( $tuki_has_line ) : ?>
-								<span class="tuki-trend-peak">
+								<span class="tk-hint">
 									<?php
 									printf(
 										/* translators: %s: highest number of orders in a single day. */
@@ -317,12 +275,12 @@ $tuki_svg_allowed = array(
 						</div>
 
 						<?php if ( ! $tuki_has_line ) : ?>
-							<div class="tuki-empty"><?php esc_html_e( 'No attributed orders in this range yet — the trend line appears once the assistant helps close a sale.', 'tukify' ); ?></div>
+							<div class="tk-chart-empty"><?php esc_html_e( 'No attributed orders in this range yet — the trend line appears once the assistant helps close a sale.', 'tukify' ); ?></div>
 						<?php else : ?>
 							<?php
 							// Build the polyline in a 100x30 viewBox and let the SVG scale to
 							// the card width, so no pixel measurements are needed.
-							$tuki_last  = count( $tuki_points ) - 1;
+							$tuki_last   = count( $tuki_points ) - 1;
 							$tuki_coords = array();
 
 							foreach ( $tuki_points as $tuki_idx => $tuki_point ) {
@@ -350,69 +308,66 @@ $tuki_svg_allowed = array(
 								number_format_i18n( $tuki_line_days )
 							);
 							?>
-							<svg class="tuki-trend-svg" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="<?php echo esc_attr( $tuki_line_label ); ?>">
-								<polygon class="tuki-trend-area" points="<?php echo esc_attr( $tuki_area_points ); ?>" />
-								<polyline class="tuki-trend-line" points="<?php echo esc_attr( $tuki_line_points ); ?>" />
+							<svg class="tk-trend-svg" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="<?php echo esc_attr( $tuki_line_label ); ?>">
+								<polygon class="tk-trend-area" points="<?php echo esc_attr( $tuki_area_points ); ?>" />
+								<polyline class="tk-trend-line" points="<?php echo esc_attr( $tuki_line_points ); ?>" />
 							</svg>
-							<div class="tuki-trend-axis">
+							<div class="tk-trend-axis">
 								<span><?php echo esc_html( date_i18n( 'M j', strtotime( $tuki_first_day ) ) ); ?></span>
 								<span><?php echo esc_html( date_i18n( 'M j', strtotime( $tuki_last_day ) ) ); ?></span>
 							</div>
 						<?php endif; ?>
 					</div>
-				</div><!-- .tuki-block -->
+				</section>
 
-				<!-- Reindex panel -->
-				<div class="tuki-block">
-					<div class="tuki-block-top">
-						<div>
-							<div class="tuki-block-title"><?php esc_html_e( 'Product index', 'tukify' ); ?></div>
-							<div class="tuki-block-caption" id="tuki-reindex-caption"><?php echo esc_html( Tuki_Admin::last_reindex_human() ); ?></div>
-						</div>
-						<div class="tuki-block-actions">
-							<button type="button" class="tuki-btn tuki-btn--accent" id="tuki-reindex-all"><?php esc_html_e( 'Reindex all', 'tukify' ); ?></button>
-							<button type="button" class="tuki-btn tuki-btn--ghost" id="tuki-reindex-cancel" <?php echo $tuki_running ? '' : 'hidden'; ?>><?php esc_html_e( 'Cancel', 'tukify' ); ?></button>
-						</div>
-					</div>
-					<div class="tuki-progress">
-						<div class="tuki-progress-bar" id="tuki-progress-bar" style="width:<?php echo esc_attr( $tuki_embed_pct ); ?>%"></div>
-					</div>
-					<div class="tuki-progress-text" id="tuki-progress-text" role="status" aria-live="polite">
-						<?php
-						/* translators: 1: embedded product count, 2: total product count. */
-						echo esc_html( sprintf( __( '%1$s / %2$s products embedded', 'tukify' ), number_format_i18n( $tuki_indexed ), number_format_i18n( $tuki_total ) ) );
-						?>
-					</div>
-					<span id="tuki-reindex-boot" data-running="<?php echo esc_attr( $tuki_running ? '1' : '0' ); ?>" hidden></span>
-				</div>
+				<div class="tk-grid2">
 
-				<!-- Top searches -->
-				<div class="tuki-block">
-					<div class="tuki-block-title tuki-searches-title"><?php esc_html_e( 'Top searches', 'tukify' ); ?></div>
-					<?php if ( empty( $tuki_data['top_searches'] ) ) : ?>
-						<div class="tuki-empty"><?php esc_html_e( 'No searches yet — shopper queries will appear here.', 'tukify' ); ?></div>
-					<?php else : ?>
-						<div class="tuki-list">
-							<?php foreach ( $tuki_data['top_searches'] as $tuki_row ) : ?>
-								<div class="<?php echo esc_attr( $tuki_row['zero_result'] ? 'tuki-list-row is-zero' : 'tuki-list-row' ); ?>">
-									<span class="tuki-list-label">
+					<!-- Reindex panel (ids are the contract with admin.js) -->
+					<section class="tk-card" aria-labelledby="tk-idx-h">
+						<div class="tk-row is-top">
+							<div class="tk-rt">
+								<h2 class="tk-ctitle" id="tk-idx-h"><?php esc_html_e( 'Product index', 'tukify' ); ?></h2>
+								<p class="tk-ccap" id="tuki-reindex-caption"><?php echo esc_html( Tuki_Admin::last_reindex_human() ); ?></p>
+							</div>
+							<div class="tk-actions">
+								<button type="button" class="tk-btn" id="tuki-reindex-cancel" <?php echo $tuki_running ? '' : 'hidden'; ?>><?php esc_html_e( 'Cancel', 'tukify' ); ?></button>
+								<button type="button" class="tk-btn is-primary" id="tuki-reindex-all"><?php esc_html_e( 'Reindex all', 'tukify' ); ?></button>
+							</div>
+						</div>
+						<div class="tk-bar" aria-hidden="true">
+							<span id="tuki-progress-bar" style="width:<?php echo esc_attr( $tuki_embed_pct ); ?>%"></span>
+						</div>
+						<p class="tk-hint" id="tuki-progress-text" role="status" aria-live="polite">
+							<?php
+							/* translators: 1: embedded product count, 2: total product count. */
+							echo esc_html( sprintf( __( '%1$s / %2$s products embedded', 'tukify' ), number_format_i18n( $tuki_indexed ), number_format_i18n( $tuki_total ) ) );
+							?>
+						</p>
+						<span id="tuki-reindex-boot" data-running="<?php echo esc_attr( $tuki_running ? '1' : '0' ); ?>" hidden></span>
+					</section>
+
+					<!-- Top searches -->
+					<section class="tk-card" aria-labelledby="tk-top-h">
+						<h2 class="tk-ctitle" id="tk-top-h"><?php esc_html_e( 'Top searches', 'tukify' ); ?></h2>
+						<?php if ( empty( $tuki_data['top_searches'] ) ) : ?>
+							<p class="tk-empty"><?php esc_html_e( 'No searches yet — shopper queries will appear here.', 'tukify' ); ?></p>
+						<?php else : ?>
+							<div class="tk-list">
+								<?php foreach ( $tuki_data['top_searches'] as $tuki_row ) : ?>
+									<div class="tk-li">
+										<span class="tk-li-label"><?php echo esc_html( $tuki_row['query'] ); ?></span>
 										<?php if ( $tuki_row['zero_result'] ) : ?>
-											<span class="tuki-warn-icon"><?php echo wp_kses( $tuki_warn_svg, $tuki_svg_allowed ); ?></span>
+											<span class="tk-badge is-warn"><?php esc_html_e( '0 results', 'tukify' ); ?></span>
+										<?php else : ?>
+											<span class="tk-hint"><?php echo esc_html( number_format_i18n( $tuki_row['count'] ) ); ?></span>
 										<?php endif; ?>
-										<?php echo esc_html( $tuki_row['query'] ); ?>
-									</span>
-									<?php if ( $tuki_row['zero_result'] ) : ?>
-										<span class="tuki-list-value is-zero"><?php esc_html_e( '0 results', 'tukify' ); ?></span>
-									<?php else : ?>
-										<span class="tuki-list-value"><?php echo esc_html( number_format_i18n( $tuki_row['count'] ) ); ?></span>
-									<?php endif; ?>
-								</div>
-							<?php endforeach; ?>
-						</div>
-					<?php endif; ?>
-				</div>
+									</div>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
+					</section>
 
-			</div><!-- .tuki-body -->
-		</div><!-- .tuki-panel -->
-	</div><!-- .tuki-app -->
-</div>
+				</div><!-- .tk-grid2 -->
+
+			</div><!-- .tk-stack -->
+</section>

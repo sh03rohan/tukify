@@ -1,0 +1,2882 @@
+/**
+ * Tukify admin — shared shell for the Dashboard, Settings and Back-in-stock
+ * screens.
+ *
+ * Every component rule is scoped under the .tuki-admin root (component classes
+ * use the tk- prefix). The only rules outside it are the WordPress-chrome
+ * adjustments at the top, scoped to body.tukify-admin — a class added only on
+ * Tukify's own screens — because they style WordPress's wrappers, not ours.
+ *
+ * Layout: the root is pinned (position: fixed) to the area under the admin bar
+ * and right of the admin menu — folded, auto-folded and mobile widths
+ * included — so it always fills that area exactly. Nothing of ours ever
+ * scrolls the page; if the WordPress menu is taller than the window, the page
+ * scrolls only to reveal the menu while Tukify stays put. The sidebar and the
+ * main area are separate scroll containers with hidden scrollbars; the save
+ * bar sits outside the main scroll area so it is always visible.
+ */
+
+/* ---------------------------------------------------------------------------
+ * WordPress chrome (Tukify screens only)
+ * ------------------------------------------------------------------------- */
+
+body.tukify-admin.tukify-theme-dark {
+	background: #0e0e11;
+}
+
+body.tukify-admin.tukify-theme-light {
+	background: #f4f4f7;
+}
+
+/* No gutter, no bottom padding: the root fills the content area edge to edge. */
+body.tukify-admin #wpcontent {
+	padding-left: 0;
+}
+
+body.tukify-admin #wpbody-content {
+	padding-bottom: 0;
+}
+
+/* The footer would sit below a full-height root and add a page scrollbar. */
+body.tukify-admin #wpfooter {
+	display: none;
+}
+
+/* The page only scrolls to reveal a WordPress menu taller than the window;
+ * keep that scrollbar hidden too (wheel/touch over the menu still scroll). */
+html:has(> body.tukify-admin) {
+	scrollbar-width: none;
+}
+
+html:has(> body.tukify-admin)::-webkit-scrollbar {
+	display: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Root + theme tokens (dark by default; data-theme is printed server-side)
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin {
+	--tk-bg: #0e0e11;
+	--tk-side: #121216;
+	--tk-card: #16161a;
+	--tk-card2: #1c1c22;
+	--tk-track: #2a2a31;
+	--tk-line: rgba(255, 255, 255, .08);
+	--tk-line2: rgba(255, 255, 255, .06);
+	--tk-text: #f5f5f7;
+	--tk-text2: #d8d8de;
+	--tk-muted: #a1a1aa;
+	--tk-accent: #9d92f5;
+	--tk-solid: #6a5ce6;
+	--tk-accent-bg: #201d38;
+	--tk-ok: #5bc98e;
+	--tk-ok-bg: #14231c;
+	--tk-warn: #efa43a;
+	--tk-warn-bg: #2a1f0e;
+	--tk-focus: #b4abff;
+	--tk-ring: rgba(157, 146, 245, .35);
+	--tk-danger: #f0787f;
+	--tk-hover: rgba(255, 255, 255, .04);
+	--tk-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+
+	/* Below the admin menu's flyouts (z-index 9990+) and the admin bar. */
+	position: fixed;
+	z-index: 1;
+	top: var(--wp-admin--admin-bar--height, 32px);
+	bottom: 0;
+	inset-inline-start: 160px;
+	inset-inline-end: 0;
+	display: flex;
+	align-items: stretch;
+	overflow: hidden;
+	background: var(--tk-bg);
+	color: var(--tk-text);
+	color-scheme: dark;
+	font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.tuki-admin[data-theme="light"] {
+	--tk-bg: #f4f4f7;
+	--tk-side: #ffffff;
+	--tk-card: #ffffff;
+	--tk-card2: #f4f4f7;
+	--tk-track: #e2e2e8;
+	--tk-line: rgba(20, 20, 30, .11);
+	--tk-line2: rgba(20, 20, 30, .07);
+	--tk-text: #17171c;
+	--tk-text2: #2e2e36;
+	--tk-muted: #5d5d68;
+	--tk-accent: #5245cf;
+	--tk-solid: #6a5ce6;
+	--tk-accent-bg: #eeebff;
+	--tk-ok: #1b7a4b;
+	--tk-ok-bg: #e6f4ec;
+	--tk-warn: #94570a;
+	--tk-warn-bg: #fcf1e0;
+	--tk-focus: #5245cf;
+	--tk-ring: rgba(82, 69, 207, .3);
+	--tk-danger: #b3261e;
+	--tk-hover: rgba(20, 20, 30, .04);
+	--tk-shadow: 0 10px 30px rgba(20, 20, 40, .10);
+
+	color-scheme: light;
+}
+
+/* No admin bar (e.g. removed by another plugin): start at the top. */
+html:not(.wp-toolbar) .tuki-admin {
+	top: 0;
+}
+
+/* Admin menu width: 160px, 36px when folded (by the user, or automatically
+ * between 783px and 960px), and none at 782px and below. */
+body.tukify-admin.folded .tuki-admin {
+	inset-inline-start: 36px;
+}
+
+@media screen and (max-width: 960px) {
+	body.tukify-admin.auto-fold .tuki-admin {
+		inset-inline-start: 36px;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	body.tukify-admin .tuki-admin,
+	body.tukify-admin.folded .tuki-admin,
+	body.tukify-admin.auto-fold .tuki-admin {
+		inset-inline-start: 0;
+	}
+}
+
+/* Panels: all ten are in the DOM; data-tk-tab on the root (set before first
+ * paint by tuki-admin-boot.js) decides which one shows. */
+.tuki-admin .tk-scroll .tk-pane {
+	display: none;
+}
+
+.tuki-admin[data-tk-tab="dashboard"] .tk-scroll .tk-pane[data-tab="dashboard"],
+.tuki-admin[data-tk-tab="general"] .tk-scroll .tk-pane[data-tab="general"],
+.tuki-admin[data-tk-tab="appearance"] .tk-scroll .tk-pane[data-tab="appearance"],
+.tuki-admin[data-tk-tab="engagement"] .tk-scroll .tk-pane[data-tab="engagement"],
+.tuki-admin[data-tk-tab="products"] .tk-scroll .tk-pane[data-tab="products"],
+.tuki-admin[data-tk-tab="channels"] .tk-scroll .tk-pane[data-tab="channels"],
+.tuki-admin[data-tk-tab="kb"] .tk-scroll .tk-pane[data-tab="kb"],
+.tuki-admin[data-tk-tab="analytics"] .tk-scroll .tk-pane[data-tab="analytics"],
+.tuki-admin[data-tk-tab="advanced"] .tk-scroll .tk-pane[data-tab="advanced"],
+.tuki-admin[data-tk-tab="stock"] .tk-scroll .tk-pane[data-tab="stock"] {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+/* The save bar belongs to the settings tabs only. */
+.tuki-admin[data-tk-tab="dashboard"] .tk-savebar,
+.tuki-admin[data-tk-tab="stock"] .tk-savebar {
+	display: none;
+}
+
+/* A panel's own notices (e.g. Back in stock) sit in its flow. */
+.tuki-admin .tk-pane > .notice {
+	margin: 0;
+}
+
+.tuki-admin *,
+.tuki-admin *::before,
+.tuki-admin *::after {
+	box-sizing: border-box;
+}
+
+/* Hidden scrollbars; areas still scroll by wheel, touch and keyboard. The
+ * body.tukify-admin prefix outranks older scoped stylesheets on these screens. */
+body.tukify-admin .tuki-admin,
+body.tukify-admin .tuki-admin * {
+	scrollbar-width: none;
+}
+
+body.tukify-admin .tuki-admin::-webkit-scrollbar,
+body.tukify-admin .tuki-admin ::-webkit-scrollbar {
+	display: none;
+}
+
+.tuki-admin :focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.tuki-admin h1,
+.tuki-admin h2,
+.tuki-admin h3,
+.tuki-admin p {
+	margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin .tk-side {
+	flex: 0 0 248px;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	padding: 20px 14px;
+	background: var(--tk-side);
+	border-right: 1px solid var(--tk-line);
+}
+
+.tuki-admin .tk-brand {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 4px 8px 8px;
+}
+
+.tuki-admin .tk-chip {
+	flex: 0 0 auto;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 11px;
+	background: var(--tk-accent-bg);
+}
+
+.tuki-admin .tk-chip img {
+	width: 26px;
+	height: 26px;
+}
+
+.tuki-admin .tk-brand-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.tuki-admin .tk-brand-title {
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-brand-sub {
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-navs {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.tuki-admin .tk-group {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.tuki-admin .tk-glabel {
+	padding: 0 12px 6px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-tab {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	min-height: 44px;
+	padding: 0 12px;
+	border-radius: 10px;
+	background: transparent;
+	color: var(--tk-text2);
+	font-size: 14px;
+	text-decoration: none;
+}
+
+.tuki-admin .tk-tab svg {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-tab:hover {
+	background: var(--tk-card2);
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-tab[aria-current="page"] {
+	background: var(--tk-accent-bg);
+	color: var(--tk-text);
+	font-weight: 500;
+}
+
+.tuki-admin .tk-tab[aria-current="page"] svg {
+	color: var(--tk-accent);
+}
+
+/* ---------------------------------------------------------------------------
+ * Main area: scrolling header + panel, fixed save bar
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin .tk-main {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+}
+
+.tuki-admin .tk-scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 28px 32px 24px;
+}
+
+.tuki-admin .tk-phead {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.tuki-admin .tk-ptitle {
+	padding: 0;
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -.01em;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-pdesc {
+	max-width: 640px;
+	margin-top: 4px;
+	color: var(--tk-muted);
+}
+
+/* Toggle + pill stay together on one line, even when the header wraps. */
+.tuki-admin .tk-hright {
+	display: flex;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 12px;
+}
+
+.tuki-admin .tk-tgl {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--tk-text2);
+	font-size: 13.5px;
+	font-weight: 500;
+}
+
+.tuki-admin .tk-tgl label {
+	cursor: pointer;
+}
+
+/* Switch: 44px tall hit area, 44x26 visual track. */
+.tuki-admin .tk-sw {
+	position: relative;
+	flex: 0 0 auto;
+	width: 54px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.tuki-admin .tk-sw::before {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 9px;
+	width: 44px;
+	height: 26px;
+	border-radius: 13px;
+	background: var(--tk-track);
+	transition: background .15s;
+}
+
+.tuki-admin .tk-sw::after {
+	content: "";
+	position: absolute;
+	left: 8px;
+	top: 12px;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: #ffffff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+	transition: transform .15s;
+}
+
+.tuki-admin .tk-sw[aria-checked="true"]::before {
+	background: var(--tk-solid);
+}
+
+.tuki-admin .tk-sw[aria-checked="true"]::after {
+	transform: translateX(18px);
+}
+
+.tuki-admin .tk-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 32px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: var(--tk-ok-bg);
+	color: var(--tk-ok);
+	font-size: 12.5px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.tuki-admin .tk-pill.is-warn {
+	background: var(--tk-warn-bg);
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tk-pill.is-muted {
+	background: var(--tk-card2);
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tk-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+/* The notice anchor itself takes no space; notices land right after it. */
+.tuki-admin .wp-header-end {
+	display: none;
+}
+
+.tuki-admin .tk-scroll > .notice,
+.tuki-admin .tk-scroll > .updated,
+.tuki-admin .tk-scroll > .error {
+	margin: 0;
+}
+
+.tuki-admin .tk-hint {
+	color: var(--tk-muted);
+	font-size: 12.5px;
+}
+
+.tuki-admin .tk-savebar {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 0 32px 16px;
+	padding: 12px 14px 12px 18px;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+	box-shadow: var(--tk-shadow);
+}
+
+.tuki-admin .tk-savebar .tk-hint {
+	flex: 1 1 260px;
+}
+
+.tuki-admin .tk-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.tuki-admin .tk-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 18px;
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+	background: var(--tk-card2);
+	color: var(--tk-text);
+	font: inherit;
+	font-weight: 500;
+	white-space: nowrap;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.tuki-admin .tk-btn:hover {
+	border-color: var(--tk-muted);
+}
+
+.tuki-admin .tk-btn.is-primary {
+	background: var(--tk-solid);
+	border-color: transparent;
+	color: #ffffff;
+}
+
+.tuki-admin .tk-btn.is-primary:hover {
+	filter: brightness(1.08);
+}
+
+/* `hidden` must win over the display values set on buttons and cards. */
+.tuki-admin [hidden] {
+	display: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Components: cards, metrics, segmented range, progress, lists
+ * ------------------------------------------------------------------------- */
+
+.tuki-admin .tk-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.tuki-admin .tk-grid2 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+	gap: 16px;
+}
+
+.tuki-admin .tk-grid3 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+	gap: 12px;
+}
+
+.tuki-admin .tk-card {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-width: 0;
+	padding: 20px 22px;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+}
+
+.tuki-admin .tk-card-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.tuki-admin .tk-ctitle {
+	padding: 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-ccap {
+	margin-top: 2px;
+	color: var(--tk-muted);
+	font-size: 13px;
+}
+
+.tuki-admin .tk-lbl {
+	color: var(--tk-text2);
+	font-size: 13.5px;
+	font-weight: 500;
+}
+
+.tuki-admin .tk-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 44px;
+}
+
+.tuki-admin .tk-row.is-tight {
+	min-height: 0;
+}
+
+.tuki-admin .tk-row.is-top {
+	align-items: flex-start;
+	flex-wrap: wrap;
+}
+
+.tuki-admin .tk-rt {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.tuki-admin .tk-metric {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	padding: 16px 18px;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+}
+
+/* Metrics inside a card sit on the slightly raised surface. */
+.tuki-admin .tk-card .tk-metric {
+	background: var(--tk-card2);
+}
+
+.tuki-admin .tk-ml {
+	color: var(--tk-muted);
+	font-size: 12.5px;
+}
+
+.tuki-admin .tk-mv {
+	color: var(--tk-text);
+	font-size: 26px;
+	font-weight: 500;
+	line-height: 1.3;
+	letter-spacing: -.01em;
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tk-ms {
+	color: var(--tk-muted);
+	font-size: 12px;
+}
+
+.tuki-admin .tk-ms.is-ok {
+	color: var(--tk-ok);
+}
+
+.tuki-admin .tk-ms.is-warn {
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tk-ms.is-accent {
+	color: var(--tk-accent);
+}
+
+.tuki-admin .tk-seg {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 4px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tk-seg-btn {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 14px;
+	border-radius: 9px;
+	color: var(--tk-muted);
+	font-size: 13.5px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.tuki-admin .tk-seg-btn:hover {
+	color: var(--tk-text);
+}
+
+.tuki-admin .tk-seg-btn[aria-current="true"] {
+	background: var(--tk-card);
+	color: var(--tk-text);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+}
+
+.tuki-admin .tk-trend {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.tuki-admin .tk-trend-svg {
+	display: block;
+	width: 100%;
+	height: 120px;
+	overflow: visible;
+}
+
+.tuki-admin .tk-trend-area {
+	fill: var(--tk-accent);
+	opacity: .14;
+}
+
+.tuki-admin .tk-trend-line {
+	fill: none;
+	stroke: var(--tk-accent);
+	stroke-width: 2;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.tuki-admin .tk-trend-axis {
+	display: flex;
+	justify-content: space-between;
+	color: var(--tk-muted);
+	font-size: 12px;
+}
+
+.tuki-admin .tk-chart-empty {
+	display: grid;
+	place-items: center;
+	min-height: 120px;
+	padding: 16px;
+	border: 1px dashed var(--tk-line);
+	border-radius: 12px;
+	color: var(--tk-muted);
+	font-size: 13px;
+	text-align: center;
+}
+
+.tuki-admin .tk-bar {
+	height: 8px;
+	overflow: hidden;
+	border-radius: 4px;
+	background: var(--tk-track);
+}
+
+.tuki-admin .tk-bar span {
+	display: block;
+	height: 100%;
+	border-radius: 4px;
+	background: var(--tk-ok);
+	transition: width .3s ease;
+}
+
+.tuki-admin .tk-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.tuki-admin .tk-li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 44px;
+	border-bottom: 1px solid var(--tk-line2);
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tk-li:last-child {
+	border-bottom: 0;
+}
+
+.tuki-admin .tk-li-label {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tk-badge {
+	flex: 0 0 auto;
+	padding: 2px 9px;
+	border-radius: 999px;
+	background: var(--tk-card2);
+	color: var(--tk-muted);
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.tuki-admin .tk-badge.is-warn {
+	background: var(--tk-warn-bg);
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tk-empty {
+	padding: 4px 0;
+	color: var(--tk-muted);
+	font-size: 13.5px;
+}
+
+.tuki-admin .tk-btn[disabled] {
+	opacity: .55;
+	cursor: not-allowed;
+}
+
+.tuki-admin .tk-btn.is-sm {
+	padding: 0 14px;
+	font-size: 13px;
+}
+
+.tuki-admin .tk-ctitle a {
+	color: var(--tk-text);
+	text-decoration: none;
+}
+
+.tuki-admin .tk-ctitle a:hover {
+	color: var(--tk-accent);
+	text-decoration: underline;
+}
+
+/* Tables (Back in stock). The box scrolls sideways on very narrow screens. */
+.tuki-admin .tk-tbox {
+	overflow-x: auto;
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tk-tbl {
+	width: 100%;
+	min-width: 480px;
+	border-collapse: collapse;
+	font-size: 13.5px;
+}
+
+.tuki-admin .tk-tbl th {
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--tk-line);
+	color: var(--tk-muted);
+	font-weight: 500;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.tuki-admin .tk-tbl td {
+	padding: 6px 14px;
+	border-bottom: 1px solid var(--tk-line2);
+	color: var(--tk-text2);
+	vertical-align: middle;
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tk-tbl tr:last-child td {
+	border-bottom: 0;
+}
+
+.tuki-admin .tk-tbl th:last-child,
+.tuki-admin .tk-tbl td:last-child {
+	width: 1%;
+	text-align: right;
+	white-space: nowrap;
+}
+
+/* Phones: each row stacks (email, then date) with Remove on the right; the
+ * header row stays available to screen readers. */
+@media screen and (max-width: 600px) {
+	.tuki-admin .tk-tbl {
+		min-width: 0;
+	}
+
+	.tuki-admin .tk-tbl thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.tuki-admin .tk-tbl tr {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 2px 12px;
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--tk-line2);
+	}
+
+	.tuki-admin .tk-tbl tr:last-child {
+		border-bottom: 0;
+	}
+
+	.tuki-admin .tk-tbl td {
+		display: block;
+		padding: 0;
+		border: 0;
+	}
+
+	.tuki-admin .tk-tbl td:nth-child(2) {
+		grid-row: 2;
+		color: var(--tk-muted);
+		font-size: 12.5px;
+	}
+
+	.tuki-admin .tk-tbl td:last-child {
+		grid-column: 2;
+		grid-row: 1 / span 2;
+		width: auto;
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Settings screen — base layout and control mechanics
+ *
+ * Carried over from the previous settings stylesheet (admin-dark.css): card
+ * grid, field layout, the custom dropdown/checkbox/switch mechanics and the
+ * tab-specific layouts. Prefixed with :where(.tuki-admin) so they are scoped
+ * to the shell without gaining specificity; the restyle that follows wins.
+ * ------------------------------------------------------------------------- */
+
+:where(.tuki-admin) .tkfy ::selection {
+	background: var(--active-bg);
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-lock {
+	position: relative;
+}
+
+:where(.tuki-admin) .tkfy-lock-content {
+	filter: blur(4px);
+	opacity: 0.5;
+	pointer-events: none;
+	user-select: none;
+}
+
+:where(.tuki-admin) .tkfy-lock-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: radial-gradient(ellipse at center, rgba(14, 17, 22, .82) 0%, rgba(14, 17, 22, .62) 100%);
+	border-radius: var(--radius-card);
+}
+
+:where(.tuki-admin) .tkfy-lock-card {
+	max-width: 420px;
+	text-align: center;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-card);
+	padding: 28px 26px;
+	box-shadow: 0 18px 48px rgba(0, 0, 0, .45);
+}
+
+:where(.tuki-admin) .tkfy-lock-icon {
+	display: inline-flex;
+	width: 48px;
+	height: 48px;
+	margin-bottom: 14px;
+}
+
+:where(.tuki-admin) .tkfy-lock-icon svg {
+	width: 100%;
+	height: 100%;
+}
+
+:where(.tuki-admin) .tkfy-lock-title {
+	margin: 0 0 8px;
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-lock-text {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-note--warn {
+	border-left: 3px solid #f6c944;
+	padding-left: 12px;
+}
+
+:where(.tuki-admin) .tkfy-hint--warn {
+	color: #f6c944;
+}
+
+:where(.tuki-admin) .tkfy-steps {
+	margin: 12px 0 0;
+	padding-left: 20px;
+	line-height: 1.9;
+}
+
+:where(.tuki-admin) .tkfy-steps li {
+	margin: 0 0 2px;
+}
+
+:where(.tuki-admin) .tkfy-convo {
+	border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+	border-radius: 8px;
+	padding: 10px 12px;
+	margin: 0 0 8px;
+}
+
+:where(.tuki-admin) .tkfy-convo summary {
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	align-items: baseline;
+	flex-wrap: wrap;
+}
+
+:where(.tuki-admin) .tkfy-convo-line {
+	margin: 6px 0 0;
+	line-height: 1.5;
+}
+
+:where(.tuki-admin) .tkfy-bubble-preview {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+
+:where(.tuki-admin) .tkfy-bubble-mock {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+	flex-shrink: 0;
+}
+
+:where(.tuki-admin) .tkfy-bubble-note {
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+:where(.tuki-admin) .tkfy-bubble-note.is-warn {
+	color: #f6c944;
+}
+
+:where(.tuki-admin) .tkfy-panels {
+	min-height: 340px;
+}
+
+:where(.tuki-admin) .tkfy-panel {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--sp-4);
+	animation: tkfy-fade var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-panel[hidden] {
+	display: none;
+}
+
+@keyframes tkfy-fade {
+	from { opacity: 0; transform: translateY(4px); }
+	to   { opacity: 1; transform: none; }
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	:where(.tuki-admin) .tkfy-panel {
+		animation: none;
+	}
+}
+
+:where(.tuki-admin) .tkfy-card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-card);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+	overflow: visible;
+}
+
+:where(.tuki-admin) .tkfy-card-head {
+	padding: var(--sp-4) var(--sp-6);
+	border-bottom: 1px solid var(--border);
+	background: var(--hover-lift);
+	border-top-left-radius: calc(var(--radius-card) - 1px);
+	border-top-right-radius: calc(var(--radius-card) - 1px);
+}
+
+:where(.tuki-admin) .tkfy-card-title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-card-cap {
+	margin: var(--sp-1) 0 0;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-card-body {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--sp-4) var(--sp-6);
+	padding: var(--sp-6);
+}
+
+@media ( max-width: 782px ) {
+	:where(.tuki-admin) .tkfy-card-body {
+		grid-template-columns: 1fr;
+	}
+}
+
+:where(.tuki-admin) .tkfy-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	min-width: 0;
+}
+
+:where(.tuki-admin) .tkfy-field--wide {
+	grid-column: 1 / -1;
+}
+
+:where(.tuki-admin) .tkfy-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-hint {
+	margin: 0;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-hint strong {
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-note {
+	margin: 0;
+	padding: var(--sp-3) var(--sp-4);
+	font-size: 12px;
+	color: var(--text-muted);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+}
+
+:where(.tuki-admin) .tkfy-note a {
+	color: var(--primary);
+	text-decoration: none;
+	transition: color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-note a:hover {
+	color: var(--primary-hov);
+	text-decoration: underline;
+}
+
+:where(.tuki-admin) .tkfy-inline {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	flex-wrap: wrap;
+}
+
+:where(.tuki-admin) .tkfy-empty {
+	grid-column: 1 / -1;
+	padding: var(--sp-6);
+	text-align: center;
+	color: var(--text-muted);
+	background: var(--surface-2);
+	border: 1px dashed var(--border);
+	border-radius: var(--radius-ctl);
+}
+
+:where(.tuki-admin) .tkfy-empty p {
+	margin: 0 auto;
+	max-width: 52ch;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input {
+	width: 100%;
+	max-width: 520px;
+	min-height: 38px;
+	padding: 8px 12px;
+	font-size: 13px;
+	color: var(--text);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	transition: border-color var(--speed) ease, box-shadow var(--speed) ease, background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy textarea.tuki-input {
+	min-height: 62px;
+	line-height: 1.5;
+	resize: vertical;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input--sm {
+	max-width: 140px;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input::placeholder {
+	color: var(--placeholder);
+	opacity: 1;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input:hover {
+	border-color: #39424d;
+}
+
+:where(.tuki-admin) .tkfy .tuki-input:focus,
+:where(.tuki-admin) .tkfy .tuki-input:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tuki-color {
+	width: 48px;
+	height: 38px;
+	padding: 2px;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	transition: border-color var(--speed) ease, box-shadow var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-color:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tkfy-select-native {
+	display: none;
+}
+
+:where(.tuki-admin) .tkfy-select {
+	position: relative;
+	width: 100%;
+	max-width: 520px;
+}
+
+:where(.tuki-admin) .tkfy-select-trigger {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-2);
+	width: 100%;
+	min-height: 38px;
+	padding: 8px 12px;
+	font-size: 13px;
+	text-align: left;
+	color: var(--text);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	transition: border-color var(--speed) ease, box-shadow var(--speed) ease, background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select-trigger:hover {
+	border-color: #39424d;
+}
+
+:where(.tuki-admin) .tkfy-select-trigger:focus-visible {
+	outline: none;
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-select-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:where(.tuki-admin) .tkfy-select-chevron {
+	display: inline-flex;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+	transition: transform var(--speed) ease, color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select.is-open .tkfy-select-chevron {
+	transform: rotate(180deg);
+	color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-select-panel {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 9999;
+	margin: 4px 0 0;
+	padding: 4px;
+	list-style: none;
+	max-height: 280px;
+	overflow-y: auto;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-4px);
+	transform-origin: top center;
+	pointer-events: none;
+	transition: opacity var(--speed) ease, transform var(--speed) ease, visibility var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select.is-up .tkfy-select-panel {
+	top: auto;
+	bottom: 100%;
+	margin: 0 0 4px;
+	transform: translateY(4px);
+	transform-origin: bottom center;
+}
+
+:where(.tuki-admin) .tkfy-select.is-open .tkfy-select-panel {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+	pointer-events: auto;
+}
+
+:where(.tuki-admin) .tkfy-select-option {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: 8px 10px;
+	font-size: 13px;
+	color: var(--text);
+	background: transparent;
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	transition: background-color var(--speed) ease, color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-select-option:hover,
+:where(.tuki-admin) .tkfy-select-option.is-active,
+:where(.tuki-admin) .tkfy-select-option:focus-visible {
+	outline: none;
+	background: var(--active-bg);
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-select-option.is-selected {
+	background: var(--active-bg);
+	color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-select-check {
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: 16px;
+	color: var(--primary);
+	opacity: 0;
+}
+
+:where(.tuki-admin) .tkfy-select-option.is-selected .tkfy-select-check {
+	opacity: 1;
+}
+
+:where(.tuki-admin) .tkfy-checklist {
+	max-width: 520px;
+	max-height: 220px;
+	overflow-y: auto;
+	padding: 4px;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+}
+
+:where(.tuki-admin) .tkfy-checklist-empty {
+	margin: 0;
+	padding: 8px 10px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-check-row {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: 8px 10px;
+	border-radius: var(--radius-ctl);
+	cursor: pointer;
+	color: var(--text);
+	transition: background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-check-row:hover {
+	background: var(--active-bg);
+}
+
+:where(.tuki-admin) .tkfy-check-row:has( .tkfy-check-input:checked ) {
+	background: var(--active-bg);
+}
+
+:where(.tuki-admin) .tkfy-check-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+:where(.tuki-admin) .tkfy-check-box {
+	position: relative;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	background: var(--surface);
+	transition: background-color var(--speed) ease, border-color var(--speed) ease, box-shadow var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-check-box::after {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 2px;
+	width: 5px;
+	height: 9px;
+	border: solid var(--on-primary);
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg) scale(0);
+	transition: transform var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-check-input:checked + .tkfy-check-box {
+	background: var(--primary);
+	border-color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-check-input:checked + .tkfy-check-box::after {
+	transform: rotate(45deg) scale(1);
+}
+
+:where(.tuki-admin) .tkfy-check-input:focus-visible + .tkfy-check-box {
+	border-color: var(--primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-check-text {
+	font-size: 13px;
+	color: var(--text);
+	line-height: 1.3;
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-2);
+	min-height: 38px;
+	padding: 8px 16px;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1;
+	border-radius: var(--radius-ctl);
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition: background-color var(--speed) ease, border-color var(--speed) ease, color var(--speed) ease, box-shadow var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn[disabled] {
+	opacity: .55;
+	cursor: default;
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn--ghost {
+	color: var(--text);
+	background: transparent;
+	border-color: var(--border);
+}
+
+:where(.tuki-admin) .tkfy .tuki-btn--ghost:hover:not([disabled]) {
+	border-color: #39424d;
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-3);
+	cursor: pointer;
+	user-select: none;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch-slider {
+	position: relative;
+	flex: 0 0 auto;
+	width: 40px;
+	height: 22px;
+	border-radius: 999px;
+	background: #3a424d;
+	transition: background-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch-slider::after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #e6e9ee;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+	transition: transform var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input:checked + .tuki-switch-slider {
+	background: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input:checked + .tuki-switch-slider::after {
+	transform: translateX(18px);
+	background: var(--on-primary);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch input:focus-visible + .tuki-switch-slider {
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy .tuki-switch-text {
+	font-size: 13px;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy .tuki-status {
+	font-size: 12px;
+	color: var(--text-muted);
+	min-height: 16px;
+}
+
+:where(.tuki-admin) .tkfy .tuki-status.is-success {
+	color: var(--success);
+}
+
+:where(.tuki-admin) .tkfy .tuki-status.is-error {
+	color: var(--danger);
+}
+
+:where(.tuki-admin) .tkfy .tuki-kb-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+	gap: var(--sp-2);
+	align-items: start;
+	margin-bottom: var(--sp-2);
+}
+
+:where(.tuki-admin) .tkfy .tuki-kb-row .tuki-input {
+	max-width: none;
+}
+
+@media ( max-width: 782px ) {
+	:where(.tuki-admin) .tkfy .tuki-kb-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-results {
+	margin: var(--sp-3) 0 0;
+	padding-left: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-results a {
+	color: var(--primary);
+	text-decoration: none;
+	transition: color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-results a:hover {
+	color: var(--primary-hov);
+	text-decoration: underline;
+}
+
+:where(.tuki-admin) .tkfy .tuki-search-score {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+:where(.tuki-admin) .tkfy-demand-filter {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+}
+
+:where(.tuki-admin) .tkfy-range-link {
+	font-size: 12px;
+	color: var(--text-muted);
+	text-decoration: none;
+	padding: 5px 10px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	transition: color var(--speed) ease, background-color var(--speed) ease, border-color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-range-link:hover {
+	color: var(--text);
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy-range-link:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-range-link.is-active {
+	color: var(--primary);
+	background: var(--active-bg);
+	border-color: var(--primary);
+	font-weight: 600;
+}
+
+:where(.tuki-admin) .tkfy-demand-summary {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--sp-3);
+}
+
+@media ( max-width: 782px ) {
+	:where(.tuki-admin) .tkfy-demand-summary {
+		grid-template-columns: 1fr;
+	}
+}
+
+:where(.tuki-admin) .tkfy-tile {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--sp-4);
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+}
+
+:where(.tuki-admin) .tkfy-tile-value {
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--text);
+	line-height: 1.1;
+}
+
+:where(.tuki-admin) .tkfy-tile-value--warn {
+	color: var(--danger);
+}
+
+:where(.tuki-admin) .tkfy-tile-label {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-demand-title {
+	margin: 0 0 var(--sp-2);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text);
+}
+
+:where(.tuki-admin) .tkfy-demand-list {
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-ctl);
+	overflow: hidden;
+}
+
+:where(.tuki-admin) .tkfy-demand-row {
+	display: grid;
+	grid-template-columns: 1fr auto minmax(120px, auto);
+	gap: var(--sp-4);
+	align-items: center;
+	padding: 10px 12px;
+	border-top: 1px solid var(--border);
+	font-size: 13px;
+}
+
+:where(.tuki-admin) .tkfy-demand-row:first-child {
+	border-top: none;
+}
+
+:where(.tuki-admin) .tkfy-demand-row:not(.tkfy-demand-row--head):hover {
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy-demand-row--head {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	color: var(--text-muted);
+	background: var(--hover-lift);
+}
+
+:where(.tuki-admin) .tkfy-demand-q {
+	color: var(--text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+
+:where(.tuki-admin) .tkfy-demand-n {
+	color: var(--text);
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	text-align: right;
+	min-width: 40px;
+}
+
+:where(.tuki-admin) .tkfy-demand-action {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 500;
+	text-decoration: none;
+	padding: 5px 10px;
+	border-radius: var(--radius-ctl);
+	border: 1px solid var(--border);
+	white-space: nowrap;
+	transition: background-color var(--speed) ease, border-color var(--speed) ease, color var(--speed) ease;
+}
+
+:where(.tuki-admin) .tkfy-demand-action--product {
+	color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-demand-action--product:hover {
+	background: var(--active-bg);
+	border-color: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-demand-action--faq {
+	color: var(--success);
+	border-color: rgba(52, 211, 153, .35);
+}
+
+:where(.tuki-admin) .tkfy-demand-action--faq:hover {
+	background: rgba(52, 211, 153, .12);
+	border-color: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-demand-action:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:where(.tuki-admin) .tkfy-trend {
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+:where(.tuki-admin) .tkfy-trend--up,
+:where(.tuki-admin) .tkfy-trend--new {
+	color: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-trend--down {
+	color: var(--danger);
+}
+
+:where(.tuki-admin) .tkfy-trend--flat {
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tuki-size-colhead,
+:where(.tuki-admin) .tuki-size-row {
+	display: grid;
+	grid-template-columns: 1.6fr 0.8fr repeat(4, 0.9fr) auto;
+	gap: var(--sp-2);
+	align-items: center;
+}
+
+:where(.tuki-admin) .tuki-size-colhead {
+	margin-bottom: var(--sp-1);
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .03em;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tuki-size-row {
+	margin-bottom: var(--sp-2);
+}
+
+:where(.tuki-admin) .tkfy .tuki-size-row .tuki-input {
+	max-width: none;
+	min-height: 34px;
+	padding: 6px 8px;
+}
+
+@media ( max-width: 900px ) {
+	:where(.tuki-admin) .tuki-size-colhead {
+		display: none;
+	}
+
+	:where(.tuki-admin) .tuki-size-row {
+		grid-template-columns: 1fr 1fr;
+		padding: var(--sp-3);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-ctl);
+	}
+
+	:where(.tuki-admin) .tuki-size-row .tuki-size-cat,
+	:where(.tuki-admin) .tuki-size-row .tuki-size-remove {
+		grid-column: 1 / -1;
+	}
+}
+
+:where(.tuki-admin) .tkfy-legend {
+	display: flex;
+	gap: 16px;
+	margin-bottom: 8px;
+}
+
+:where(.tuki-admin) .tkfy-legend-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+:where(.tuki-admin) .tkfy-legend-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 3px;
+	display: inline-block;
+}
+
+:where(.tuki-admin) .tkfy-legend-dot--chat {
+	background: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-legend-dot--embed {
+	background: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-usage-chart {
+	display: flex;
+	align-items: flex-end;
+	gap: 3px;
+	height: 120px;
+	padding: 8px;
+	background: var(--surface-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-card, 10px);
+	overflow-x: auto;
+}
+
+:where(.tuki-admin) .tkfy-ubar {
+	flex: 1 1 0;
+	min-width: 6px;
+	height: 100%;
+	display: flex;
+	align-items: flex-end;
+}
+
+:where(.tuki-admin) .tkfy-ubar-track {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column-reverse;
+	justify-content: flex-start;
+	border-radius: 3px 3px 0 0;
+	overflow: hidden;
+}
+
+:where(.tuki-admin) .tkfy-ubar-seg {
+	display: block;
+	width: 100%;
+	min-height: 0;
+}
+
+:where(.tuki-admin) .tkfy-ubar-seg--chat {
+	background: var(--primary);
+}
+
+:where(.tuki-admin) .tkfy-ubar-seg--embed {
+	background: var(--success);
+}
+
+:where(.tuki-admin) .tkfy-ubar:hover .tkfy-ubar-seg--chat {
+	background: var(--primary-hov);
+}
+
+/* ---------------------------------------------------------------------------
+ * Settings screen
+ *
+ * The settings markup keeps its class names (tkfy-*, tuki-*): they are the
+ * contract with admin.js and admin-controls.js (which builds the tkfy-select
+ * dropdowns), so they are restyled here rather than renamed.
+ * ------------------------------------------------------------------------- */
+
+/* .tkfy wraps the panels. The base rules above use these short variable
+ * names; they map onto the theme tokens so everything follows light/dark. */
+.tuki-admin .tkfy {
+	--bg: var(--tk-bg);
+	--surface: var(--tk-card);
+	--surface-2: var(--tk-card2);
+	--border: var(--tk-line);
+	--text: var(--tk-text);
+	--text-muted: var(--tk-muted);
+	--primary: var(--tk-accent);
+	--primary-hov: var(--tk-accent);
+	--active-bg: var(--tk-accent-bg);
+	--focus-ring: var(--tk-ring);
+	--placeholder: var(--tk-muted);
+	--success: var(--tk-ok);
+	--danger: var(--tk-danger);
+	--on-primary: #ffffff;
+	--hover-lift: var(--tk-hover);
+	--sp-1: 4px;
+	--sp-2: 8px;
+	--sp-3: 12px;
+	--sp-4: 16px;
+	--sp-6: 24px;
+	--radius-card: 12px;
+	--radius-ctl: 6px;
+	--speed: 150ms;
+
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	color: inherit;
+	color-scheme: inherit;
+	font-size: inherit;
+}
+
+.tuki-admin .tkfy-panels {
+	min-height: 0;
+}
+
+.tuki-admin .tkfy-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.tuki-admin .tkfy-card {
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy-card-head {
+	padding: 20px 22px 0;
+	background: transparent;
+	border-bottom: 0;
+}
+
+.tuki-admin .tkfy-card-title {
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tkfy-card-cap {
+	margin-top: 2px;
+	font-size: 13px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy-card-body {
+	gap: 16px;
+	padding: 16px 22px 20px;
+}
+
+.tuki-admin .tkfy-field {
+	gap: 6px;
+}
+
+.tuki-admin .tkfy-label {
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-hint {
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy-hint strong {
+	color: var(--tk-text);
+}
+
+.tuki-admin .tkfy-hint--warn,
+.tuki-admin .tkfy-hint.is-warn,
+.tuki-admin .tkfy-bubble-note.is-warn {
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tkfy-note {
+	padding: 12px 14px;
+	font-size: 13px;
+	color: var(--tk-text2);
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+}
+
+.tuki-admin .tkfy-note--warn {
+	border-left: 3px solid var(--tk-warn);
+}
+
+.tuki-admin .tkfy a {
+	color: var(--tk-accent);
+}
+
+/* Field + button rows (API key + Test, token + Copy + Regenerate) wrap only
+ * when the field would get narrower than 200px. */
+.tuki-admin .tkfy-inline {
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+/* Text inputs, textareas, number fields and the dropdown trigger share one look. */
+.tuki-admin .tkfy .tuki-input,
+.tuki-admin .tkfy-select-trigger {
+	width: 100%;
+	max-width: none;
+	min-height: 44px;
+	margin: 0;
+	padding: 0 12px;
+	font: inherit;
+	font-size: 14px;
+	line-height: 1.4;
+	color: var(--tk-text);
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy textarea.tuki-input {
+	min-height: 92px;
+	padding: 10px 12px;
+}
+
+.tuki-admin .tkfy .tuki-input--sm {
+	max-width: 180px;
+}
+
+.tuki-admin .tkfy .tuki-input::placeholder {
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy .tuki-input:hover,
+.tuki-admin .tkfy-select-trigger:hover {
+	border-color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy .tuki-input:focus,
+.tuki-admin .tkfy .tuki-input:focus-visible,
+.tuki-admin .tkfy-select-trigger:focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 1px;
+	border-color: var(--tk-line);
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy .tuki-input:disabled {
+	opacity: .55;
+}
+
+.tuki-admin .tkfy-inline .tuki-input {
+	flex: 1 1 200px;
+	min-width: 0;
+}
+
+/* Native colour input drawn as a 44px swatch. */
+.tuki-admin .tkfy .tuki-color {
+	width: 44px;
+	height: 44px;
+	padding: 3px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+}
+
+/* Custom single-select (admin-controls.js). */
+.tuki-admin .tkfy-select {
+	max-width: none;
+}
+
+.tuki-admin .tkfy-select-chevron {
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy-select.is-open .tkfy-select-chevron {
+	color: var(--tk-accent);
+}
+
+.tuki-admin .tkfy-select-panel {
+	padding: 4px;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+	box-shadow: var(--tk-shadow);
+}
+
+.tuki-admin .tkfy-select-option {
+	min-height: 40px;
+	padding: 8px 10px;
+	font-size: 14px;
+	color: var(--tk-text);
+	border-radius: 8px;
+}
+
+.tuki-admin .tkfy-select-option:hover,
+.tuki-admin .tkfy-select-option.is-active,
+.tuki-admin .tkfy-select-option:focus-visible {
+	background: var(--tk-card2);
+	color: var(--tk-text);
+}
+
+.tuki-admin .tkfy-select-option.is-selected {
+	background: var(--tk-accent-bg);
+	color: var(--tk-text);
+}
+
+.tuki-admin .tkfy-select-check {
+	color: var(--tk-accent);
+}
+
+/* Buttons inside settings cards (Test, Reindex, Add row, …). */
+.tuki-admin .tkfy .tuki-btn {
+	min-height: 44px;
+	padding: 0 16px;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1;
+	white-space: nowrap;
+	border-radius: 10px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy .tuki-btn--ghost {
+	color: var(--tk-text);
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+}
+
+.tuki-admin .tkfy .tuki-btn--ghost:hover:not([disabled]) {
+	background: var(--tk-card2);
+	border-color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy .tuki-btn--accent,
+.tuki-admin .tkfy .tuki-btn--accent:hover:not([disabled]) {
+	color: #ffffff;
+	background: var(--tk-solid);
+	border: 1px solid transparent;
+}
+
+.tuki-admin .tkfy .tuki-btn:focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+/* Toggle rows: label on the left, switch on the right, 44px tall. */
+.tuki-admin .tkfy .tuki-switch {
+	display: flex;
+	flex-direction: row-reverse;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	width: 100%;
+	min-height: 44px;
+}
+
+.tuki-admin .tkfy .tuki-switch-text {
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy .tuki-switch-slider {
+	width: 44px;
+	height: 26px;
+	margin-right: 5px;
+	background: var(--tk-track);
+}
+
+.tuki-admin .tkfy .tuki-switch-slider::after {
+	top: 3px;
+	left: 3px;
+	width: 20px;
+	height: 20px;
+	background: #ffffff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+}
+
+.tuki-admin .tkfy .tuki-switch input:checked + .tuki-switch-slider {
+	background: var(--tk-solid);
+}
+
+.tuki-admin .tkfy .tuki-switch input:checked + .tuki-switch-slider::after {
+	transform: translateX(18px);
+	background: #ffffff;
+}
+
+.tuki-admin .tkfy .tuki-switch input:focus-visible + .tuki-switch-slider {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy .tuki-switch input:disabled + .tuki-switch-slider {
+	opacity: .55;
+}
+
+/* Checkbox lists (quick-reply chips, post types, pages). */
+.tuki-admin .tkfy-checklist {
+	max-width: none;
+	padding: 4px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+}
+
+.tuki-admin .tkfy-check-row {
+	min-height: 44px;
+	padding: 6px 10px;
+	gap: 12px;
+	color: var(--tk-text2);
+	border-radius: 8px;
+}
+
+.tuki-admin .tkfy-check-row:hover,
+.tuki-admin .tkfy-check-row:has( .tkfy-check-input:checked ) {
+	background: transparent;
+}
+
+.tuki-admin .tkfy-check-row:hover {
+	background: var(--tk-hover);
+}
+
+.tuki-admin .tkfy-check-text {
+	font-size: 14px;
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-check-box {
+	width: 20px;
+	height: 20px;
+	border: 1.5px solid var(--tk-muted);
+	border-radius: 6px;
+	background: transparent;
+}
+
+.tuki-admin .tkfy-check-box::after {
+	left: 5.5px;
+	top: 2px;
+	border-color: #ffffff;
+}
+
+.tuki-admin .tkfy-check-input:checked + .tkfy-check-box {
+	background: var(--tk-solid);
+	border-color: var(--tk-solid);
+}
+
+.tuki-admin .tkfy-check-input:focus-visible + .tkfy-check-box {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+/* Status text after Test / Reindex / Search / Clear cache. */
+.tuki-admin .tkfy .tuki-status {
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy .tuki-status:empty {
+	display: none;
+}
+
+.tuki-admin .tkfy .tuki-status.is-success {
+	color: var(--tk-ok);
+}
+
+.tuki-admin .tkfy .tuki-status.is-error {
+	color: var(--tk-danger);
+}
+
+/* Appearance: live bubble preview. */
+.tuki-admin .tkfy-bubble-preview {
+	gap: 16px;
+	padding: 16px;
+	background: var(--tk-card2);
+	border-radius: 12px;
+}
+
+.tuki-admin .tkfy-bubble-mock {
+	box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+}
+
+.tuki-admin .tkfy-bubble-note {
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+/* WordPress colour picker (Iris) trigger, matched to the inputs. */
+.tuki-admin .tkfy .wp-picker-container .wp-color-result.button {
+	min-height: 44px;
+	margin: 0;
+	border-color: var(--tk-line);
+	border-radius: 10px;
+	background-color: var(--tk-card2);
+	color: var(--tk-text);
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy .wp-color-result-text {
+	padding: 0 12px;
+	line-height: 42px;
+	border-left-color: var(--tk-line);
+	border-radius: 0 9px 9px 0;
+	background: var(--tk-card2);
+	color: var(--tk-text);
+}
+
+.tuki-admin .tkfy .wp-picker-container input[type="text"].wp-color-picker {
+	width: 96px;
+	min-height: 44px;
+	padding: 0 10px;
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+	background: var(--tk-card2);
+	color: var(--tk-text);
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.tuki-admin .tkfy .wp-picker-container .button.wp-picker-default,
+.tuki-admin .tkfy .wp-picker-container .button.wp-picker-clear {
+	min-height: 44px;
+	padding: 0 14px;
+	border-color: var(--tk-line);
+	border-radius: 10px;
+	background: var(--tk-card2);
+	color: var(--tk-text);
+}
+
+/* Native selects not (yet) enhanced by admin-controls.js, e.g. size-chart rows
+ * added after load: keep a chevron, since the background reset drops WP's. */
+.tuki-admin .tkfy select.tuki-input {
+	appearance: none;
+	padding-right: 36px;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8a94' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 12px center;
+	background-size: 16px 16px;
+}
+
+/* Products & Cart: size-chart repeater. */
+.tuki-admin .tuki-size-colhead,
+.tuki-admin .tuki-size-row {
+	gap: 8px;
+}
+
+.tuki-admin .tuki-size-colhead {
+	margin-bottom: 2px;
+	padding: 0 2px;
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tuki-size-row {
+	margin-bottom: 8px;
+}
+
+.tuki-admin .tkfy .tuki-size-row .tuki-input {
+	min-height: 44px;
+	padding: 0 10px;
+}
+
+.tuki-admin .tkfy .tuki-size-row select.tuki-input {
+	padding-right: 32px;
+}
+
+@media screen and (max-width: 900px) {
+	.tuki-admin .tuki-size-row {
+		padding: 12px;
+		background: var(--tk-card2);
+		border: 1px solid var(--tk-line);
+		border-radius: 12px;
+	}
+}
+
+/* Channels: "Coming soon" sits as its own card above the dimmed, inert
+ * settings (the fields are rendered disabled server-side). */
+.tuki-admin .tkfy-lock {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.tuki-admin .tkfy-lock-overlay {
+	position: static;
+	display: block;
+	padding: 0;
+	background: none;
+	border-radius: 0;
+}
+
+.tuki-admin .tkfy-lock-card {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: center;
+	gap: 4px 16px;
+	max-width: none;
+	padding: 20px 22px;
+	text-align: left;
+	background: var(--tk-card);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy-lock-icon {
+	grid-row: span 2;
+	width: 40px;
+	height: 40px;
+	margin: 0;
+}
+
+.tuki-admin .tkfy-lock-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--tk-text);
+}
+
+.tuki-admin .tkfy-lock-text {
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy-lock-content {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	filter: saturate(.6);
+	opacity: .42;
+}
+
+/* Channels: setup steps and recent conversations. */
+.tuki-admin .tkfy-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 4px 0 0;
+	padding-left: 20px;
+	color: var(--tk-text2);
+	font-size: 13.5px;
+	line-height: 1.5;
+}
+
+.tuki-admin .tkfy-steps li {
+	margin: 0;
+}
+
+.tuki-admin .tkfy-convo {
+	margin: 0 0 8px;
+	padding: 0 14px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+}
+
+.tuki-admin .tkfy-convo:last-child {
+	margin-bottom: 0;
+}
+
+.tuki-admin .tkfy-convo summary {
+	align-items: center;
+	min-height: 44px;
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-convo[open] {
+	padding-bottom: 12px;
+}
+
+.tuki-admin .tkfy-convo-line {
+	color: var(--tk-text2);
+	font-size: 13.5px;
+}
+
+/* A lone button in a field column (Add Q&A) keeps its natural width. */
+.tuki-admin .tkfy-field > .tuki-btn {
+	align-self: flex-start;
+}
+
+/* Knowledge Base: custom Q&A repeater (rows are also built by admin.js). */
+.tuki-admin .tkfy .tuki-kb-row {
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.tuki-admin .tkfy .tuki-kb-row textarea.tuki-input {
+	min-height: 44px;
+}
+
+.tuki-admin .tkfy-checklist-empty {
+	padding: 10px;
+	font-size: 13px;
+	color: var(--tk-muted);
+}
+
+/* Empty states (usage, demand insights). */
+.tuki-admin .tkfy-empty {
+	padding: 20px;
+	color: var(--tk-muted);
+	font-size: 13.5px;
+	background: transparent;
+	border: 1px dashed var(--tk-line);
+	border-radius: 12px;
+}
+
+/* Logs / Analytics: range links as a segmented control. */
+.tuki-admin .tkfy-demand-filter {
+	display: inline-flex;
+	justify-self: start;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 4px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tkfy .tkfy-range-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 14px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--tk-muted);
+	background: transparent;
+	border: 0;
+	border-radius: 9px;
+}
+
+.tuki-admin .tkfy .tkfy-range-link:hover {
+	color: var(--tk-text);
+	background: transparent;
+}
+
+.tuki-admin .tkfy .tkfy-range-link.is-active {
+	color: var(--tk-text);
+	background: var(--tk-card);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+	font-weight: 500;
+}
+
+.tuki-admin .tkfy .tkfy-range-link:focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+/* Totals tiles, matched to the dashboard metrics. */
+.tuki-admin .tkfy-demand-summary {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+	gap: 12px;
+}
+
+.tuki-admin .tkfy-tile {
+	gap: 4px;
+	padding: 16px 18px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 14px;
+}
+
+.tuki-admin .tkfy-tile-value {
+	order: 2;
+	font-size: 26px;
+	font-weight: 500;
+	line-height: 1.3;
+	letter-spacing: -.01em;
+	color: var(--tk-text);
+	overflow-wrap: anywhere;
+}
+
+.tuki-admin .tkfy-tile-value--warn {
+	color: var(--tk-warn);
+}
+
+.tuki-admin .tkfy-tile-label {
+	order: 1;
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+/* Usage chart. */
+.tuki-admin .tkfy-legend-item {
+	font-size: 12.5px;
+	color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy-legend-dot--chat,
+.tuki-admin .tkfy-ubar-seg--chat,
+.tuki-admin .tkfy-ubar:hover .tkfy-ubar-seg--chat {
+	background: var(--tk-accent);
+}
+
+.tuki-admin .tkfy-legend-dot--embed,
+.tuki-admin .tkfy-ubar-seg--embed {
+	background: var(--tk-ok);
+}
+
+.tuki-admin .tkfy-usage-chart {
+	height: 150px;
+	padding: 10px;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+/* Demand tables. */
+.tuki-admin .tkfy-demand-title {
+	margin: 0 0 8px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-demand-list {
+	background: transparent;
+	border: 1px solid var(--tk-line);
+	border-radius: 12px;
+}
+
+.tuki-admin .tkfy-demand-row {
+	min-height: 44px;
+	padding: 6px 14px;
+	border-top: 1px solid var(--tk-line2);
+	font-size: 13.5px;
+}
+
+.tuki-admin .tkfy-demand-row:not(.tkfy-demand-row--head):hover {
+	background: var(--tk-hover);
+}
+
+.tuki-admin .tkfy-demand-row--head {
+	min-height: 0;
+	padding: 10px 14px;
+	font-size: 12.5px;
+	font-weight: 500;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--tk-muted);
+	background: transparent;
+	border-top: 0;
+	border-bottom: 1px solid var(--tk-line);
+}
+
+.tuki-admin .tkfy-demand-row--head + .tkfy-demand-row {
+	border-top: 0;
+}
+
+.tuki-admin .tkfy-demand-q {
+	color: var(--tk-text2);
+}
+
+.tuki-admin .tkfy-demand-n {
+	color: var(--tk-text);
+	font-weight: 500;
+}
+
+.tuki-admin .tkfy .tkfy-demand-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 0 14px;
+	font-size: 13px;
+	font-weight: 500;
+	background: var(--tk-card2);
+	border: 1px solid var(--tk-line);
+	border-radius: 10px;
+}
+
+.tuki-admin .tkfy .tkfy-demand-action--product {
+	color: var(--tk-accent);
+}
+
+.tuki-admin .tkfy .tkfy-demand-action--faq {
+	color: var(--tk-ok);
+}
+
+.tuki-admin .tkfy .tkfy-demand-action--product:hover,
+.tuki-admin .tkfy .tkfy-demand-action--faq:hover {
+	background: var(--tk-card2);
+	border-color: var(--tk-muted);
+}
+
+.tuki-admin .tkfy .tkfy-demand-action:focus-visible {
+	outline: 2px solid var(--tk-focus);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.tuki-admin .tkfy-trend--up,
+.tuki-admin .tkfy-trend--new {
+	color: var(--tk-ok);
+}
+
+.tuki-admin .tkfy-trend--down {
+	color: var(--tk-danger);
+}
+
+.tuki-admin .tkfy-trend--flat {
+	color: var(--tk-muted);
+}
+
+/* Advanced: search-test results (filled by admin.js). */
+.tuki-admin .tkfy .tuki-search-results {
+	margin: 4px 0 0;
+	gap: 6px;
+	color: var(--tk-text2);
+	font-size: 13.5px;
+}
+
+.tuki-admin .tkfy .tuki-search-results:empty {
+	display: none;
+}
+
+.tuki-admin .tkfy .tuki-search-results a {
+	color: var(--tk-accent);
+}
+
+.tuki-admin .tkfy .tuki-search-score {
+	color: var(--tk-muted);
+}
+
+@media screen and (max-width: 782px) {
+	.tuki-admin .tkfy-demand-row {
+		grid-template-columns: 1fr auto;
+	}
+
+	.tuki-admin .tkfy-demand-row > :nth-child(3) {
+		grid-column: 1 / -1;
+	}
+
+	.tuki-admin .tkfy-demand-row--head > :nth-child(3) {
+		display: none;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.tuki-admin .tkfy-card-head {
+		padding: 18px 18px 0;
+	}
+
+	.tuki-admin .tkfy-card-body {
+		padding: 14px 18px 18px;
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Narrow screens: the sidebar becomes a tab strip above the content
+ * ------------------------------------------------------------------------- */
+
+@media screen and (max-width: 782px) {
+	.tuki-admin {
+		flex-direction: column;
+	}
+
+	.tuki-admin .tk-side {
+		flex: 0 0 auto;
+		gap: 8px;
+		overflow: visible;
+		padding: 12px 16px 10px;
+		border-right: 0;
+		border-bottom: 1px solid var(--tk-line);
+	}
+
+	.tuki-admin .tk-navs {
+		flex-direction: row;
+		gap: 6px;
+		overflow-x: auto;
+		margin: 0 -16px;
+		padding: 2px 16px;
+	}
+
+	.tuki-admin .tk-group {
+		flex-direction: row;
+		gap: 6px;
+	}
+
+	.tuki-admin .tk-glabel {
+		display: none;
+	}
+
+	.tuki-admin .tk-tab {
+		flex: 0 0 auto;
+		width: auto;
+		white-space: nowrap;
+		background: var(--tk-card2);
+	}
+
+	.tuki-admin .tk-scroll {
+		padding: 20px 16px;
+	}
+
+	.tuki-admin .tk-savebar {
+		margin: 0 16px 12px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tuki-admin .tk-sw::before,
+	.tuki-admin .tk-sw::after,
+	.tuki-admin .tk-bar span {
+		transition: none;
+	}
+}
